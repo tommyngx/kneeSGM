@@ -77,6 +77,7 @@ def blue_to_gray_np(image: np.ndarray) -> np.ndarray:
     
     # Convert to HSV for easier color range detection
     hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    hsv_image = image
     
     # Define the blue range in HSV (adjust values if needed)
     lower_blue = np.array([100, 50, 50])  # Hue: 100-140, Saturation/Value: 50-255
