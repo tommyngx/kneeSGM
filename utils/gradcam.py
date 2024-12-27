@@ -48,7 +48,7 @@ def generate_gradcam(model, image, target_layer):
     #heatmap_colored = cv2.cvtColor(heatmap_colored, cv2.COLOR_BGR2RGB)
     
     heatmap_colored = cv2.cvtColor(heatmap_colored, cv2.COLOR_HSV2BGR)
-    #heatmap_colored = cv2.cvtColor(heatmap_colored, cv2.COLOR_RGB2BGR)
+    heatmap_colored = cv2.cvtColor(heatmap_colored, cv2.COLOR_RGB2BGR)
     heatmap_colored = heatmap_colored.astype(np.uint8)
     cv2.imwrite("abc.png", heatmap_colored)
     heatmap_colored = cv2.imread("abc.png")
