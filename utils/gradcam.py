@@ -4,6 +4,7 @@ from torchvision import transforms
 import numpy as np
 import cv2
 import matplotlib.pyplot as plt
+from PIL import Image
 
 def generate_gradcam_ori(model, image, target_layer):
     model.eval()
