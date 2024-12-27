@@ -40,40 +40,69 @@ def generate_gradcam(model, image, target_layer):
     return heatmap
 
 def generate_gradcam_plus_plus(model, image, target_layer):
-    model.eval()
+    """
+    Generate Grad-CAM++ heatmap for a given model, input image, and target layer.
+
+    Args:
+        model (torch.nn.Module): Trained PyTorch model.
+        image (torch.Tensor): Input image tensor of shape (C, H, W) or (1, C, H, W).
+        target_layer (torch.nn.Module): The target convolutional layer.
+
+    Returns:
+        np.array: Grad-CAM++ heatmap (H, W, 3) ready to overlay on the input image.
+    """
+    model.eval()  # Set model to evaluation mode
+
     if image.dim() == 3:
-        image = image.unsqueeze(0)
-    image.requires_grad = True
+        image = image.unsqueeze(0)  # Add batch dimension
 
-    features = []
-    def hook_fn(module, input, output):
-        features.append(output)
+    image.requires_grad = True  # Enable gradients for the input image
 
-    handle = target_layer.register_forward_hook(hook_fn)
+    # Store activations from the target layer
+    activations = []
+
+    def forward_hook(module, input, output):
+        activations.append(output)
+
+    # Register forward hook on the target layer
+    hook_handle = target_layer.register_forward_hook(forward_hook)
+
+    # Forward pass
     output = model(image)
-    handle.remove()
+    hook_handle.remove()  # Remove the hook
 
-    score = output[:, output.max(1)[-1]]
-    score.backward()
+    # Get the predicted class or specific target class
+    target_class = output.argmax(dim=1).item()
+    score = output[:, target_class]  # Get the score of the target class
 
-    gradients = image.grad.data
-    activations = features[0].detach()
+    # Backward pass to compute gradients
+    model.zero_grad()
+    score.backward(retain_graph=True)  # Backpropagate w.r.t. the target class
 
-    # Ensure the dimensions match
-    if gradients.shape[1] != activations.shape[1]:
-        gradients = gradients.permute(0, 2, 3, 1).contiguous()
-        gradients = gradients.view(gradients.size(0), gradients.size(1) * gradients.size(2), activations.size(1))
+    # Extract gradients and activations
+    gradients = target_layer.weight.grad  # Gradients of the target layer
+    activations = activations[0]  # Activations from the forward hook
 
-    weights = torch.mean(gradients, dim=1, keepdim=True)
-    heatmap = torch.sum(weights * activations, dim=1).squeeze()
+    # Compute Grad-CAM++ weights
+    b, k, u, v = gradients.size()
+    alpha = gradients.pow(2)
+    alpha /= (2 * alpha + gradients.pow(3).sum(dim=(2, 3), keepdim=True))
+    weights = (alpha * F.relu(gradients)).sum(dim=(2, 3), keepdim=True)
 
+    # Generate Grad-CAM++ heatmap
+    heatmap = (weights * activations).sum(dim=1).squeeze(0)
     heatmap = F.relu(heatmap)
-    heatmap /= torch.max(heatmap)
+    heatmap = heatmap / heatmap.max()  # Normalize heatmap
 
-    heatmap = heatmap.cpu().numpy()  # Move to CPU before converting to NumPy
-    heatmap = cv2.resize(heatmap, (image.shape[2], image.shape[3]))
+    # Convert to NumPy array and resize to match input image
+    heatmap = heatmap.cpu().numpy()
+    heatmap = cv2.resize(heatmap, (image.shape[3], image.shape[2]))
+
+    # Normalize and apply colormap
     heatmap = np.uint8(255 * heatmap)
-    heatmap = cv2.applyColorMap(heatmap, cv2.COLOR_BGR2RGB)
+    heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
+    heatmap = cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB)
+
     return heatmap
 
 def show_cam_on_image(img, mask, use_rgb=False):
