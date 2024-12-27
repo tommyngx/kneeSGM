@@ -300,6 +300,7 @@ def show_cam_on_image(img, mask, use_rgb=False):
     cam = heatmap + np.float32(img)
     cam = cam / np.max(cam)
     cam = np.uint8(255 * cam)
+    print('cam',cam.shape)
     cam = blue_to_gray_np(cam)
     return cam
 
