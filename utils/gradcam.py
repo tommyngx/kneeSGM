@@ -221,6 +221,7 @@ def show_cam_on_image(img, mask, use_rgb=False):
     cam = heatmap + np.float32(img)
     cam = cam / np.max(cam)
     cam = np.uint8(255 * cam)
+    cam = 255 - cam
     cv2.imwrite("abc1.png", cam)
     cam = blue_to_gray_np(cam)
     cv2.imwrite("abc2.png", cam)
