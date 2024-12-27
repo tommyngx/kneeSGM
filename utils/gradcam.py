@@ -41,31 +41,7 @@ def generate_gradcam(model, image, target_layer):
     heatmap = np.uint8(255 * heatmap)
     heatmap = 255 - heatmap
 
-    #heatmap_colored = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
-
-    #print(' step 1' ,heatmap.shape)
     heatmap_colored = np.stack([heatmap] * 3, axis=-1)
-    #heatmap_colored = cv2.cvtColor(heatmap_colored, cv2.COLOR_BGR2RGB)
-    
-    #heatmap_colored = cv2.cvtColor(heatmap_colored, cv2.COLOR_HSV2BGR)
-    #heatmap_colored = cv2.cvtColor(heatmap_colored, cv2.COLOR_BGR2RGB)
-    #heatmap_colored = heatmap_colored.astype(np.uint8)
-    #cv2.imwrite("abc.png", heatmap_colored)
-    #heatmap_colored = cv2.imread("abc.png")
-    #heatmap_colored = blue_to_gray_np(heatmap_colored)
-
-    #print("RGB/BGR pixel value:", heatmap_colored[0, 0])
-    #print(' step 2' ,np.unique(heatmap_colored))
-    #print(' step 4' ,heatmap_colored.shape)
-    #blue_mask = (heatmap_colored[:, :, 0] > 128) & (heatmap_colored[:, :, 1] < 50) & (heatmap_colored[:, :, 2] < 50)
-    #gray_value = (0.3 * heatmap_colored[blue_mask, 2] + 
-    #          0.59 * heatmap_colored[blue_mask, 1] + 
-    #          0.11 * heatmap_colored[blue_mask, 0]).astype(np.uint8)
-    #heatmap_colored[blue_mask] = np.stack([gray_value, gray_value, gray_value], axis=-1)
-
-    #print("afterww",heatmap.shape)
-    #heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
-    #print("after",heatmap.shape)
     return heatmap_colored #heatmap
 
 def blue_to_gray_np(image: np.ndarray) -> np.ndarray:
@@ -180,43 +156,6 @@ def red_to_0_np(image: np.ndarray) -> np.ndarray:
     result = np.where(red_mask[:, :, None] == 255, black_image, image)
     return result
 
-def generate_gradcam_ori(model, image, target_layer):
-    model.eval()
-    if image.dim() == 3:
-        image = image.unsqueeze(0)
-    image.requires_grad = True
-
-    features = []
-    def hook_fn(module, input, output):
-        features.append(output)
-
-    handle = target_layer.register_forward_hook(hook_fn)
-    output = model(image)
-    handle.remove()
-
-    score = output[:, output.max(1)[-1]]
-    score.backward()
-
-    gradients = image.grad.data
-    pooled_gradients = torch.mean(gradients, dim=[0, 2, 3])
-    activations = features[0].detach()
-
-    for i in range(min(activations.shape[1], pooled_gradients.shape[0])):
-        activations[:, i, :, :] *= pooled_gradients[i]
-
-    heatmap = torch.mean(activations, dim=1).squeeze()
-    heatmap = F.relu(heatmap)
-    heatmap /= torch.max(heatmap)
-
-    heatmap = heatmap.cpu().numpy()  # Move to CPU before converting to NumPy
-    heatmap = cv2.resize(heatmap, (image.shape[2], image.shape[3]))
-    heatmap = heatmap / np.max(heatmap)
-    heatmap = np.uint8(255 * heatmap)
-    heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
-    
-    return heatmap
-
-
 def generate_gradcam_plus_plus(model, image, target_layer):
     """
     Generate Grad-CAM++ heatmap for a given model, input image, and target layer.
@@ -293,9 +232,9 @@ def show_cam_on_image(img, mask, use_rgb=False):
     heatmap = cv2.applyColorMap(np.uint8(255 * mask), cv2.COLORMAP_JET)
     if use_rgb:
         heatmap = cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB)
-    cv2.imwrite("abc0.png", heatmap)
-    #heatmap = red_to_gray_np(heatmap)
-    heatmap = red_to_0_np(heatmap)
+    #cv2.imwrite("abc0.png", heatmap)
+    heatmap = red_to_gray_np(heatmap)
+    #heatmap = red_to_0_np(heatmap)
     heatmap = np.float32(heatmap) / 255
     
     cam = heatmap + np.float32(img)
@@ -303,7 +242,7 @@ def show_cam_on_image(img, mask, use_rgb=False):
     cam = np.uint8(255 * cam)
     
     #cam = 255 - cam
-    cv2.imwrite("abc1.png", cam)
+    #cv2.imwrite("abc1.png", cam)
     #cam = red_to_gray_np(cam)
     #cv2.imwrite("abc2.png", cam)
     return cam
