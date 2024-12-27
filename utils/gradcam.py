@@ -257,6 +257,7 @@ def show_cam_on_image(img, mask, use_rgb=False):
     if use_rgb:
         heatmap = cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB)
     heatmap = np.float32(heatmap) / 255
+    cv2.imwrite("abc0.png", heatmap)
     cam = heatmap + np.float32(img)
     cam = cam / np.max(cam)
     cam = np.uint8(255 * cam)
