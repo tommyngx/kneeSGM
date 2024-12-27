@@ -22,7 +22,7 @@ def main(config_path='config/default.yaml', model_name=None, model_path=None, us
         model_name = config['model']['name']
     
     model = get_model(model_name, config_path=config_path, pretrained=config['model']['pretrained'])
-    checkpoint = torch.load(model_path, map_location=device)
+    checkpoint = torch.load(model_path, map_location=device, weights_only=True)
     model.load_state_dict(checkpoint['model_state_dict'])
     model = model.to(device)
     
@@ -40,7 +40,7 @@ def main(config_path='config/default.yaml', model_name=None, model_path=None, us
     save_random_predictions(model, test_loader, device, output_dir, epoch=0, class_names=config['data']['class_names'], use_gradcam_plus_plus=use_gradcam_plus_plus)
 
     # Display the plot
-    plt.show()
+    plt.show(block=True)
 
     # Keep only the last 3 latest saved epochs
     saved_files = sorted([f for f in os.listdir(output_dir) if f.startswith("random_predictions_epoch_")], reverse=True)
