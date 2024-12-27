@@ -43,6 +43,7 @@ def generate_gradcam(model, image, target_layer):
 
     #print(' step 1' ,heatmap.shape)
     heatmap_colored = np.stack([heatmap] * 3, axis=-1)
+    heatmap_colored = cv2.cvtColor(heatmap_colored, cv2.COLOR_BGR2RGB)
     #heatmap_colored = cv2.cvtColor(heatmap_colored, cv2.COLOR_HSV2BGR)
     heatmap_colored = blue_to_gray_np(heatmap_colored)
 
