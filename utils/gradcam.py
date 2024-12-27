@@ -44,14 +44,7 @@ def generate_gradcam(model, image, target_layer):
     #print(' step 1' ,heatmap.shape)
     heatmap_colored = np.stack([heatmap] * 3, axis=-1)
     #heatmap_colored = cv2.cvtColor(heatmap_colored, cv2.COLOR_HSV2BGR)
-
-
-    blue_threshold = 100  
-    # Identify blue pixels.
-    blue_pixels = heatmap_colored[:, :, 2] < blue_threshold # Assuming BGR order, adjust if necessary
-
-    # Convert blue pixels to gray.  Average of RGB values
-    heatmap_colored[blue_pixels] = np.mean(heatmap_colored[blue_pixels], axis=-1, keepdims=True)
+    heatmap_colored = blue_to_gray_np(heatmap_colored)
 
     #print("RGB/BGR pixel value:", heatmap_colored[0, 0])
     #print(' step 2' ,np.unique(heatmap_colored))
@@ -66,6 +59,41 @@ def generate_gradcam(model, image, target_layer):
     #heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
     #print("after",heatmap.shape)
     return heatmap_colored #heatmap
+
+def blue_to_gray_np(image: np.ndarray) -> np.ndarray:
+    """
+    Convert blue areas in an image (NumPy array) to gray.
+    
+    Args:
+        image (np.ndarray): Input image in BGR format as a NumPy array.
+    
+    Returns:
+        np.ndarray: Processed image with blue areas converted to gray.
+    """
+    if image is None:
+        raise ValueError("Input image is None.")
+    if len(image.shape) != 3 or image.shape[2] != 3:
+        raise ValueError("Input image must be a 3-channel color image (BGR).")
+    
+    # Convert to HSV for easier color range detection
+    hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    
+    # Define the blue range in HSV (adjust values if needed)
+    lower_blue = np.array([100, 50, 50])  # Hue: 100-140, Saturation/Value: 50-255
+    upper_blue = np.array([140, 255, 255])
+    
+    # Create a mask for blue areas
+    blue_mask = cv2.inRange(hsv_image, lower_blue, upper_blue)
+    
+    # Create a grayscale version of the image
+    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    
+    # Convert grayscale to 3-channel image to match the input format
+    gray_3_channel = cv2.merge([gray_image, gray_image, gray_image])
+    
+    # Replace blue areas with the corresponding grayscale pixels
+    result = np.where(blue_mask[:, :, None] == 255, gray_3_channel, image)
+    return result
 
 
 def generate_gradcam_ori(model, image, target_layer):
