@@ -5,45 +5,43 @@ import numpy as np
 import cv2
 import matplotlib.pyplot as plt
 from PIL import Image
-from pytorch_grad_cam import GradCAM
-from pytorch_grad_cam.utils.image import show_cam_on_image, preprocess_image
+#from pytorch_grad_cam import GradCAM
+#from pytorch_grad_cam.utils.image import show_cam_on_image, preprocess_image
 
-def generate_gradcam(input_image, model, target_layer, target_category=None):
-    # Check if input_image is a file path or a tensor
-    if isinstance(input_image, str):
-        # Load and preprocess the image from file path
-        img = Image.open(input_image).convert('RGB')
-        transform = transforms.Compose([
-            transforms.Resize((224, 224)),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-        ])
-        input_tensor = transform(img).unsqueeze(0)  # Create a mini-batch as expected by the model
-        img = np.array(img) / 255.0  # Convert to numpy array for visualization
-    elif isinstance(input_image, torch.Tensor):
-        # Assume the tensor is already preprocessed and batched
-        input_tensor = input_image
-        # Convert tensor to numpy array for visualization
-        img = input_tensor.squeeze(0).permute(1, 2, 0).cpu().numpy()
-        # De-normalize the image if it was normalized
-        img = img * np.array([0.229, 0.224, 0.225]) + np.array([0.485, 0.456, 0.406])
-        img = np.clip(img, 0, 1)
-    else:
-        raise ValueError("Unsupported input type. Expected file path or torch.Tensor.")
+def generate_gradcam(model, image, target_layer):
+    model.eval()
+    if image.dim() == 3:
+        image = image.unsqueeze(0)
+    image.requires_grad = True
 
-    # Initialize GradCAM
-    cam = GradCAM(model=model, target_layers=[target_layer], use_cuda=torch.cuda.is_available())
+    features = []
+    def hook_fn(module, input, output):
+        features.append(output)
 
-    # Generate the CAM
-    grayscale_cam = cam(input_tensor=input_tensor, targets=target_category)
+    handle = target_layer.register_forward_hook(hook_fn)
+    output = model(image)
+    handle.remove()
 
-    # Since there's only one image in the batch, get the CAM for the first image
-    grayscale_cam = grayscale_cam[0, :]
+    score = output[:, output.max(1)[-1]]
+    score.backward()
 
-    # Create the heatmap
-    visualization = show_cam_on_image(img, grayscale_cam, use_rgb=True)
+    gradients = image.grad.data
+    pooled_gradients = torch.mean(gradients, dim=[0, 2, 3])
+    activations = features[0].detach()
 
-    return visualization
+    for i in range(min(activations.shape[1], pooled_gradients.shape[0])):
+        activations[:, i, :, :] *= pooled_gradients[i]
+
+    heatmap = torch.mean(activations, dim=1).squeeze()
+    heatmap = F.relu(heatmap)
+    heatmap /= torch.max(heatmap)
+
+    heatmap = heatmap.cpu().numpy()  # Move to CPU before converting to NumPy
+    heatmap = cv2.resize(heatmap, (image.shape[2], image.shape[3]))
+    #heatmap = np.uint8(255 * heatmap)
+    heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
+    return heatmap
+
 
 def generate_gradcam_ori(model, image, target_layer):
     model.eval()
