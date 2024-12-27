@@ -75,7 +75,7 @@ def generate_gradcam_ori(model, image, target_layer):
     heatmap = cv2.resize(heatmap, (image.shape[2], image.shape[3]))
     heatmap = heatmap / np.max(heatmap)
     heatmap = np.uint8(255 * heatmap)
-    heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
+    heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_INFERNO)
     return heatmap
 
 def generate_gradcam22(model, image, target_layer, image_weight=0.5):
