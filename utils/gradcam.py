@@ -53,7 +53,7 @@ def generate_gradcam(model, image, target_layer):
     gray_value = (0.3 * heatmap_colored[blue_mask, 2] + 
               0.59 * heatmap_colored[blue_mask, 1] + 
               0.11 * heatmap_colored[blue_mask, 0]).astype(np.uint8)
-    heatmap_colored[blue_mask] = np.stack([gray_value, gray_value, gray_value], axis=-1)
+    #heatmap_colored[blue_mask] = np.stack([gray_value, gray_value, gray_value], axis=-1)
 
     #print("afterww",heatmap.shape)
     #heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
