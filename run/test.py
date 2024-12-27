@@ -62,6 +62,12 @@ def main(config_path='config/default.yaml', model_name=None):
     
     test_loader = get_dataloader('test', config['data']['batch_size'], config['data']['num_workers'], config_path=config_path)
     
+    # Print details before testing
+    print(f"Model: {model_name}")
+    print(f"Number of classes: {len(config['data']['class_labels'])}")
+    print(f"Class names: {config['data']['class_names']}")
+    print(f"Number of test images: {len(test_loader.dataset)}")
+    
     test_acc, test_f1, test_precision, test_recall = test(model, test_loader, device)
     
     output_dir = os.path.join(config['output_dir'], "final_logs")

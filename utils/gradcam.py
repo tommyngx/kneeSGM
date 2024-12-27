@@ -6,7 +6,8 @@ import cv2
 
 def generate_gradcam(model, image, target_layer):
     model.eval()
-    image = image.unsqueeze(0)
+    if image.dim() == 3:
+        image = image.unsqueeze(0)
     image.requires_grad = True
 
     features = []

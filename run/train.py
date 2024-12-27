@@ -14,7 +14,7 @@ from models.model_architectures import get_model
 from data.data_loader import get_dataloader
 from utils.metrics import accuracy, f1, precision, recall
 from utils.gradcam import generate_gradcam, show_cam_on_image
-from utils.plotting import save_confusion_matrix, save_roc_curve
+from utils.plotting import save_confusion_matrix, save_roc_curve, tr_plot
 
 def load_config(config_path):
     with open(config_path, 'r') as file:
@@ -96,22 +96,43 @@ def main(config_path='config/default.yaml', model_name=None, epochs=None):
     train_loader = get_dataloader('train', config['data']['batch_size'], config['data']['num_workers'], config_path=config_path)
     val_loader = get_dataloader('val', config['data']['batch_size'], config['data']['num_workers'], config_path=config_path)
     
+    # Print details before training
+    print(f"Model: {model_name}")
+    print(f"Number of epochs: {epochs}")
+    print(f"Number of classes: {len(config['data']['class_labels'])}")
+    print(f"Class names: {config['data']['class_names']}")
+    print(f"Number of training images: {len(train_loader.dataset)}")
+    print(f"Number of validation images: {len(val_loader.dataset)}")
+    
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=config['training']['learning_rate'], weight_decay=config['training']['weight_decay'])
     
     best_val_acc = 0.0
+    training_history = {'accuracy': [], 'loss': [], 'val_accuracy': [], 'val_loss': []}
     for epoch in range(epochs):
         train_loss, train_acc = train_one_epoch(model, train_loader, criterion, optimizer, device)
         val_loss, val_acc, val_preds, val_labels = validate(model, val_loader, criterion, device)
         
+        training_history['accuracy'].append(train_acc)
+        training_history['loss'].append(train_loss)
+        training_history['val_accuracy'].append(val_acc)
+        training_history['val_loss'].append(val_loss)
+        
         print(f"Epoch {epoch+1}/{epochs}, Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f}, Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}")
         
-        if (epoch + 1) % 5 == 0:
+        if (epoch + 1) % 2 == 0:
             print("Classification Report:")
-            print(classification_report(val_labels, val_preds, target_names=config['data']['class_names']))
+            print(classification_report(val_labels, val_preds, target_names=config['data']['class_names'], zero_division=0))
             save_confusion_matrix(val_labels, val_preds, config['data']['class_names'], os.path.join(output_dir, "logs"), epoch)
             save_roc_curve(val_labels, val_preds, config['data']['class_names'], os.path.join(output_dir, "logs"), epoch)
             save_random_predictions(model, val_loader, device, os.path.join(output_dir, "logs"), epoch, config['data']['class_names'])
+        
+        if epoch >= 1:
+            tr_plot(training_history, 0)
+            plt.savefig(os.path.join(output_dir, "logs", f"training_plot_epoch_{epoch+1}.png"))
+        
+        with open(os.path.join(output_dir, "logs", "training_log.txt"), "a") as f:
+            f.write(f"Epoch {epoch+1}/{epochs}, Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f}, Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}\n")
         
         if val_acc > best_val_acc:
             best_val_acc = val_acc
