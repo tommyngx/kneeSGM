@@ -2,7 +2,7 @@
 
 # General settings
 project_name: "Knee Osteoarthritis Classification"
-output_dir: "outputs"
+output_dir: "/content/outputs"
 timezone: "Australia/Sydney"
 
 # Data settings
@@ -13,7 +13,7 @@ data:
   val_split: "VAL"
   test_split: "VAL"
   image_path_column: "path_relative"
-  label_column: "label"
+  label_column: "KL"
   image_size: 224
   batch_size: 32
   num_workers: 4
