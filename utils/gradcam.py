@@ -85,7 +85,6 @@ def blue_to_gray_np(image: np.ndarray) -> np.ndarray:
     
     # Convert to HSV for easier color range detection
     hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-    hsv_image = image
     
     # Define the blue range in HSV (adjust values if needed)
     lower_blue = np.array([100, 50, 50])  # Hue: 100-140, Saturation/Value: 50-255
@@ -300,7 +299,7 @@ def show_cam_on_image(img, mask, use_rgb=False):
     cam = heatmap + np.float32(img)
     cam = cam / np.max(cam)
     cam = np.uint8(255 * cam)
-    print('cam',cam.shape)
+
     cam = blue_to_gray_np(cam)
     return cam
 
