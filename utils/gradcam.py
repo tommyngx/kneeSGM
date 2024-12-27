@@ -57,16 +57,10 @@ def generate_gradcam_plus_plus(model, image, target_layer):
     score.backward()
 
     gradients = image.grad.data
-    gradients = gradients[0]
-    activations = features[0].detach()[0]
+    activations = features[0].detach()
 
-    weights = torch.zeros(activations.shape[0], dtype=torch.float32)
-    for i in range(activations.shape[0]):
-        weights[i] = torch.sum(gradients[i] * activations[i])
-
-    heatmap = torch.zeros(activations.shape[1:], dtype=torch.float32)
-    for i in range(activations.shape[0]):
-        heatmap += weights[i] * activations[i]
+    weights = torch.mean(gradients, dim=(2, 3), keepdim=True)
+    heatmap = torch.sum(weights * activations, dim=1).squeeze()
 
     heatmap = F.relu(heatmap)
     heatmap /= torch.max(heatmap)
