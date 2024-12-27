@@ -9,7 +9,7 @@ timezone: "Australia/Sydney"
 # Data settings
 data:
   #metadata_csv: "/content/dataset/metadata.csv" 
-  metadata_csv: "/projects/OsteoLab/Tommy/KneeOA/metadata/metadata.csv" # gpu settings
+  metadata_csv: "/projects/OsteoLab/Tommy/KneeOA/Metadata/metadata.csv" # gpu settings
   #dataset_based_link: "/content/dataset/dataset"
   dataset_based_link: "/projects/OsteoLab/Tommy/KneeOA/VOS_Phase2/VOS_P2_KNEE_CROP/dataset" # gpu settings
   train_split: "TRAIN"
