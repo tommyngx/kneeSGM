@@ -16,7 +16,7 @@ data:
   label_column: "KL"
   image_size: 224
   batch_size: 32
-  num_workers: 4
+  num_workers: 2
   class_labels: [0, 1, 2, 3, 4]
   class_names: ["None", "Doubtful", "Mild", "Moderate", "Severe"]
   augmentation: true
