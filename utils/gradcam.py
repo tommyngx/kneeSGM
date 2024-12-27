@@ -46,55 +46,61 @@ def generate_gradcam_plus_plus(model, image, target_layer):
     Args:
         model (torch.nn.Module): Trained PyTorch model.
         image (torch.Tensor): Input image tensor of shape (C, H, W) or (1, C, H, W).
-        target_layer (torch.nn.Module): The target convolutional layer.
+        target_layer (torch.nn.Module): The target convolutional layer (e.g., last Conv2D layer in ResNet's Bottleneck).
 
     Returns:
         np.array: Grad-CAM++ heatmap (H, W, 3) ready to overlay on the input image.
     """
-    model.eval()  # Set model to evaluation mode
+    model.eval()
 
     if image.dim() == 3:
-        image = image.unsqueeze(0)  # Add batch dimension
+        image = image.unsqueeze(0)
 
-    image.requires_grad = True  # Enable gradients for the input image
+    image.requires_grad = True
 
-    # Store activations from the target layer
+    # Hook to capture activations and gradients
     activations = []
+    gradients = []
 
     def forward_hook(module, input, output):
         activations.append(output)
 
-    # Register forward hook on the target layer
-    hook_handle = target_layer.register_forward_hook(forward_hook)
+    def backward_hook(module, grad_in, grad_out):
+        gradients.append(grad_out[0])
+
+    # Register hooks for the target layer
+    forward_handle = target_layer.register_forward_hook(forward_hook)
+    backward_handle = target_layer.register_backward_hook(backward_hook)
 
     # Forward pass
     output = model(image)
-    hook_handle.remove()  # Remove the hook
-
-    # Get the predicted class or specific target class
     target_class = output.argmax(dim=1).item()
-    score = output[:, target_class]  # Get the score of the target class
+    score = output[:, target_class]
 
-    # Backward pass to compute gradients
+    # Backward pass
     model.zero_grad()
-    score.backward(retain_graph=True)  # Backpropagate w.r.t. the target class
+    score.backward(retain_graph=True)
 
-    # Extract gradients and activations
-    gradients = target_layer.weight.grad  # Gradients of the target layer
-    activations = activations[0]  # Activations from the forward hook
+    # Remove hooks
+    forward_handle.remove()
+    backward_handle.remove()
 
-    # Compute Grad-CAM++ weights
+    # Extract activations and gradients
+    activations = activations[0].detach()
+    gradients = gradients[0].detach()
+
+    # Grad-CAM++ weight computation
     b, k, u, v = gradients.size()
     alpha = gradients.pow(2)
-    alpha /= (2 * alpha + gradients.pow(3).sum(dim=(2, 3), keepdim=True))
+    alpha /= (2 * gradients.pow(2) + (activations * gradients.pow(3)).sum(dim=(2, 3), keepdim=True) + 1e-8)
     weights = (alpha * F.relu(gradients)).sum(dim=(2, 3), keepdim=True)
 
-    # Generate Grad-CAM++ heatmap
+    # Weighted sum of activations
     heatmap = (weights * activations).sum(dim=1).squeeze(0)
     heatmap = F.relu(heatmap)
-    heatmap = heatmap / heatmap.max()  # Normalize heatmap
+    heatmap = heatmap / heatmap.max()
 
-    # Convert to NumPy array and resize to match input image
+    # Convert to NumPy array
     heatmap = heatmap.cpu().numpy()
     heatmap = cv2.resize(heatmap, (image.shape[3], image.shape[2]))
 
