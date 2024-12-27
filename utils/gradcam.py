@@ -36,7 +36,7 @@ def generate_gradcam(model, image, target_layer):
     heatmap = heatmap.cpu().numpy()  # Move to CPU before converting to NumPy
     heatmap = cv2.resize(heatmap, (image.shape[2], image.shape[3]))
     heatmap = np.uint8(255 * heatmap)
-    heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET    python /Users/francistommy/Desktop/Drive/Github/testkoa/run/test_gradcam.py --config /path/to/config.yaml --model resnet50 --model_path /path/to/model_checkpoint.pth --use_gradcam_plus_plus)
+    heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
     return heatmap
 
 def generate_gradcam_plus_plus(model, image, target_layer):
