@@ -7,6 +7,7 @@ import yaml
 import os
 import datetime
 import pytz
+import argparse
 from sklearn.metrics import classification_report
 import numpy as np
 from ..models.model_architectures import get_model
@@ -79,13 +80,18 @@ def save_random_predictions(model, dataloader, device, output_dir, epoch, class_
         cam_image = show_cam_on_image(img, grayscale_cam, use_rgb=True)
         plt.imsave(os.path.join(output_dir, f"prediction_epoch_{epoch}_img_{i}_pred_{class_names[pred]}_label_{class_names[label]}.png"), cam_image)
 
-def main(config_path='config/default.yaml'):
+def main(config_path='config/default.yaml', model_name=None, epochs=None):
     config = load_config(config_path)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
     output_dir = create_output_dirs(config['output_dir'], config['timezone'])
     
-    model = get_model(config['model']['name'], config_path=config_path, pretrained=config['model']['pretrained'])
+    if model_name is None:
+        model_name = config['model']['name']
+    if epochs is None:
+        epochs = config['training']['epochs']
+    
+    model = get_model(model_name, config_path=config_path, pretrained=config['model']['pretrained'])
     model = model.to(device)
     
     train_loader = get_dataloader('train', config['data']['batch_size'], config['data']['num_workers'], config_path=config_path)
@@ -95,11 +101,11 @@ def main(config_path='config/default.yaml'):
     optimizer = optim.Adam(model.parameters(), lr=config['training']['learning_rate'], weight_decay=config['training']['weight_decay'])
     
     best_val_acc = 0.0
-    for epoch in range(config['training']['epochs']):
+    for epoch in range(epochs):
         train_loss, train_acc = train_one_epoch(model, train_loader, criterion, optimizer, device)
         val_loss, val_acc, val_preds, val_labels = validate(model, val_loader, criterion, device)
         
-        print(f"Epoch {epoch+1}/{config['training']['epochs']}, Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f}, Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}")
+        print(f"Epoch {epoch+1}/{epochs}, Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f}, Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}")
         
         if (epoch + 1) % 5 == 0:
             print("Classification Report:")
@@ -114,4 +120,10 @@ def main(config_path='config/default.yaml'):
             print("Best model saved!")
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description='Train a model for knee osteoarthritis classification.')
+    parser.add_argument('--config', type=str, default='config/default.yaml', help='Path to the configuration file.')
+    parser.add_argument('--model', type=str, help='Model name to use for training.')
+    parser.add_argument('--epochs', type=int, help='Number of epochs to train.')
+    args = parser.parse_args()
+    
+    main(config_path=args.config, model_name=args.model, epochs=args.epochs)

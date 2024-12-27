@@ -3,6 +3,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 import yaml
 import os
+import argparse
 from sklearn.metrics import classification_report
 from ..models.model_architectures import get_model
 from ..data.data_loader import get_dataloader
@@ -49,11 +50,14 @@ def test(model, dataloader, device):
             running_recall += recall(outputs, labels)
     return running_acc / len(dataloader), running_f1 / len(dataloader), running_precision / len(dataloader), running_recall / len(dataloader)
 
-def main(config_path='config/default.yaml'):
+def main(config_path='config/default.yaml', model_name=None):
     config = load_config(config_path)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
-    model = get_model(config['model']['name'], config_path=config_path, pretrained=config['model']['pretrained'])
+    if model_name is None:
+        model_name = config['model']['name']
+    
+    model = get_model(model_name, config_path=config_path, pretrained=config['model']['pretrained'])
     model.load_state_dict(torch.load(os.path.join(config['output_dir'], "models", "best_model.pth")))
     model = model.to(device)
     
@@ -77,4 +81,9 @@ def main(config_path='config/default.yaml'):
     save_random_predictions(model, test_loader, device, output_dir, config['data']['class_names'])
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description='Test a model for knee osteoarthritis classification.')
+    parser.add_argument('--config', type=str, default='config/default.yaml', help='Path to the configuration file.')
+    parser.add_argument('--model', type=str, help='Model name to use for testing.')
+    args = parser.parse_args()
+    
+    main(config_path=args.config, model_name=args.model)
