@@ -105,7 +105,7 @@ def generate_gradcam(model, image, target_layer, image_weight=0.5):
     heatmap = cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB)
 
     # Convert image tensor to NumPy array
-    img = image.squeeze().permute(1, 2, 0).cpu().numpy()  # (H, W, C)
+    img = image.squeeze().detach().permute(1, 2, 0).cpu().numpy()  # Detach before calling .numpy()
     img = np.uint8(255 * (img - img.min()) / (img.max() - img.min()))  # Normalize to 0-255
 
     # Blend heatmap with the original image
