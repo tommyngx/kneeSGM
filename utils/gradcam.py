@@ -59,6 +59,11 @@ def generate_gradcam_plus_plus(model, image, target_layer):
     gradients = image.grad.data
     activations = features[0].detach()
 
+    # Ensure the dimensions match
+    if gradients.shape[1] != activations.shape[1]:
+        gradients = gradients.permute(0, 2, 3, 1)
+        gradients = gradients.reshape(gradients.shape[0], -1, activations.shape[1])
+
     weights = torch.mean(gradients, dim=(2, 3), keepdim=True)
     heatmap = torch.sum(weights * activations, dim=1).squeeze()
 
