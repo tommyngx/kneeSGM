@@ -45,14 +45,22 @@ def generate_gradcam(model, image, target_layer):
     heatmap_colored = np.stack([heatmap] * 3, axis=-1)
     #heatmap_colored = cv2.cvtColor(heatmap_colored, cv2.COLOR_HSV2BGR)
 
+
+    blue_threshold = 100  
+    # Identify blue pixels.
+    blue_pixels = heatmap_colored[:, :, 2] < blue_threshold # Assuming BGR order, adjust if necessary
+
+    # Convert blue pixels to gray.  Average of RGB values
+    heatmap_colored[blue_pixels] = np.mean(heatmap_colored[blue_pixels], axis=-1, keepdims=True)
+
     #print("RGB/BGR pixel value:", heatmap_colored[0, 0])
     #print(' step 2' ,np.unique(heatmap_colored))
     #print(' step 4' ,heatmap_colored.shape)
-    blue_mask = (heatmap_colored[:, :, 0] > 128) & (heatmap_colored[:, :, 1] < 50) & (heatmap_colored[:, :, 2] < 50)
-    gray_value = (0.3 * heatmap_colored[blue_mask, 2] + 
-              0.59 * heatmap_colored[blue_mask, 1] + 
-              0.11 * heatmap_colored[blue_mask, 0]).astype(np.uint8)
-    heatmap_colored[blue_mask] = np.stack([gray_value, gray_value, gray_value], axis=-1)
+    #blue_mask = (heatmap_colored[:, :, 0] > 128) & (heatmap_colored[:, :, 1] < 50) & (heatmap_colored[:, :, 2] < 50)
+    #gray_value = (0.3 * heatmap_colored[blue_mask, 2] + 
+    #          0.59 * heatmap_colored[blue_mask, 1] + 
+    #          0.11 * heatmap_colored[blue_mask, 0]).astype(np.uint8)
+    #heatmap_colored[blue_mask] = np.stack([gray_value, gray_value, gray_value], axis=-1)
 
     #print("afterww",heatmap.shape)
     #heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
