@@ -140,84 +140,6 @@ def generate_gradcam_ori(model, image, target_layer):
     
     return heatmap
 
-def generate_gradcam22(model, image, target_layer, image_weight=0.5):
-    """
-    Generate Grad-CAM heatmap and blend it with the original image.
-
-    Args:
-        model (torch.nn.Module): Trained PyTorch model.
-        image (torch.Tensor): Input image tensor of shape (C, H, W) or (1, C, H, W).
-        target_layer (torch.nn.Module): The target convolutional layer.
-        image_weight (float): Weight for blending the original image with the heatmap (0 to 1).
-
-    Returns:
-        np.array: Blended Grad-CAM heatmap overlayed on the original image.
-    """
-    model.eval()
-    if image.dim() == 3:
-        image = image.unsqueeze(0)  # Add batch dimension
-    image.requires_grad = True
-
-    # Hook to capture feature maps
-    features = []
-
-    def hook_fn(module, input, output):
-        features.append(output)
-
-    handle = target_layer.register_forward_hook(hook_fn)
-
-    # Forward pass
-    output = model(image)
-    handle.remove()
-
-    # Get the predicted class score
-    target_class = output.argmax(dim=1).item()
-    score = output[:, target_class]
-
-    # Backward pass
-    model.zero_grad()
-    score.backward()
-
-    # Extract gradients and feature maps
-    gradients = image.grad.data
-    pooled_gradients = torch.mean(gradients, dim=[0, 2, 3])  # Global average pooling
-    activations = features[0].detach()
-
-    # Ensure dimensions match
-    num_channels = min(activations.shape[1], pooled_gradients.shape[0])
-
-    # Weight feature maps by pooled gradients
-    for i in range(num_channels):
-        activations[:, i, :, :] *= pooled_gradients[i]
-
-    # Generate heatmap
-    heatmap = torch.mean(activations, dim=1).squeeze()
-    heatmap = F.relu(heatmap)  # Apply ReLU to keep positive contributions only
-    if heatmap.max() != 0:  # Avoid division by zero
-        heatmap /= heatmap.max()
-
-    # Convert to NumPy array and resize to match input image
-    heatmap = heatmap.cpu().numpy()
-    heatmap = cv2.resize(heatmap, (image.shape[3], image.shape[2]))
-    heatmap = np.uint8(255 * heatmap)
-
-    # Apply colormap to heatmap
-    heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
-    heatmap = cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB)
-
-    # Convert image tensor to NumPy array
-    img = image.squeeze().detach().permute(1, 2, 0).cpu().numpy()  # Detach before calling .numpy()
-    img = np.uint8(255 * (img - img.min()) / (img.max() - img.min()))  # Normalize to 0-255
-
-    # Blend heatmap with the original image
-    cam = (1 - image_weight) * heatmap + image_weight * img
-    cam = cam / np.max(cam)  # Normalize the blended image
-    cam = np.uint8(255 * cam)
-    
-    cam = cv2.applyColorMap(cam, cv2.COLORMAP_JET)
-    cam  = cv2.cvtColor(cam , cv2.COLOR_BGR2RGB)
-    return cam
-
 
 def generate_gradcam_plus_plus(model, image, target_layer):
     """
@@ -300,7 +222,7 @@ def show_cam_on_image(img, mask, use_rgb=False):
     cam = cam / np.max(cam)
     cam = np.uint8(255 * cam)
 
-    cam = blue_to_gray_np(cam)
+    #cam = blue_to_gray_np(cam)
     return cam
 
 def save_random_predictions(model, dataloader, device, output_dir, epoch, class_names, use_gradcam_plus_plus=False):
