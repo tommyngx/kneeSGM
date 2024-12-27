@@ -79,7 +79,7 @@ def save_random_predictions(model, dataloader, device, output_dir, epoch, class_
         cam_image = show_cam_on_image(img, heatmap, use_rgb=True)
         plt.imsave(os.path.join(output_dir, f"prediction_epoch_{epoch}_img_{i}_pred_{class_names[pred]}_label_{class_names[label]}.png"), cam_image)
 
-def main(config_path='config/default.yaml', model_name=None, epochs=None):
+def main(config_path='config/default.yaml', model_name=None, epochs=None, resume_from=None):
     config = load_config(config_path)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
@@ -107,9 +107,21 @@ def main(config_path='config/default.yaml', model_name=None, epochs=None):
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=config['training']['learning_rate'], weight_decay=config['training']['weight_decay'])
     
+    start_epoch = 0
     best_val_acc = 0.0
     training_history = {'accuracy': [], 'loss': [], 'val_accuracy': [], 'val_loss': []}
-    for epoch in range(epochs):
+    best_models = []
+    
+    if resume_from:
+        checkpoint = torch.load(resume_from)
+        model.load_state_dict(checkpoint['model_state_dict'])
+        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        start_epoch = checkpoint['epoch'] + 1
+        best_val_acc = checkpoint['best_val_acc']
+        training_history = checkpoint['training_history']
+        print(f"Resuming training from epoch {start_epoch}")
+    
+    for epoch in range(start_epoch, epochs):
         train_loss, train_acc = train_one_epoch(model, train_loader, criterion, optimizer, device)
         val_loss, val_acc, val_preds, val_labels = validate(model, val_loader, criterion, device)
         
@@ -136,14 +148,34 @@ def main(config_path='config/default.yaml', model_name=None, epochs=None):
         
         if val_acc > best_val_acc:
             best_val_acc = val_acc
-            torch.save(model.state_dict(), os.path.join(output_dir, "models", "best_model.pth"))
+            model_filename = f"{model_name}_epoch_{epoch+1}_acc_{val_acc:.4f}.pth"
+            model_path = os.path.join(output_dir, "models", model_filename)
+            torch.save(model.state_dict(), model_path)
+            best_models.append((val_acc, model_path))
+            best_models = sorted(best_models, key=lambda x: x[0], reverse=True)[:4]
             print("Best model saved!")
+        
+        # Save checkpoint
+        checkpoint = {
+            'epoch': epoch,
+            'model_state_dict': model.state_dict(),
+            'optimizer_state_dict': optimizer.state_dict(),
+            'best_val_acc': best_val_acc,
+            'training_history': training_history
+        }
+        torch.save(checkpoint, os.path.join(output_dir, "models", f"checkpoint_epoch_{epoch+1}.pth"))
+        
+        # Remove models beyond the top 4
+        for _, model_path in best_models[4:]:
+            if os.path.exists(model_path):
+                os.remove(model_path)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Train a model for knee osteoarthritis classification.')
     parser.add_argument('--config', type=str, default='config/default.yaml', help='Path to the configuration file.')
     parser.add_argument('--model', type=str, help='Model name to use for training.')
     parser.add_argument('--epochs', type=int, help='Number of epochs to train.')
+    parser.add_argument('--resume_from', type=str, help='Path to the checkpoint to resume training from.')
     args = parser.parse_args()
     
-    main(config_path=args.config, model_name=args.model, epochs=args.epochs)
+    main(config_path=args.config, model_name=args.model, epochs=args.epochs, resume_from=args.resume_from)
