@@ -143,6 +143,43 @@ def red_to_gray_np(image: np.ndarray) -> np.ndarray:
     result = np.where(red_mask[:, :, None] == 255, gray_3_channel, image)
     return result
 
+def red_to_0_np(image: np.ndarray) -> np.ndarray:
+    """
+    Convert red areas in an image (NumPy array) to black.
+    
+    Args:
+        image (np.ndarray): Input image in BGR format as a NumPy array.
+    
+    Returns:
+        np.ndarray: Processed image with red areas turned to black.
+    """
+    if image is None:
+        raise ValueError("Input image is None.")
+    if len(image.shape) != 3 or image.shape[2] != 3:
+        raise ValueError("Input image must be a 3-channel color image (BGR).")
+    
+    # Convert to HSV for easier color range detection
+    hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    
+    # Define the red range in HSV
+    # Red in HSV often spans two ranges due to hue wrap-around (0-10 and 170-180)
+    lower_red1 = np.array([0, 50, 50])    # Lower red range 1
+    upper_red1 = np.array([10, 255, 255])
+    lower_red2 = np.array([170, 50, 50])  # Lower red range 2
+    upper_red2 = np.array([180, 255, 255])
+    
+    # Create masks for both red ranges and combine them
+    red_mask1 = cv2.inRange(hsv_image, lower_red1, upper_red1)
+    red_mask2 = cv2.inRange(hsv_image, lower_red2, upper_red2)
+    red_mask = cv2.bitwise_or(red_mask1, red_mask2)
+    
+    # Create a black image to replace red areas
+    black_image = np.zeros_like(image)
+    
+    # Replace red areas with black
+    result = np.where(red_mask[:, :, None] == 255, black_image, image)
+    return result
+
 def generate_gradcam_ori(model, image, target_layer):
     model.eval()
     if image.dim() == 3:
@@ -257,7 +294,8 @@ def show_cam_on_image(img, mask, use_rgb=False):
     if use_rgb:
         heatmap = cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB)
     cv2.imwrite("abc0.png", heatmap)
-    heatmap = red_to_gray_np(heatmap)
+    #heatmap = red_to_gray_np(heatmap)
+    heatmap = red_to_0_np(heatmap)
     heatmap = np.float32(heatmap) / 255
     
     cam = heatmap + np.float32(img)
