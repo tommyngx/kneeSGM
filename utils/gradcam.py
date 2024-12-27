@@ -41,7 +41,7 @@ def generate_gradcam(model, image, target_layer):
     heatmap = np.uint8(255 * heatmap)
     print(heatmap.shape)
     print(np.unique(heatmap))
-    heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_INFERNO)
+    heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_COOL)
     print(heatmap.shape)
     return heatmap
 
