@@ -257,6 +257,7 @@ def show_cam_on_image(img, mask, use_rgb=False):
     if use_rgb:
         heatmap = cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB)
     cv2.imwrite("abc0.png", heatmap)
+    heatmap = red_to_gray_np(heatmap)
     heatmap = np.float32(heatmap) / 255
     
     cam = heatmap + np.float32(img)
@@ -265,8 +266,8 @@ def show_cam_on_image(img, mask, use_rgb=False):
     
     #cam = 255 - cam
     cv2.imwrite("abc1.png", cam)
-    cam = red_to_gray_np(cam)
-    cv2.imwrite("abc2.png", cam)
+    #cam = red_to_gray_np(cam)
+    #cv2.imwrite("abc2.png", cam)
     return cam
 
 def save_random_predictions(model, dataloader, device, output_dir, epoch, class_names, use_gradcam_plus_plus=False):
