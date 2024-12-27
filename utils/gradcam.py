@@ -39,7 +39,19 @@ def generate_gradcam_ori(model, image, target_layer):
     heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
     return heatmap
 
-def generate_gradcam(model, image, target_layer):
+def generate_gradcam(model, image, target_layer, image_weight=0.5):
+    """
+    Generate Grad-CAM heatmap and blend it with the original image.
+
+    Args:
+        model (torch.nn.Module): Trained PyTorch model.
+        image (torch.Tensor): Input image tensor of shape (C, H, W) or (1, C, H, W).
+        target_layer (torch.nn.Module): The target convolutional layer.
+        image_weight (float): Weight for blending the original image with the heatmap (0 to 1).
+
+    Returns:
+        np.array: Blended Grad-CAM heatmap overlayed on the original image.
+    """
     model.eval()
     if image.dim() == 3:
         image = image.unsqueeze(0)  # Add batch dimension
@@ -85,11 +97,20 @@ def generate_gradcam(model, image, target_layer):
     heatmap = cv2.resize(heatmap, (image.shape[3], image.shape[2]))
     heatmap = np.uint8(255 * heatmap)
 
-    # Apply colormap
+    # Apply colormap to heatmap
     heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
     heatmap = cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB)
 
-    return heatmap
+    # Convert image tensor to NumPy array
+    img = image.squeeze().permute(1, 2, 0).cpu().numpy()  # (H, W, C)
+    img = np.uint8(255 * (img - img.min()) / (img.max() - img.min()))  # Normalize to 0-255
+
+    # Blend heatmap with the original image
+    cam = (1 - image_weight) * heatmap + image_weight * img
+    cam = cam / np.max(cam)  # Normalize the blended image
+    cam = np.uint8(255 * cam)
+
+    return cam
 
 
 def generate_gradcam_plus_plus(model, image, target_layer):

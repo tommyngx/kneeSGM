@@ -42,11 +42,11 @@ def main(config_path='config/default.yaml', model_name=None, model_path=None, us
 
     # Load and display the saved image
     saved_image_path = os.path.join(output_dir, "random_predictions_epoch_0.png")
-    if os.path.exists(saved_image_path):
-        img = Image.open(saved_image_path)
-        plt.imshow(img)
-        plt.axis('off')
-        plt.show()
+    #if os.path.exists(saved_image_path):
+    #    img = Image.open(saved_image_path)
+    #    plt.imshow(img)
+    #    plt.axis('off')
+    #    plt.show()
 
     # Keep only the last 3 latest saved epochs
     saved_files = sorted([f for f in os.listdir(output_dir) if f.startswith("random_predictions_epoch_")], reverse=True)
