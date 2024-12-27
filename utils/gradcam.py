@@ -61,10 +61,10 @@ def generate_gradcam_plus_plus(model, image, target_layer):
 
     # Ensure the dimensions match
     if gradients.shape[1] != activations.shape[1]:
-        gradients = gradients.permute(0, 2, 3, 1)
-        gradients = gradients.reshape(gradients.shape[0], -1, activations.shape[1])
+        gradients = gradients.permute(0, 2, 3, 1).contiguous()
+        gradients = gradients.view(gradients.size(0), -1, activations.size(1))
 
-    weights = torch.mean(gradients, dim=(2, 3), keepdim=True)
+    weights = torch.mean(gradients, dim=1, keepdim=True)
     heatmap = torch.sum(weights * activations, dim=1).squeeze()
 
     heatmap = F.relu(heatmap)
