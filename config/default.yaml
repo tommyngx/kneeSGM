@@ -39,7 +39,7 @@ data:
       hue: 0.2
       p: 0.5
     random_crop: 
-      enabled: true
+      enabled: false
       height: 256
       width: 256
       p: 0.5
