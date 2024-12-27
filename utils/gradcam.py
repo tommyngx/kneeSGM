@@ -103,6 +103,45 @@ def blue_to_gray_np(image: np.ndarray) -> np.ndarray:
     result = np.where(blue_mask[:, :, None] == 255, gray_3_channel, image)
     return result
 
+def red_to_gray_np(image: np.ndarray) -> np.ndarray:
+    """
+    Convert red areas in an image (NumPy array) to gray.
+    
+    Args:
+        image (np.ndarray): Input image in BGR format as a NumPy array.
+    
+    Returns:
+        np.ndarray: Processed image with red areas converted to gray.
+    """
+    if image is None:
+        raise ValueError("Input image is None.")
+    if len(image.shape) != 3 or image.shape[2] != 3:
+        raise ValueError("Input image must be a 3-channel color image (BGR).")
+    
+    # Convert to HSV for easier color range detection
+    hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    
+    # Define the red range in HSV
+    # Red in HSV often spans two ranges due to hue wrap-around (0-10 and 170-180)
+    lower_red1 = np.array([0, 50, 50])    # Lower red range 1
+    upper_red1 = np.array([10, 255, 255])
+    lower_red2 = np.array([170, 50, 50])  # Lower red range 2
+    upper_red2 = np.array([180, 255, 255])
+    
+    # Create masks for both red ranges and combine them
+    red_mask1 = cv2.inRange(hsv_image, lower_red1, upper_red1)
+    red_mask2 = cv2.inRange(hsv_image, lower_red2, upper_red2)
+    red_mask = cv2.bitwise_or(red_mask1, red_mask2)
+    
+    # Create a grayscale version of the image
+    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    
+    # Convert grayscale to 3-channel image to match the input format
+    gray_3_channel = cv2.merge([gray_image, gray_image, gray_image])
+    
+    # Replace red areas with the corresponding grayscale pixels
+    result = np.where(red_mask[:, :, None] == 255, gray_3_channel, image)
+    return result
 
 def generate_gradcam_ori(model, image, target_layer):
     model.eval()
@@ -224,7 +263,7 @@ def show_cam_on_image(img, mask, use_rgb=False):
     
     #cam = 255 - cam
     cv2.imwrite("abc1.png", cam)
-    cam = blue_to_gray_np(cam)
+    cam = red_to_gray_np(cam)
     cv2.imwrite("abc2.png", cam)
     return cam
 
