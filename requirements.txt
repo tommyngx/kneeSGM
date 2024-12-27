@@ -1,7 +1,7 @@
 torch
 torchvision
 timm
-albumentations
+albumentations==1.4.24
 pandas
 Pillow
 scikit-learn
