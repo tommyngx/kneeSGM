@@ -44,6 +44,7 @@ def train_one_epoch(model, dataloader, criterion, optimizer, device):
         optimizer.step()
         running_loss += loss.item()
         running_acc += accuracy(outputs, labels)
+        print(f"Train Loss: {running_loss / len(dataloader):.4f}")
     return running_loss / len(dataloader), running_acc / len(dataloader)
 
 def validate(model, dataloader, criterion, device):
@@ -62,6 +63,7 @@ def validate(model, dataloader, criterion, device):
             running_acc += accuracy(outputs, labels)
             all_preds.extend(torch.argmax(outputs, dim=1).cpu().numpy())
             all_labels.extend(labels.cpu().numpy())
+            print(f"Val Loss: {running_loss / len(dataloader):.4f}")
     return running_loss / len(dataloader), running_acc / len(dataloader), all_preds, all_labels
 
 def main(config_path='config/default.yaml', model_name=None, epochs=None, resume_from=None):

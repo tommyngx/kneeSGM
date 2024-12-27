@@ -6,17 +6,36 @@ from sklearn.metrics import confusion_matrix, roc_curve, auc
 
 def save_confusion_matrix(labels, preds, class_names, output_dir, epoch=None):
     cm = confusion_matrix(labels, preds)
-    plt.figure(figsize=(10, 8))
+    cm_normalized = cm.astype("float") / cm.sum(axis=1)[:, np.newaxis]
+    
+    plt.figure(figsize=(12, 6))
+    
+    plt.subplot(1, 2, 1)
     sns.heatmap(cm, annot=True, fmt=".0f", cmap="Purples", xticklabels=class_names, yticklabels=class_names)
     plt.xlabel("Predicted")
-    plt.ylabel("True")
+    plt.ylabel("Actual")
     title = "Confusion Matrix"
     if epoch is not None:
         title += f" - Epoch {epoch}"
     plt.title(title)
+    
+    plt.subplot(1, 2, 2)
+    sns.heatmap(cm_normalized, annot=True, fmt=".2f", cmap="Purples", xticklabels=class_names, yticklabels=class_names)
+    plt.xlabel("Predicted")
+    plt.ylabel("Actual")
+    title = "Normalized Confusion Matrix"
+    if epoch is not None:
+        title += f" - Epoch {epoch}"
+    plt.title(title)
+    
     filename = "confusion_matrix.png" if epoch is None else f"confusion_matrix_epoch_{epoch}.png"
     plt.savefig(os.path.join(output_dir, filename))
     plt.close()
+    
+    # Keep only the last 3 latest saved epochs
+    saved_files = sorted([f for f in os.listdir(output_dir) if f.startswith("confusion_matrix_epoch_")], reverse=True)
+    for file in saved_files[3:]:
+        os.remove(os.path.join(output_dir, file))
 
 def save_roc_curve(labels, preds, class_names, output_dir, epoch=None):
     fpr, tpr, _ = roc_curve(labels, preds, pos_label=1)
@@ -36,6 +55,11 @@ def save_roc_curve(labels, preds, class_names, output_dir, epoch=None):
     filename = "roc_curve.png" if epoch is None else f"roc_curve_epoch_{epoch}.png"
     plt.savefig(os.path.join(output_dir, filename))
     plt.close()
+    
+    # Keep only the last 3 latest saved epochs
+    saved_files = sorted([f for f in os.listdir(output_dir) if f.startswith("roc_curve_epoch_")], reverse=True)
+    for file in saved_files[3:]:
+        os.remove(os.path.join(output_dir, file))
 
 def tr_plot(tr_data, start_epoch, output_dir):
     # Plot the training and validation data

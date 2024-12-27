@@ -92,3 +92,8 @@ def save_random_predictions(model, dataloader, device, output_dir, epoch, class_
     plt.tight_layout()
     plt.savefig(os.path.join(output_dir, f"random_predictions_epoch_{epoch}.png"))
     plt.close()
+    
+    # Keep only the last 3 latest saved epochs
+    saved_files = sorted([f for f in os.listdir(output_dir) if f.startswith("random_predictions_epoch_")], reverse=True)
+    for file in saved_files[3:]:
+        os.remove(os.path.join(output_dir, file))
