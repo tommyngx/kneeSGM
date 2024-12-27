@@ -68,5 +68,5 @@ def tr_plot(tr_data, start_epoch, output_dir):
     axes[1].set_ylabel('Accuracy')
     axes[1].legend()
     plt.tight_layout()
-    plt.savefig(os.path.join(output_dir, f"training_plot.png"))
+    plt.savefig(os.path.join(output_dir,'logs', f"training_plot.png"))
     plt.close()
