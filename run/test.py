@@ -8,7 +8,7 @@ from sklearn.metrics import classification_report
 from models.model_architectures import get_model
 from data.data_loader import get_dataloader
 from utils.metrics import accuracy, f1, precision, recall
-from utils.gradcam import GradCAM, show_cam_on_image
+from utils.gradcam import generate_gradcam, show_cam_on_image
 from utils.plotting import save_confusion_matrix, save_roc_curve
 
 def load_config(config_path):
@@ -18,7 +18,6 @@ def load_config(config_path):
 
 def save_random_predictions(model, dataloader, device, output_dir, class_names):
     model.eval()
-    grad_cam = GradCAM(model=model, target_layers=[model.layer4[-1]], use_cuda=torch.cuda.is_available())
     images, labels = next(iter(dataloader))
     images, labels = images.to(device), labels.to(device)
     outputs = model(images)
@@ -29,8 +28,8 @@ def save_random_predictions(model, dataloader, device, output_dir, class_names):
         img = (img - img.min()) / (img.max() - img.min())
         label = labels[i].item()
         pred = preds[i].item()
-        grayscale_cam = grad_cam(input_tensor=images[i].unsqueeze(0), target_category=pred)[0, :]
-        cam_image = show_cam_on_image(img, grayscale_cam, use_rgb=True)
+        heatmap = generate_gradcam(model, images[i].unsqueeze(0), model.layer4[-1])
+        cam_image = show_cam_on_image(img, heatmap, use_rgb=True)
         plt.imsave(os.path.join(output_dir, f"prediction_img_{i}_pred_{class_names[pred]}_label_{class_names[label]}.png"), cam_image)
 
 def test(model, dataloader, device):
