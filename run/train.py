@@ -113,7 +113,7 @@ def main(config_path='config/default.yaml', model_name=None, epochs=None, resume
     best_models = []
     
     if resume_from:
-        checkpoint = torch.load(resume_from)
+        checkpoint = torch.load(resume_from, weights_only=True)
         model.load_state_dict(checkpoint['model_state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         start_epoch = checkpoint['epoch'] + 1
