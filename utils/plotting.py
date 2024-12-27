@@ -11,10 +11,10 @@ def save_confusion_matrix(labels, preds, class_names, output_dir, epoch=None):
     plt.figure(figsize=(10, 8))
     sns.heatmap(cm, annot=True, fmt=".0f", cmap="Purples", xticklabels=class_names, yticklabels=class_names, cbar=False)
     
-    for i in range(cm.shape[0]):
-        for j in range(cm.shape[1]):
-            plt.text(j + 0.5, i + 0.5, f"{cm[i, j]}\n({cm_normalized[i, j]:.2%})",
-                     ha="center", va="center", color="black", fontsize=10)
+    #for i in range(cm.shape[0]):
+    #    for j in range(cm.shape[1]):
+    #        plt.text(j + 0.5, i + 0.5, f"{cm[i, j]}\n({cm_normalized[i, j]:.2%})",
+    #                 ha="center", va="center", color="black", fontsize=10)
     
     plt.xlabel("Predicted")
     plt.ylabel("Actual")

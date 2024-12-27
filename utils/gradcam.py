@@ -36,7 +36,7 @@ def generate_gradcam(model, image, target_layer):
     heatmap = heatmap.cpu().numpy()  # Move to CPU before converting to NumPy
     heatmap = cv2.resize(heatmap, (image.shape[2], image.shape[3]))
     heatmap = np.uint8(255 * heatmap)
-    heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
+    heatmap = cv2.applyColorMap(heatmap, cv2.COLOR_BGR2RGB)
     return heatmap
 
 def show_cam_on_image(img, mask, use_rgb=False):
