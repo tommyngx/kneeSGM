@@ -70,4 +70,5 @@ def tr_plot(tr_data, start_epoch):
     axes[1].set_ylabel('Accuracy')
     axes[1].legend()
     plt.tight_layout()
-    plt.show()
+    plt.savefig(os.path.join(output_dir, f"training_plot_epoch_{Epoch_count}.png"))
+    plt.close()

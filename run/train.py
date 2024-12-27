@@ -64,23 +64,6 @@ def validate(model, dataloader, criterion, device):
             all_labels.extend(labels.cpu().numpy())
     return running_loss / len(dataloader), running_acc / len(dataloader), all_preds, all_labels
 
-def save_random_predictions(model, dataloader, device, output_dir, epoch, class_names):
-    model.eval()
-    images, labels = next(iter(dataloader))
-    images, labels = images.to(device), labels.to(device)
-    outputs = model(images)
-    outputs = torch.softmax(outputs, dim=1)  # Apply softmax
-    preds = torch.argmax(outputs, dim=1)
-    for i in range(12):
-        img = images[i].cpu().numpy().transpose(1, 2, 0)
-        img = (img - img.min()) / (img.max() - img.min())
-        label = labels[i].item()
-        pred = preds[i].item()
-        print(f"Generating Grad-CAM for image {i}, label: {label}, pred: {pred}")
-        heatmap = generate_gradcam(model, images[i].unsqueeze(0), model.layer4[-1])
-        cam_image = show_cam_on_image(img, heatmap, use_rgb=True)
-        plt.imsave(os.path.join(output_dir, f"prediction_epoch_{epoch}_img_{i}_pred_{class_names[pred]}_label_{class_names[label]}.png"), cam_image)
-
 def main(config_path='config/default.yaml', model_name=None, epochs=None, resume_from=None):
     config = load_config(config_path)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -149,23 +132,31 @@ def main(config_path='config/default.yaml', model_name=None, epochs=None, resume
             f.write(f"Epoch {epoch+1}/{epochs}, Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f}, Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}\n")
         
         if val_acc > best_val_acc:
-            best_val_acc = val_acc
-            model_filename = f"{model_name}_epoch_{epoch+1}_acc_{val_acc:.4f}.pth"
-            model_path = os.path.join(output_dir, "models", model_filename)
-            torch.save(model.state_dict(), model_path)
-            best_models.append((val_acc, model_path))
-            best_models = sorted(best_models, key=lambda x: x[0], reverse=True)[:4]
-            print("Best model saved!")
-        
-        # Save checkpoint
-        checkpoint = {
+            checkpoint = {
             'epoch': epoch,
             'model_state_dict': model.state_dict(),
             'optimizer_state_dict': optimizer.state_dict(),
             'best_val_acc': best_val_acc,
             'training_history': training_history
-        }
-        torch.save(checkpoint, os.path.join(output_dir, "models", f"checkpoint_epoch_{epoch+1}.pth"))
+            }
+            best_val_acc = val_acc
+            model_filename = f"{model_name}_epoch_{epoch+1}_acc_{val_acc:.4f}.pth"
+            model_path = os.path.join(output_dir, "models", model_filename)
+            #torch.save(model.state_dict(), model_path)
+            torch.save(checkpoint, model_path)
+            best_models.append((val_acc, model_path))
+            best_models = sorted(best_models, key=lambda x: x[0], reverse=True)[:4]
+            print("Best model saved!")
+        
+        # Save checkpoint
+        #checkpoint = {
+        #    'epoch': epoch,
+        #    'model_state_dict': model.state_dict(),
+        #    'optimizer_state_dict': optimizer.state_dict(),
+        #    'best_val_acc': best_val_acc,
+        #    'training_history': training_history
+        #}
+        #torch.save(checkpoint, os.path.join(output_dir, "models", f"checkpoint_epoch_{epoch+1}.pth"))
         
         # Remove models beyond the top 4
         for _, model_path in best_models[4:]:
