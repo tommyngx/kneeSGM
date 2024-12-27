@@ -1,45 +1,10 @@
-import torch,os 
+import torch, os
 import torch.nn.functional as F
 from torchvision import transforms
 import numpy as np
 import cv2
 import matplotlib.pyplot as plt
 from PIL import Image
-
-def generate_gradcam_ori(model, image, target_layer):
-    model.eval()
-    if image.dim() == 3:
-        image = image.unsqueeze(0)
-    image.requires_grad = True
-
-    features = []
-    def hook_fn(module, input, output):
-        features.append(output)
-
-    handle = target_layer.register_forward_hook(hook_fn)
-    output = model(image)
-    handle.remove()
-
-    score = output[:, output.max(1)[-1]]
-    score.backward()
-
-    gradients = image.grad.data
-    pooled_gradients = torch.mean(gradients, dim=[0, 2, 3])
-    activations = features[0].detach()
-
-    for i in range(min(activations.shape[1], pooled_gradients.shape[0])):
-        activations[:, i, :, :] *= pooled_gradients[i]
-
-    heatmap = torch.mean(activations, dim=1).squeeze()
-    heatmap = F.relu(heatmap)
-    heatmap /= torch.max(heatmap)
-
-    heatmap = heatmap.cpu().numpy()  # Move to CPU before converting to NumPy
-    heatmap = cv2.resize(heatmap, (image.shape[2], image.shape[3]))
-    heatmap = np.uint8(255 * heatmap)
-    heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
-    return heatmap
-
 from pytorch_grad_cam import GradCAM
 from pytorch_grad_cam.utils.image import show_cam_on_image, preprocess_image
 
@@ -79,6 +44,40 @@ def generate_gradcam(input_image, model, target_layer, target_category=None):
     visualization = show_cam_on_image(img, grayscale_cam, use_rgb=True)
 
     return visualization
+
+def generate_gradcam_ori(model, image, target_layer):
+    model.eval()
+    if image.dim() == 3:
+        image = image.unsqueeze(0)
+    image.requires_grad = True
+
+    features = []
+    def hook_fn(module, input, output):
+        features.append(output)
+
+    handle = target_layer.register_forward_hook(hook_fn)
+    output = model(image)
+    handle.remove()
+
+    score = output[:, output.max(1)[-1]]
+    score.backward()
+
+    gradients = image.grad.data
+    pooled_gradients = torch.mean(gradients, dim=[0, 2, 3])
+    activations = features[0].detach()
+
+    for i in range(min(activations.shape[1], pooled_gradients.shape[0])):
+        activations[:, i, :, :] *= pooled_gradients[i]
+
+    heatmap = torch.mean(activations, dim=1).squeeze()
+    heatmap = F.relu(heatmap)
+    heatmap /= torch.max(heatmap)
+
+    heatmap = heatmap.cpu().numpy()  # Move to CPU before converting to NumPy
+    heatmap = cv2.resize(heatmap, (image.shape[2], image.shape[3]))
+    heatmap = np.uint8(255 * heatmap)
+    heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
+    return heatmap
 
 def generate_gradcam22(model, image, target_layer, image_weight=0.5):
     """
