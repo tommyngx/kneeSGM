@@ -65,12 +65,12 @@ def generate_gradcam_plus_plus(model, image, target_layer):
     def forward_hook(module, input, output):
         activations.append(output)
 
-    def backward_hook(module, grad_in, grad_out):
-        gradients.append(grad_out[0])
+    def backward_hook(module, grad_input, grad_output):
+        gradients.append(grad_output[0])
 
     # Register hooks for the target layer
     forward_handle = target_layer.register_forward_hook(forward_hook)
-    backward_handle = target_layer.register_backward_hook(backward_hook)
+    backward_handle = target_layer.register_full_backward_hook(backward_hook)
 
     # Forward pass
     output = model(image)
