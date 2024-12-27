@@ -43,8 +43,8 @@ def tr_plot(tr_data, start_epoch, output_dir):
     tloss = tr_data['loss']
     vacc = tr_data['val_accuracy']
     vloss = tr_data['val_loss']
-    Epoch_count = len(tacc) + start_epoch
-    Epochs = list(range(1, Epoch_count + 1))
+    Epoch_count = len(tacc)
+    Epochs = list(range(start_epoch + 1, start_epoch + Epoch_count + 1))
     index_loss = np.argmin(vloss)  # this is the epoch with the lowest validation loss
     val_lowest = vloss[index_loss]
     index_acc = np.argmax(vacc)
