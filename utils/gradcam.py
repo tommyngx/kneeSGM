@@ -41,12 +41,15 @@ def generate_gradcam(model, image, target_layer):
     heatmap = np.uint8(255 * heatmap)
     heatmap = 255 - heatmap
 
-    print(' step 1' ,heatmap.shape)
+    #print(' step 1' ,heatmap.shape)
     heatmap_colored = np.stack([heatmap] * 3, axis=-1)
-    print(' step 2' ,np.unique(heatmap_colored))
-    print(' step 4' ,heatmap_colored.shape)
+    #print(' step 2' ,np.unique(heatmap_colored))
+    #print(' step 4' ,heatmap_colored.shape)
     blue_mask = (heatmap_colored[:, :, 0] > 128) & (heatmap_colored[:, :, 1] < 50) & (heatmap_colored[:, :, 2] < 50)
-    gray_value = heatmap[blue_mask]  # Use the normalized heatmap values as intensity for gray
+    #gray_value = heatmap[blue_mask]  # Use the normalized heatmap values as intensity for gray
+    gray_value = (0.3 * heatmap_colored[blue_mask, 2] + 
+              0.59 * heatmap_colored[blue_mask, 1] + 
+              0.11 * heatmap_colored[blue_mask, 0]).astype(np.uint8)
     heatmap_colored[blue_mask] = np.stack([gray_value, gray_value, gray_value], axis=-1)
 
     #print("afterww",heatmap.shape)
