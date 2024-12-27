@@ -3,7 +3,7 @@
 # General settings
 project_name: "Knee Osteoarthritis Classification"
 #output_dir: "/content/outputs" # cpu settings
-output_dir: "/projects/OsteoLab/Tommy/KneeOA/outputs" # gpu settings
+output_dir: "/projects/OsteoLab/Tommy/KneeOA/Run/outputs" # gpu settings
 timezone: "Australia/Sydney"
 
 # Data settings
