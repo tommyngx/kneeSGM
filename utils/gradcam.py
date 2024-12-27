@@ -101,8 +101,8 @@ def generate_gradcam(model, image, target_layer, image_weight=0.5):
     heatmap = np.uint8(255 * heatmap)
 
     # Apply colormap to heatmap
-    heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
-    #heatmap = cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB)
+    #heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
+    heatmap = cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB)
 
     # Convert image tensor to NumPy array
     img = image.squeeze().detach().permute(1, 2, 0).cpu().numpy()  # Detach before calling .numpy()
