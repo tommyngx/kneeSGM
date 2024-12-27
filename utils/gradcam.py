@@ -39,15 +39,10 @@ def generate_gradcam_ori(model, image, target_layer):
     heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
     return heatmap
 
-import torch
-import torch.nn.functional as F
-import cv2
-import numpy as np
-
 def generate_gradcam(model, image, target_layer):
     model.eval()
     if image.dim() == 3:
-        image = image.unsqueeze(0)
+        image = image.unsqueeze(0)  # Add batch dimension
     image.requires_grad = True
 
     # Hook to capture features
@@ -73,18 +68,20 @@ def generate_gradcam(model, image, target_layer):
     activations = features[0].detach()
 
     # Compute weights
-    weights = torch.mean(gradients, dim=[0, 2, 3])
-    weights = F.relu(weights)
+    pooled_gradients = torch.mean(gradients, dim=[0, 2, 3])
+
+    # Ensure the number of channels matches
+    num_channels = min(activations.shape[1], pooled_gradients.shape[0])
 
     # Weight the channels
-    for i in range(activations.shape[1]):
-        activations[:, i, :, :] *= weights[i]
+    for i in range(num_channels):
+        activations[:, i, :, :] *= pooled_gradients[i]
 
     # Generate heatmap
     heatmap = torch.mean(activations, dim=1).squeeze()
     heatmap = F.relu(heatmap)
-    heatmap -= heatmap.min()
-    heatmap /= heatmap.max()
+    if heatmap.max() != 0:  # Avoid division by zero
+        heatmap /= heatmap.max()
 
     # Convert to numpy
     heatmap = heatmap.cpu().numpy()
@@ -93,7 +90,7 @@ def generate_gradcam(model, image, target_layer):
     heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
 
     # Convert original image to numpy
-    original_img = image.squeeze().permute(1, 2, 0).cpu().numpy()
+    original_img = image.squeeze().detach().permute(1, 2, 0).cpu().numpy()
     original_img = np.uint8(255 * (original_img - original_img.min()) / (original_img.max() - original_img.min()))
 
     # Superimpose heatmap on original image
