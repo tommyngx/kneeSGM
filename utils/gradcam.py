@@ -41,7 +41,7 @@ def generate_gradcam(model, image, target_layer):
     heatmap = np.uint8(255 * heatmap)
     heatmap = 255 - heatmap
 
-    heatmap_colored = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
+    #heatmap_colored = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
 
     #print(' step 1' ,heatmap.shape)
     heatmap_colored = np.stack([heatmap] * 3, axis=-1)
