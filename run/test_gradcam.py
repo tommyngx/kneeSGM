@@ -36,7 +36,7 @@ def main(config_path='config/default.yaml', model_name=None, model_path=None, us
     output_dir = os.path.join(config['output_dir'], "gradcam_logs")
     os.makedirs(output_dir, exist_ok=True)
     
-    save_random_predictions(model, test_loader, device, output_dir, config['data']['class_names'], use_gradcam_plus_plus)
+    save_random_predictions(model, test_loader, device, output_dir, epoch=0, class_names=config['data']['class_names'], use_gradcam_plus_plus=use_gradcam_plus_plus)
 
     # Keep only the last 3 latest saved epochs
     saved_files = sorted([f for f in os.listdir(output_dir) if f.startswith("random_predictions_epoch_")], reverse=True)
