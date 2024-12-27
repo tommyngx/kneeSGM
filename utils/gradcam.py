@@ -5,7 +5,7 @@ import numpy as np
 import cv2
 import matplotlib.pyplot as plt
 
-def generate_gradcam(model, image, target_layer):
+def generate_gradcam_ori(model, image, target_layer):
     model.eval()
     if image.dim() == 3:
         image = image.unsqueeze(0)
@@ -38,6 +38,59 @@ def generate_gradcam(model, image, target_layer):
     heatmap = np.uint8(255 * heatmap)
     heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
     return heatmap
+
+def generate_gradcam(model, image, target_layer):
+    model.eval()
+    if image.dim() == 3:
+        image = image.unsqueeze(0)  # Add batch dimension
+    image.requires_grad = True
+
+    # Hook to capture feature maps
+    features = []
+
+    def hook_fn(module, input, output):
+        features.append(output)
+
+    handle = target_layer.register_forward_hook(hook_fn)
+
+    # Forward pass
+    output = model(image)
+    handle.remove()
+
+    # Get the predicted class score
+    target_class = output.argmax(dim=1).item()
+    score = output[:, target_class]
+
+    # Backward pass
+    model.zero_grad()
+    score.backward()
+
+    # Extract gradients and feature maps
+    gradients = image.grad.data
+    pooled_gradients = torch.mean(gradients, dim=[0, 2, 3])  # Global average pooling
+    activations = features[0].detach()
+
+    # Weight feature maps by pooled gradients
+    for i in range(activations.shape[1]):
+        activations[:, i, :, :] *= pooled_gradients[i]
+
+    # Generate heatmap
+    heatmap = torch.mean(activations, dim=1).squeeze()
+    heatmap = F.relu(heatmap)  # Apply ReLU to keep positive contributions only
+    if heatmap.max() != 0:  # Avoid division by zero
+        heatmap /= heatmap.max()
+
+    # Convert to NumPy array and resize to match input image
+    heatmap = heatmap.cpu().numpy()
+    heatmap = cv2.resize(heatmap, (image.shape[3], image.shape[2]))
+    heatmap = np.uint8(255 * heatmap)
+
+    # Apply colormap
+    heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
+    heatmap = cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB)
+
+    return heatmap
+
 
 def generate_gradcam_plus_plus(model, image, target_layer):
     """
