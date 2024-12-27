@@ -112,7 +112,7 @@ def generate_gradcam(model, image, target_layer, image_weight=0.5):
     cam = (1 - image_weight) * heatmap + image_weight * img
     cam = cam / np.max(cam)  # Normalize the blended image
     cam = np.uint8(255 * cam)
-
+    cam  = cv2.cvtColor(cam , cv2.COLOR_BGR2RGB)
     return cam
 
 
