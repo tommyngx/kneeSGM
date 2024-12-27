@@ -82,7 +82,7 @@ def generate_gradcam(model, image, target_layer, image_weight=0.5):
     pooled_gradients = torch.mean(gradients, dim=[0, 2, 3])  # Global average pooling
     activations = features[0].detach()
 
-    # Ensure no dimension mismatch
+    # Ensure dimensions match
     num_channels = min(activations.shape[1], pooled_gradients.shape[0])
 
     # Weight feature maps by pooled gradients
