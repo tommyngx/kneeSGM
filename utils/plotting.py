@@ -8,22 +8,17 @@ def save_confusion_matrix(labels, preds, class_names, output_dir, epoch=None):
     cm = confusion_matrix(labels, preds)
     cm_normalized = cm.astype("float") / cm.sum(axis=1)[:, np.newaxis]
     
-    plt.figure(figsize=(12, 6))
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(cm, annot=True, fmt=".0f", cmap="Purples", xticklabels=class_names, yticklabels=class_names, cbar=False)
     
-    plt.subplot(1, 2, 1)
-    sns.heatmap(cm, annot=True, fmt=".0f", cmap="Purples", xticklabels=class_names, yticklabels=class_names)
+    for i in range(cm.shape[0]):
+        for j in range(cm.shape[1]):
+            plt.text(j + 0.5, i + 0.5, f"{cm[i, j]}\n({cm_normalized[i, j]:.2%})",
+                     ha="center", va="center", color="black", fontsize=10)
+    
     plt.xlabel("Predicted")
     plt.ylabel("Actual")
     title = "Confusion Matrix"
-    if epoch is not None:
-        title += f" - Epoch {epoch}"
-    plt.title(title)
-    
-    plt.subplot(1, 2, 2)
-    sns.heatmap(cm_normalized, annot=True, fmt=".2f", cmap="Purples", xticklabels=class_names, yticklabels=class_names)
-    plt.xlabel("Predicted")
-    plt.ylabel("Actual")
-    title = "Normalized Confusion Matrix"
     if epoch is not None:
         title += f" - Epoch {epoch}"
     plt.title(title)
