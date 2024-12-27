@@ -47,12 +47,12 @@ def generate_gradcam(model, image, target_layer):
     heatmap_colored = np.stack([heatmap] * 3, axis=-1)
     #heatmap_colored = cv2.cvtColor(heatmap_colored, cv2.COLOR_BGR2RGB)
     
-    heatmap_colored = cv2.cvtColor(heatmap_colored, cv2.COLOR_HSV2BGR)
-    heatmap_colored = cv2.cvtColor(heatmap_colored, cv2.COLOR_BGR2RGB)
-    heatmap_colored = heatmap_colored.astype(np.uint8)
-    cv2.imwrite("abc.png", heatmap_colored)
-    heatmap_colored = cv2.imread("abc.png")
-    heatmap_colored = blue_to_gray_np(heatmap_colored)
+    #heatmap_colored = cv2.cvtColor(heatmap_colored, cv2.COLOR_HSV2BGR)
+    #heatmap_colored = cv2.cvtColor(heatmap_colored, cv2.COLOR_BGR2RGB)
+    #heatmap_colored = heatmap_colored.astype(np.uint8)
+    #cv2.imwrite("abc.png", heatmap_colored)
+    #heatmap_colored = cv2.imread("abc.png")
+    #heatmap_colored = blue_to_gray_np(heatmap_colored)
 
     #print("RGB/BGR pixel value:", heatmap_colored[0, 0])
     #print(' step 2' ,np.unique(heatmap_colored))
@@ -299,7 +299,9 @@ def show_cam_on_image(img, mask, use_rgb=False):
     heatmap = np.float32(heatmap) / 255
     cam = heatmap + np.float32(img)
     cam = cam / np.max(cam)
-    return np.uint8(255 * cam)
+    cam = np.uint8(255 * cam)
+    cam = blue_to_gray_np(cam)
+    return cam
 
 def save_random_predictions(model, dataloader, device, output_dir, epoch, class_names, use_gradcam_plus_plus=False):
     model.eval()
