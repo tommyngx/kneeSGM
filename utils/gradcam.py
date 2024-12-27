@@ -50,7 +50,7 @@ def generate_gradcam(model, image, target_layer):
     #print("afterww",heatmap.shape)
     #heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
     #print("after",heatmap.shape)
-    return eatmap_colored #heatmap
+    return heatmap_colored #heatmap
 
 
 def generate_gradcam_ori(model, image, target_layer):
