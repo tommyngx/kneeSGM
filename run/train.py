@@ -14,7 +14,7 @@ import numpy as np
 from models.model_architectures import get_model
 from data.data_loader import get_dataloader
 from utils.metrics import accuracy, f1, precision, recall
-from utils.gradcam import generate_gradcam, show_cam_on_image
+from utils.gradcam import generate_gradcam, show_cam_on_image, save_random_predictions
 from utils.plotting import save_confusion_matrix, save_roc_curve, tr_plot
 
 def load_config(config_path):

@@ -3,6 +3,7 @@ import torch.nn.functional as F
 from torchvision import transforms
 import numpy as np
 import cv2
+import matplotlib.pyplot as plt
 
 def generate_gradcam(model, image, target_layer):
     model.eval()
@@ -25,10 +26,6 @@ def generate_gradcam(model, image, target_layer):
     pooled_gradients = torch.mean(gradients, dim=[0, 2, 3])
     activations = features[0].detach()
 
-    # Debugging information
-    print(f"Activations shape: {activations.shape}")
-    print(f"Pooled gradients shape: {pooled_gradients.shape}")
-
     for i in range(min(activations.shape[1], pooled_gradients.shape[0])):
         activations[:, i, :, :] *= pooled_gradients[i]
 
@@ -50,3 +47,48 @@ def show_cam_on_image(img, mask, use_rgb=False):
     cam = heatmap + np.float32(img)
     cam = cam / np.max(cam)
     return np.uint8(255 * cam)
+
+def save_random_predictions(model, dataloader, device, output_dir, epoch, class_names):
+    model.eval()
+    images, labels = next(iter(dataloader))
+    images, labels = images.to(device), labels.to(device)
+    outputs = model(images)
+    outputs = torch.softmax(outputs, dim=1)  # Apply softmax
+    preds = torch.argmax(outputs, dim=1)
+    
+    fig, axes = plt.subplots(4, 4, figsize=(20, 20))
+    for i in range(4):
+        img = images[i].cpu().numpy().transpose(1, 2, 0)
+        img = (img - img.min()) / (img.max() - img.min())
+        label = labels[i].item()
+        pred = preds[i].item()
+        heatmap = generate_gradcam(model, images[i].unsqueeze(0), model.layer4[-1])
+        cam_image = show_cam_on_image(img, heatmap, use_rgb=True)
+        
+        axes[i, 0].imshow(img)
+        axes[i, 0].set_title(f"Image {i+1}\nLabel: {class_names[label]}\nPred: {class_names[pred]}")
+        axes[i, 0].axis('off')
+        
+        axes[i, 1].imshow(cam_image)
+        axes[i, 1].set_title(f"Grad-CAM {i+1}\nLabel: {class_names[label]}\nPred: {class_names[pred]}")
+        axes[i, 1].axis('off')
+        
+        if i + 4 < len(images):
+            img = images[i + 4].cpu().numpy().transpose(1, 2, 0)
+            img = (img - img.min()) / (img.max() - img.min())
+            label = labels[i + 4].item()
+            pred = preds[i + 4].item()
+            heatmap = generate_gradcam(model, images[i + 4].unsqueeze(0), model.layer4[-1])
+            cam_image = show_cam_on_image(img, heatmap, use_rgb=True)
+            
+            axes[i, 2].imshow(img)
+            axes[i, 2].set_title(f"Image {i+5}\nLabel: {class_names[label]}\nPred: {class_names[pred]}")
+            axes[i, 2].axis('off')
+            
+            axes[i, 3].imshow(cam_image)
+            axes[i, 3].set_title(f"Grad-CAM {i+5}\nLabel: {class_names[label]}\nPred: {class_names[pred]}")
+            axes[i, 3].axis('off')
+    
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_dir, f"random_predictions_epoch_{epoch}.png"))
+    plt.close()
