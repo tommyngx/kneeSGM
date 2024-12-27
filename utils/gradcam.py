@@ -39,65 +39,35 @@ def generate_gradcam_ori(model, image, target_layer):
     heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
     return heatmap
 
-def generate_gradcam(model, image, target_layer):
-    model.eval()
-    if image.dim() == 3:
-        image = image.unsqueeze(0)  # Add batch dimension
-    image.requires_grad = True
+from pytorch_grad_cam import GradCAM
+from pytorch_grad_cam.utils.image import show_cam_on_image, preprocess_image
 
-    # Hook to capture features
-    features = []
-    def hook_fn(module, input, output):
-        features.append(output)
-    handle = target_layer.register_forward_hook(hook_fn)
+def generate_gradcam(image_path, model, target_layer, target_category=None):
+    # Load and preprocess the image
+    img = Image.open(image_path).convert('RGB')
+    transform = transforms.Compose([
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    ])
+    input_tensor = transform(img).unsqueeze(0)  # Create a mini-batch as expected by the model
 
-    # Forward pass
-    output = model(image)
-    handle.remove()
+    # Initialize GradCAM
+    cam = GradCAM(model=model, target_layers=[target_layer], use_cuda=torch.cuda.is_available())
 
-    # Select the target class
-    target_class = output.argmax(dim=1).item()
-    score = output[:, target_class]
+    # Generate the CAM
+    grayscale_cam = cam(input_tensor=input_tensor, targets=target_category)
 
-    # Backward pass
-    model.zero_grad()
-    score.backward()
+    # Since there's only one image in the batch, get the CAM for the first image
+    grayscale_cam = grayscale_cam[0, :]
 
-    # Get gradients and features
-    gradients = image.grad.data
-    activations = features[0].detach()
+    # Convert the original image to numpy
+    img = np.array(img) / 255.0
 
-    # Compute weights
-    pooled_gradients = torch.mean(gradients, dim=[0, 2, 3])
+    # Create the heatmap
+    visualization = show_cam_on_image(img, grayscale_cam, use_rgb=True)
 
-    # Ensure the number of channels matches
-    num_channels = min(activations.shape[1], pooled_gradients.shape[0])
-
-    # Weight the channels
-    for i in range(num_channels):
-        activations[:, i, :, :] *= pooled_gradients[i]
-
-    # Generate heatmap
-    heatmap = torch.mean(activations, dim=1).squeeze()
-    heatmap = F.relu(heatmap)
-    if heatmap.max() != 0:  # Avoid division by zero
-        heatmap /= heatmap.max()
-
-    # Convert to numpy
-    heatmap = heatmap.cpu().numpy()
-    heatmap = cv2.resize(heatmap, (image.shape[2], image.shape[3]))
-    heatmap = np.uint8(255 * heatmap)
-    heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
-
-    # Convert original image to numpy
-    original_img = image.squeeze().detach().permute(1, 2, 0).cpu().numpy()
-    original_img = np.uint8(255 * (original_img - original_img.min()) / (original_img.max() - original_img.min()))
-
-    # Superimpose heatmap on original image
-    superimposed_img = heatmap * 0.4 + original_img
-    superimposed_img = np.uint8(superimposed_img)
-
-    return superimposed_img
+    return visualization
 
 def generate_gradcam22(model, image, target_layer, image_weight=0.5):
     """
