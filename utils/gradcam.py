@@ -36,6 +36,44 @@ def generate_gradcam(model, image, target_layer):
     heatmap = heatmap.cpu().numpy()  # Move to CPU before converting to NumPy
     heatmap = cv2.resize(heatmap, (image.shape[2], image.shape[3]))
     heatmap = np.uint8(255 * heatmap)
+    heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET    python /Users/francistommy/Desktop/Drive/Github/testkoa/run/test_gradcam.py --config /path/to/config.yaml --model resnet50 --model_path /path/to/model_checkpoint.pth --use_gradcam_plus_plus)
+    return heatmap
+
+def generate_gradcam_plus_plus(model, image, target_layer):
+    model.eval()
+    if image.dim() == 3:
+        image = image.unsqueeze(0)
+    image.requires_grad = True
+
+    features = []
+    def hook_fn(module, input, output):
+        features.append(output)
+
+    handle = target_layer.register_forward_hook(hook_fn)
+    output = model(image)
+    handle.remove()
+
+    score = output[:, output.max(1)[-1]]
+    score.backward()
+
+    gradients = image.grad.data
+    gradients = gradients[0]
+    activations = features[0].detach()[0]
+
+    weights = torch.zeros(activations.shape[0], dtype=torch.float32)
+    for i in range(activations.shape[0]):
+        weights[i] = torch.sum(gradients[i] * activations[i])
+
+    heatmap = torch.zeros(activations.shape[1:], dtype=torch.float32)
+    for i in range(activations.shape[0]):
+        heatmap += weights[i] * activations[i]
+
+    heatmap = F.relu(heatmap)
+    heatmap /= torch.max(heatmap)
+
+    heatmap = heatmap.cpu().numpy()  # Move to CPU before converting to NumPy
+    heatmap = cv2.resize(heatmap, (image.shape[2], image.shape[3]))
+    heatmap = np.uint8(255 * heatmap)
     heatmap = cv2.applyColorMap(heatmap, cv2.COLOR_BGR2RGB)
     return heatmap
 
@@ -48,7 +86,7 @@ def show_cam_on_image(img, mask, use_rgb=False):
     cam = cam / np.max(cam)
     return np.uint8(255 * cam)
 
-def save_random_predictions(model, dataloader, device, output_dir, epoch, class_names):
+def save_random_predictions(model, dataloader, device, output_dir, epoch, class_names, use_gradcam_plus_plus=False):
     model.eval()
     images, labels = next(iter(dataloader))
     images, labels = images.to(device), labels.to(device)
@@ -62,7 +100,10 @@ def save_random_predictions(model, dataloader, device, output_dir, epoch, class_
         img = (img - img.min()) / (img.max() - img.min())
         label = labels[i].item()
         pred = preds[i].item()
-        heatmap = generate_gradcam(model, images[i].unsqueeze(0), model.layer4[-1])
+        if use_gradcam_plus_plus:
+            heatmap = generate_gradcam_plus_plus(model, images[i].unsqueeze(0), model.layer4[-1])
+        else:
+            heatmap = generate_gradcam(model, images[i].unsqueeze(0), model.layer4[-1])
         cam_image = show_cam_on_image(img, heatmap, use_rgb=True)
         
         axes[i, 0].imshow(img)
@@ -78,7 +119,10 @@ def save_random_predictions(model, dataloader, device, output_dir, epoch, class_
             img = (img - img.min()) / (img.max() - img.min())
             label = labels[i + 4].item()
             pred = preds[i + 4].item()
-            heatmap = generate_gradcam(model, images[i + 4].unsqueeze(0), model.layer4[-1])
+            if use_gradcam_plus_plus:
+                heatmap = generate_gradcam_plus_plus(model, images[i + 4].unsqueeze(0), model.layer4[-1])
+            else:
+                heatmap = generate_gradcam(model, images[i + 4].unsqueeze(0), model.layer4[-1])
             cam_image = show_cam_on_image(img, heatmap, use_rgb=True)
             
             axes[i, 2].imshow(img)

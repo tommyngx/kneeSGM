@@ -44,7 +44,6 @@ def train_one_epoch(model, dataloader, criterion, optimizer, device):
         optimizer.step()
         running_loss += loss.item()
         running_acc += accuracy(outputs, labels)
-        #print(f"Train Loss: {running_loss / len(dataloader):.4f}")
     return running_loss / len(dataloader), running_acc / len(dataloader)
 
 def validate(model, dataloader, criterion, device):
@@ -63,10 +62,9 @@ def validate(model, dataloader, criterion, device):
             running_acc += accuracy(outputs, labels)
             all_preds.extend(torch.argmax(outputs, dim=1).cpu().numpy())
             all_labels.extend(labels.cpu().numpy())
-            #print(f"Val Loss: {running_loss / len(dataloader):.4f}")
     return running_loss / len(dataloader), running_acc / len(dataloader), all_preds, all_labels
 
-def main(config_path='config/default.yaml', model_name=None, epochs=None, resume_from=None):
+def main(config_path='config/default.yaml', model_name=None, epochs=None, resume_from=None, use_gradcam_plus_plus=False):
     config = load_config(config_path)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
@@ -124,7 +122,7 @@ def main(config_path='config/default.yaml', model_name=None, epochs=None, resume
             print(classification_report(val_labels, val_preds, target_names=config['data']['class_names'], zero_division=0))
             save_confusion_matrix(val_labels, val_preds, config['data']['class_names'], os.path.join(output_dir, "logs"), epoch)
             save_roc_curve(val_labels, val_preds, config['data']['class_names'], os.path.join(output_dir, "logs"), epoch)
-            save_random_predictions(model, val_loader, device, os.path.join(output_dir, "logs"), epoch, config['data']['class_names'])
+            save_random_predictions(model, val_loader, device, os.path.join(output_dir, "logs"), epoch, config['data']['class_names'], use_gradcam_plus_plus)
         
         tr_plot(training_history, start_epoch, output_dir)
         
@@ -142,21 +140,10 @@ def main(config_path='config/default.yaml', model_name=None, epochs=None, resume
             best_val_acc = val_acc
             model_filename = f"{model_name}_epoch_{epoch+1}_acc_{val_acc:.4f}.pth"
             model_path = os.path.join(output_dir, "models", model_filename)
-            #torch.save(model.state_dict(), model_path)
             torch.save(checkpoint, model_path)
             best_models.append((val_acc, model_path))
             best_models = sorted(best_models, key=lambda x: x[0], reverse=True)[:4]
             print("Best model saved!")
-        
-        # Save checkpoint
-        #checkpoint = {
-        #    'epoch': epoch,
-        #    'model_state_dict': model.state_dict(),
-        #    'optimizer_state_dict': optimizer.state_dict(),
-        #    'best_val_acc': best_val_acc,
-        #    'training_history': training_history
-        #}
-        #torch.save(checkpoint, os.path.join(output_dir, "models", f"checkpoint_epoch_{epoch+1}.pth"))
         
         # Remove models beyond the top 4
         for _, model_path in best_models[4:]:
@@ -169,6 +156,7 @@ if __name__ == "__main__":
     parser.add_argument('--model', type=str, help='Model name to use for training.')
     parser.add_argument('--epochs', type=int, help='Number of epochs to train.')
     parser.add_argument('--resume_from', type=str, help='Path to the checkpoint to resume training from.')
+    parser.add_argument('--use_gradcam_plus_plus', action='store_true', help='Use Grad-CAM++ instead of Grad-CAM.')
     args = parser.parse_args()
     
-    main(config_path=args.config, model_name=args.model, epochs=args.epochs, resume_from=args.resume_from)
+    main(config_path=args.config, model_name=args.model, epochs=args.epochs, resume_from=args.resume_from, use_gradcam_plus_plus=args.use_gradcam_plus_plus)
