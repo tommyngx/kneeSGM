@@ -2,13 +2,15 @@
 
 # General settings
 project_name: "Knee Osteoarthritis Classification"
-output_dir: "/content/outputs"
+#output_dir: "/content/outputs" # cpu settings
+output_dir: "/projects/OsteoLab/Tommy/KneeOA/outputs" # gpu settings
 timezone: "Australia/Sydney"
 
 # Data settings
 data:
   metadata_csv: "/content/dataset/metadata.csv"
-  dataset_based_link: "/content/dataset/dataset"
+  #dataset_based_link: "/content/dataset/dataset"
+  dataset_based_link: "/projects/OsteoLab/Tommy/KneeOA/VOS_Phase2/VOS_P2_KNEE_CROP/dataset" # gpu settings
   train_split: "TRAIN"
   val_split: "VAL"
   test_split: "VAL"
