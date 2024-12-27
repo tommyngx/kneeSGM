@@ -10,11 +10,11 @@ import pytz
 import argparse
 from sklearn.metrics import classification_report
 import numpy as np
-from .models.model_architectures import get_model
-from .data.data_loader import get_dataloader
-from .utils.metrics import accuracy, f1, precision, recall
-from .utils.gradcam import GradCAM, show_cam_on_image
-from .utils.plotting import save_confusion_matrix, save_roc_curve
+from ..models.model_architectures import get_model
+from ..data.data_loader import get_dataloader
+from ..utils.metrics import accuracy, f1, precision, recall
+from ..utils.gradcam import GradCAM, show_cam_on_image
+from ..utils.plotting import save_confusion_matrix, save_roc_curve
 
 def load_config(config_path):
     with open(config_path, 'r') as file:
