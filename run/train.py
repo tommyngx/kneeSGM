@@ -75,6 +75,7 @@ def save_random_predictions(model, dataloader, device, output_dir, epoch, class_
         img = (img - img.min()) / (img.max() - img.min())
         label = labels[i].item()
         pred = preds[i].item()
+        print(f"Generating Grad-CAM for image {i}, label: {label}, pred: {pred}")
         heatmap = generate_gradcam(model, images[i].unsqueeze(0), model.layer4[-1])
         cam_image = show_cam_on_image(img, heatmap, use_rgb=True)
         plt.imsave(os.path.join(output_dir, f"prediction_epoch_{epoch}_img_{i}_pred_{class_names[pred]}_label_{class_names[label]}.png"), cam_image)

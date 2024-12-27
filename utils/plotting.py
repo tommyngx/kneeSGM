@@ -6,7 +6,7 @@ from sklearn.metrics import confusion_matrix, roc_curve, auc
 def save_confusion_matrix(labels, preds, class_names, output_dir, epoch=None):
     cm = confusion_matrix(labels, preds)
     plt.figure(figsize=(10, 8))
-    sns.heatmap(cm, annot=True, fmt=".2f", cmap="Purples", xticklabels=class_names, yticklabels=class_names)
+    sns.heatmap(cm, annot=True, fmt=".0f", cmap="Purples", xticklabels=class_names, yticklabels=class_names)
     plt.xlabel("Predicted")
     plt.ylabel("True")
     title = "Confusion Matrix"

@@ -25,7 +25,11 @@ def generate_gradcam(model, image, target_layer):
     pooled_gradients = torch.mean(gradients, dim=[0, 2, 3])
     activations = features[0].detach()
 
-    for i in range(activations.shape[1]):
+    # Debugging information
+    print(f"Activations shape: {activations.shape}")
+    print(f"Pooled gradients shape: {pooled_gradients.shape}")
+
+    for i in range(min(activations.shape[1], pooled_gradients.shape[0])):
         activations[:, i, :, :] *= pooled_gradients[i]
 
     heatmap = torch.mean(activations, dim=1).squeeze()
