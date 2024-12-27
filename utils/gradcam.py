@@ -228,9 +228,9 @@ def generate_gradcam_plus_plus(model, image, target_layer):
 
     # Normalize and apply colormap
     heatmap = np.uint8(255 * heatmap)
-    heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
-    heatmap = cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB)
-
+    heatmap = 255 - heatmap
+    #heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
+    #heatmap = cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB)
     return heatmap
 
 def show_cam_on_image(img, mask, use_rgb=False):
