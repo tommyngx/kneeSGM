@@ -125,7 +125,7 @@ def main(config_path='config/default.yaml', model_name=None, epochs=None, resume
             save_random_predictions(model, val_loader, device, os.path.join(output_dir, "logs"), epoch, config['data']['class_names'])
         
         if epoch >= 1:
-            tr_plot(training_history, 0)
+            tr_plot(training_history, 0, output_dir)
             plt.savefig(os.path.join(output_dir, "logs", f"training_plot_epoch_{epoch+1}.png"))
         
         with open(os.path.join(output_dir, "logs", "training_log.txt"), "a") as f:

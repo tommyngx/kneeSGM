@@ -37,7 +37,7 @@ def save_roc_curve(labels, preds, class_names, output_dir, epoch=None):
     plt.savefig(os.path.join(output_dir, filename))
     plt.close()
 
-def tr_plot(tr_data, start_epoch):
+def tr_plot(tr_data, start_epoch, output_dir):
     # Plot the training and validation data
     tacc = tr_data['accuracy']
     tloss = tr_data['loss']
