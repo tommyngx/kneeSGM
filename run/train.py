@@ -124,9 +124,7 @@ def main(config_path='config/default.yaml', model_name=None, epochs=None, resume
             save_roc_curve(val_labels, val_preds, config['data']['class_names'], os.path.join(output_dir, "logs"), epoch)
             save_random_predictions(model, val_loader, device, os.path.join(output_dir, "logs"), epoch, config['data']['class_names'])
         
-        if epoch >= 1:
-            tr_plot(training_history, 0, output_dir)
-            plt.savefig(os.path.join(output_dir, "logs", f"training_plot_epoch_{epoch+1}.png"))
+        tr_plot(training_history, start_epoch, output_dir)
         
         with open(os.path.join(output_dir, "logs", "training_log.txt"), "a") as f:
             f.write(f"Epoch {epoch+1}/{epochs}, Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f}, Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}\n")
