@@ -43,15 +43,28 @@ def generate_gradcam_ori(model, image, target_layer):
 from pytorch_grad_cam import GradCAM
 from pytorch_grad_cam.utils.image import show_cam_on_image, preprocess_image
 
-def generate_gradcam(image_path, model, target_layer, target_category=None):
-    # Load and preprocess the image
-    img = Image.open(image_path).convert('RGB')
-    transform = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-    ])
-    input_tensor = transform(img).unsqueeze(0)  # Create a mini-batch as expected by the model
+def generate_gradcam(input_image, model, target_layer, target_category=None):
+    # Check if input_image is a file path or a tensor
+    if isinstance(input_image, str):
+        # Load and preprocess the image from file path
+        img = Image.open(input_image).convert('RGB')
+        transform = transforms.Compose([
+            transforms.Resize((224, 224)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ])
+        input_tensor = transform(img).unsqueeze(0)  # Create a mini-batch as expected by the model
+        img = np.array(img) / 255.0  # Convert to numpy array for visualization
+    elif isinstance(input_image, torch.Tensor):
+        # Assume the tensor is already preprocessed and batched
+        input_tensor = input_image
+        # Convert tensor to numpy array for visualization
+        img = input_tensor.squeeze(0).permute(1, 2, 0).cpu().numpy()
+        # De-normalize the image if it was normalized
+        img = img * np.array([0.229, 0.224, 0.225]) + np.array([0.485, 0.456, 0.406])
+        img = np.clip(img, 0, 1)
+    else:
+        raise ValueError("Unsupported input type. Expected file path or torch.Tensor.")
 
     # Initialize GradCAM
     cam = GradCAM(model=model, target_layers=[target_layer], use_cuda=torch.cuda.is_available())
@@ -61,9 +74,6 @@ def generate_gradcam(image_path, model, target_layer, target_category=None):
 
     # Since there's only one image in the batch, get the CAM for the first image
     grayscale_cam = grayscale_cam[0, :]
-
-    # Convert the original image to numpy
-    img = np.array(img) / 255.0
 
     # Create the heatmap
     visualization = show_cam_on_image(img, grayscale_cam, use_rgb=True)
