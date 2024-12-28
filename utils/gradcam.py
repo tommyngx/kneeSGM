@@ -111,7 +111,7 @@ def generate_gradcam(model, image, target_layer):
             f.write(f"Pooled gradients shape after adjustment: {pooled_gradients.shape}\n")
 
         # Calculate heatmap for ViT models
-        heatmap = torch.sum(activations * pooled_gradients, dim=-1).squeeze()  # [batch_size, num_patches]
+        heatmap = torch.sum(activations * pooled_gradients, dim=-1)  # [batch_size, num_patches]
 
         # Reshape heatmap to spatial dimensions
         grid_size = int(np.sqrt(heatmap.size(1)))  # Compute grid size (e.g., 14x14)
