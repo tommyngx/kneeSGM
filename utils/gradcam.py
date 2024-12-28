@@ -45,6 +45,8 @@ def generate_gradcam(model, image, target_layer):
         # Nhân từng patch embedding với gradients
         heatmap = torch.sum(activations * pooled_gradients, dim=-1)  # [batch_size, num_patches]
         heatmap = heatmap.squeeze() 
+    print("Activations shape:", activations.shape)  # [batch_size, num_patches, embedding_dim]
+    print("Pooled gradients shape:", pooled_gradients.shape)  # [batch_size, num_patches, embedding_dim]
 
     heatmap = F.relu(heatmap)
     heatmap /= torch.max(heatmap)
