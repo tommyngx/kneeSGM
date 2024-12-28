@@ -36,11 +36,24 @@ def generate_gradcam(model, image, target_layer):
             activations[:, i, :, :] *= pooled_gradients[i]
         heatmap = torch.mean(activations, dim=1).squeeze()
 
-    elif activations.dim() == 3:  # For activations shaped as [channels, height, width]
-        # Pooled gradients: Average over height and width dimensions
-        pooled_gradients = torch.mean(gradients, dim=[1, 2], keepdim=True)  # Shape: [channels, 1, 1]
-        activations *= pooled_gradients  # Element-wise multiplication
-        heatmap = torch.mean(activations, dim=0)  # Average across channels (collapse channel dimension)
+    elif activations.dim() == 3:  # ViT models with activations shaped [num_patches, embedding_dim]
+        # Exclude class token (first patch), if applicable
+        activations = activations[:, 1:, :]  # [num_patches, embedding_dim]
+        gradients = gradients[:, 1:, :]  # Match shape with activations
+
+        # Compute pooled_gradients: Average across patches
+        pooled_gradients = torch.mean(gradients, dim=1, keepdim=True)  # Shape: [1, 1, embedding_dim]
+        pooled_gradients = pooled_gradients.expand_as(activations)  # Match activations shape [1, num_patches, embedding_dim]
+
+        # Weighted activations
+        weighted_activations = activations * pooled_gradients  # Element-wise multiplication
+
+        # Generate heatmap by summing across the embedding dimension
+        heatmap = torch.sum(weighted_activations, dim=-1).squeeze()  # Shape: [num_patches]
+
+        # Reshape heatmap into a spatial grid
+        grid_size = int(np.sqrt(heatmap.size(0)))  # Compute grid size (e.g., 14x14 for 196 patches)
+        heatmap = heatmap.view(grid_size, grid_size)  # Shape: [grid_size, grid_size]
 
     else:
         raise ValueError(f"Unexpected activations dimensions: {activations.dim()}") 
