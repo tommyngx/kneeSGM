@@ -60,49 +60,36 @@ def generate_gradcam_ori_vit_eror(model, image, target_layer):
     return heatmap_colored #heatmap
 
 def generate_gradcam(model, image, target_layer):
-    # Hook to capture activations
-    def forward_hook(module, input, output):
-        activations.append(output)
-
-    # Hook to capture gradients
-    def backward_hook(module, grad_input, grad_output):
-        gradients.append(grad_output[0])  # Capture gradients w.r.t. activations
-
     model.eval()
     if image.dim() == 3:
         image = image.unsqueeze(0)
     image.requires_grad = True
 
-    activations = []
-    gradients = []
+    features = []
+    def hook_fn(module, input, output):
+        features.append(output)
 
-    # Register hooks
-    forward_handle = target_layer.register_forward_hook(forward_hook)
-    backward_handle = target_layer.register_full_backward_hook(backward_hook)
-
-    # Forward pass
+    handle = target_layer.register_forward_hook(hook_fn)
     output = model(image)
-    forward_handle.remove()  # Remove forward hook
+    handle.remove()
 
-    # Backward pass
-    score = output[:, output.max(1)[-1]]  # Class of interest
-    model.zero_grad()
-    score.backward(retain_graph=True)
-    backward_handle.remove()  # Remove backward hook
+    score = output[:, output.max(1)[-1]]
+    score.backward()
 
-    # Retrieve activations and gradients
-    activations = activations[0].detach()  # Shape: [batch_size, num_patches, embedding_dim]
-    gradients = gradients[0].detach()  # Shape: [batch_size, num_patches, embedding_dim]
+    gradients = image.grad.data
+    activations = features[0].detach()
+    
+    if activations.dim() == 4:  # CNN-based models
+        pooled_gradients = torch.mean(gradients, dim=[0, 2, 3])
+        for i in range(min(activations.shape[1], pooled_gradients.shape[0])):
+            activations[:, i, :, :] *= pooled_gradients[i]
+        heatmap = torch.mean(activations, dim=1).squeeze()
 
-    # Debugging: Log shapes
-    with open('tensor_shapes.txt', "w") as f:
-        f.write(f"Activations shape: {activations.shape}\n")
-        f.write(f"Gradients shape: {gradients.shape}\n")
-
-    if activations.dim() == 3:  # ViT models
-        # Calculate pooled_gradients
-        pooled_gradients = torch.mean(gradients, dim=1, keepdim=True)  # Average over patches
-        pooled_gradients = pooled_gradients.expand_as(activations)  # Match activations shape
+    # ViT models (with 3D activations)
+    elif activations.dim() == 3:  # [batch_size, num_patches, embedding_dim]
+        # Calculate gradients w.r.t activations
+        pooled_gradients = torch.mean(gradients, dim=1, keepdim=True)  # Average across patches
+        pooled_gradients = pooled_gradients.expand_as(activations)  # Match activations shape [batch_size, num_patches, embedding_dim]
 
         # Debugging: Log pooled_gradients shape
         with open('tensor_shapes.txt', "a") as f:
