@@ -348,7 +348,7 @@ def get_target_layer(model, model_name):
     if 'vit_base_patch16_224' in model_name:
         return model.blocks[-1].norm1
     elif 'convnext_base' in model_name:
-        return model.stages[-1][-1].layer_norm
+        return model.stages[-1].downsample
     elif 'resnet' in model_name or 'resnext' in model_name:
         return model.layer4[-1]
     elif 'densenet' in model_name:
