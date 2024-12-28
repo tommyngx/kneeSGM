@@ -12,7 +12,7 @@ def get_model(model_name, config_path='config/default.yaml', pretrained=True):
         model_name = 'fastvit_sa12.apple_in1k'
     config = load_config(config_path)
     num_classes = len(config['data']['class_labels'])
-    
+    print("model name is: ", model_name)
     model = timm.create_model(model_name, pretrained=pretrained)
     
     if 'convnext_base' in model_name:
