@@ -34,17 +34,16 @@ def generate_gradcam(model, image, target_layer):
     elif activations.dim() == 3:  # ViT models
         #pooled_gradients = pooled_gradients.unsqueeze(-1).expand_as(activations)
         #heatmap = torch.sum(activations * pooled_gradients, dim=1).squeeze()
-        if pooled_gradients.dim() == 1:  # Nếu là 1 chiều, thêm các chiều đơn lẻ
+        if pooled_gradients.dim() == 1:
             pooled_gradients = pooled_gradients.unsqueeze(0).unsqueeze(0)  # [1, 1, embedding_dim]
-        elif pooled_gradients.dim() == 2:  # Nếu là 2 chiều, thêm 1 chiều đơn lẻ
-            pooled_gradients = pooled_gradients.unsqueeze(0)  # [1, num_patches, embedding_dim]
+        elif pooled_gradients.dim() == 2:
+            pooled_gradients = pooled_gradients.unsqueeze(1)  # [batch_size, 1, embedding_dim]
 
-        # Điều chỉnh kích thước để khớp với activations
-        if pooled_gradients.size(1) != activations.size(1):  # Nếu số patch không khớp
-            pooled_gradients = pooled_gradients.repeat(1, activations.size(1), 1)  # Mở rộng theo số patch
+        # Điều chỉnh kích thước để phù hợp với activations
+        pooled_gradients = pooled_gradients.expand(activations.size(0), activations.size(1), -1)
 
         # Nhân từng patch embedding với gradients
-        heatmap = torch.sum(activations * pooled_gradients, dim=-1)  # [1, num_patches]
+        heatmap = torch.sum(activations * pooled_gradients, dim=-1)  # [batch_size, num_patches]
         heatmap = heatmap.squeeze() 
 
     heatmap = F.relu(heatmap)
