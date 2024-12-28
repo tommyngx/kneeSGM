@@ -8,6 +8,8 @@ def load_config(config_path):
     return config
 
 def get_model(model_name, config_path='config/default.yaml', pretrained=True):
+    if model_name == 'fastvit':
+        model_name = 'fastvit_sa12.apple_in1k'
     config = load_config(config_path)
     num_classes = len(config['data']['class_labels'])
     
@@ -26,7 +28,6 @@ def get_model(model_name, config_path='config/default.yaml', pretrained=True):
     elif 'caformer_s18' in model_name:
         model.head.fc.fc2 = nn.Linear(model.head.fc.fc2.in_features, num_classes)
     elif 'fastvit' in model_name:
-        model_name = 'fastvit_sa12.apple_in1k'
         print(model.head) 
         model.head.fc = nn.Linear(model.head.fc.in_features, num_classes)
     elif 'efficientnet_b0' in model_name:
