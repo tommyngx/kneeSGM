@@ -39,7 +39,7 @@ def test(model, dataloader, device):
             all_labels.extend(labels.cpu().numpy())
     return running_acc / len(dataloader), running_f1 / len(dataloader), running_precision / len(dataloader), running_recall / len(dataloader), all_preds, all_labels
 
-def main(config_path='config/default.yaml', model_name=None, model_path=None):
+def main(config_path='config/default.yaml', model_name=None, model_path=None, use_gradcam_plus_plus=False):
     config = load_config(config_path)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
@@ -76,7 +76,11 @@ def main(config_path='config/default.yaml', model_name=None, model_path=None):
     
     save_confusion_matrix(test_labels, test_preds, config['data']['class_names'], output_dir)
     save_roc_curve(test_labels, test_preds, config['data']['class_names'], output_dir)
-    save_random_predictions(model, test_loader, device, output_dir, config['data']['class_names'], target_layer, acc=test_acc)
+
+    
+    save_random_predictions(model, test_loader, device, output_dir, epoch=0, class_names=config['data']['class_names'], use_gradcam_plus_plus=use_gradcam_plus_plus, target_layer=target_layer)
+
+    #save_random_predictions(model, test_loader, device, output_dir, config['data']['class_names'], target_layer, acc=test_acc)
     
     # Print classification report
     print("Classification Report:")
