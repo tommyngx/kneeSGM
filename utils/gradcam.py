@@ -349,7 +349,7 @@ def save_random_predictions(model, dataloader, device, output_dir, epoch, class_
             if use_gradcam_plus_plus:
                 heatmap = generate_gradcam_plus_plus(model, images[i + 4].unsqueeze(0), target_layer)
             else:
-                heatmap = generate_gradcam(images[i + 4].unsqueeze(0), model, target_layer)
+                heatmap = generate_gradcam(model, images[i + 4].unsqueeze(0), target_layer)
             cam_image = show_cam_on_image(img, heatmap, use_rgb=True)
             
             axes[i, 2].imshow(img)
