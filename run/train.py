@@ -120,12 +120,12 @@ def main(config_path='config/default.yaml', model_name=None, epochs=None, resume
         if (epoch + 1) % 2 == 0:
             print("Classification Report:")
             print(classification_report(val_labels, val_preds, target_names=config['data']['class_names'], zero_division=0))
-            save_confusion_matrix(val_labels, val_preds, config['data']['class_names'], os.path.join(output_dir, "logs"), epoch)
-            save_roc_curve(val_labels, val_preds, config['data']['class_names'], os.path.join(output_dir, "logs"), epoch)
+            save_confusion_matrix(val_labels, val_preds, config['data']['class_names'], os.path.join(output_dir, "logs"), epoch, acc=val_acc)
+            save_roc_curve(val_labels, val_preds, config['data']['class_names'], os.path.join(output_dir, "logs"), epoch, acc=val_acc)
             
             target_layer = get_target_layer(model, model_name)
             
-            save_random_predictions(model, val_loader, device, os.path.join(output_dir, "logs"), epoch, config['data']['class_names'], use_gradcam_plus_plus, target_layer)
+            save_random_predictions(model, val_loader, device, os.path.join(output_dir, "logs"), epoch, config['data']['class_names'], use_gradcam_plus_plus, target_layer, acc=val_acc)
         
         tr_plot(training_history, start_epoch, output_dir)
         
@@ -145,11 +145,11 @@ def main(config_path='config/default.yaml', model_name=None, epochs=None, resume
             model_path = os.path.join(output_dir, "models", model_filename)
             torch.save(checkpoint, model_path)
             best_models.append((val_acc, model_path))
-            best_models = sorted(best_models, key=lambda x: x[0], reverse=True)[:4]
+            best_models = sorted(best_models, key=lambda x: x[0], reverse=True)[:3]
             print("Best model saved!")
         
-        # Remove models beyond the top 4
-        for _, model_path in best_models[4:]:
+        # Remove models beyond the top 3
+        for _, model_path in best_models[3:]:
             if os.path.exists(model_path):
                 os.remove(model_path)
 

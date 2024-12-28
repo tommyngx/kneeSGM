@@ -27,10 +27,15 @@ def generate_gradcam(model, image, target_layer):
     pooled_gradients = torch.mean(gradients, dim=[0, 2, 3])
     activations = features[0].detach()
 
-    for i in range(min(activations.shape[1], pooled_gradients.shape[0])):
-        activations[:, i, :, :] *= pooled_gradients[i]
+    if activations.dim() == 4:  # CNN-based models
+        for i in range(min(activations.shape[1], pooled_gradients.shape[0])):
+            activations[:, i, :, :] *= pooled_gradients[i]
+        heatmap = torch.mean(activations, dim=1).squeeze()
+    elif activations.dim() == 3:  # ViT models
+        activations = activations.mean(dim=1)
+        heatmap = activations @ pooled_gradients.unsqueeze(-1)
+        heatmap = heatmap.squeeze()
 
-    heatmap = torch.mean(activations, dim=1).squeeze()
     heatmap = F.relu(heatmap)
     heatmap /= torch.max(heatmap)
 
@@ -245,7 +250,7 @@ def show_cam_on_image(img, mask, use_rgb=False):
     #cv2.imwrite("abc2.png", cam)
     return cam
 
-def save_random_predictions(model, dataloader, device, output_dir, epoch, class_names, use_gradcam_plus_plus=False, target_layer=None):
+def save_random_predictions(model, dataloader, device, output_dir, epoch, class_names, use_gradcam_plus_plus=False, target_layer=None, acc=None):
     model.eval()
     images, labels = next(iter(dataloader))
     images, labels = images.to(device), labels.to(device)
@@ -293,11 +298,11 @@ def save_random_predictions(model, dataloader, device, output_dir, epoch, class_
             axes[i, 3].axis('off')
     
     plt.tight_layout()
-    plt.savefig(os.path.join(output_dir, f"random_predictions_epoch_{epoch}.png"))
+    plt.savefig(os.path.join(output_dir, f"random_predictions_epoch_{epoch}_acc_{acc:.4f}.png"))
     plt.close()
     
-    # Keep only the last 3 latest saved epochs
-    saved_files = sorted([f for f in os.listdir(output_dir) if f.startswith("random_predictions_epoch_")], reverse=True)
+    # Keep only the best top 3 random predictions based on accuracy
+    saved_files = sorted([f for f in os.listdir(output_dir) if f.startswith("random_predictions_epoch_")], key=lambda x: float(x.split('_acc_')[-1].split('.png')[0]), reverse=True)
     for file in saved_files[3:]:
         os.remove(os.path.join(output_dir, file))
 

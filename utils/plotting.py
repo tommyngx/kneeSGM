@@ -4,17 +4,12 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import confusion_matrix, roc_curve, auc
 
-def save_confusion_matrix(labels, preds, class_names, output_dir, epoch=None):
+def save_confusion_matrix(labels, preds, class_names, output_dir, epoch=None, acc=None):
     cm = confusion_matrix(labels, preds)
     cm_normalized = cm.astype("float") / cm.sum(axis=1)[:, np.newaxis]
     
     plt.figure(figsize=(10, 8))
     sns.heatmap(cm, annot=True, fmt=".0f", cmap="Purples", xticklabels=class_names, yticklabels=class_names, cbar=False)
-    
-    #for i in range(cm.shape[0]):
-    #    for j in range(cm.shape[1]):
-    #        plt.text(j + 0.5, i + 0.5, f"{cm[i, j]}\n({cm_normalized[i, j]:.2%})",
-    #                 ha="center", va="center", color="black", fontsize=10)
     
     plt.xlabel("Predicted")
     plt.ylabel("Actual")
@@ -23,16 +18,16 @@ def save_confusion_matrix(labels, preds, class_names, output_dir, epoch=None):
         title += f" - Epoch {epoch}"
     plt.title(title)
     
-    filename = "confusion_matrix.png" if epoch is None else f"confusion_matrix_epoch_{epoch}.png"
+    filename = "confusion_matrix.png" if epoch is None else f"confusion_matrix_epoch_{epoch}_acc_{acc:.4f}.png"
     plt.savefig(os.path.join(output_dir, filename))
     plt.close()
     
-    # Keep only the last 3 latest saved epochs
-    saved_files = sorted([f for f in os.listdir(output_dir) if f.startswith("confusion_matrix_epoch_")], reverse=True)
+    # Keep only the best top 3 confusion matrices based on accuracy
+    saved_files = sorted([f for f in os.listdir(output_dir) if f.startswith("confusion_matrix_epoch_")], key=lambda x: float(x.split('_acc_')[-1].split('.png')[0]), reverse=True)
     for file in saved_files[3:]:
         os.remove(os.path.join(output_dir, file))
 
-def save_roc_curve(labels, preds, class_names, output_dir, epoch=None):
+def save_roc_curve(labels, preds, class_names, output_dir, epoch=None, acc=None):
     fpr, tpr, _ = roc_curve(labels, preds, pos_label=1)
     roc_auc = auc(fpr, tpr)
     plt.figure()
@@ -47,12 +42,12 @@ def save_roc_curve(labels, preds, class_names, output_dir, epoch=None):
         title += f" - Epoch {epoch}"
     plt.title(title)
     plt.legend(loc="lower right")
-    filename = "roc_curve.png" if epoch is None else f"roc_curve_epoch_{epoch}.png"
+    filename = "roc_curve.png" if epoch is None else f"roc_curve_epoch_{epoch}_acc_{acc:.4f}.png"
     plt.savefig(os.path.join(output_dir, filename))
     plt.close()
     
-    # Keep only the last 3 latest saved epochs
-    saved_files = sorted([f for f in os.listdir(output_dir) if f.startswith("roc_curve_epoch_")], reverse=True)
+    # Keep only the best top 3 ROC curves based on accuracy
+    saved_files = sorted([f for f in os.listdir(output_dir) if f.startswith("roc_curve_epoch_")], key=lambda x: float(x.split('_acc_')[-1].split('.png')[0]), reverse=True)
     for file in saved_files[3:]:
         os.remove(os.path.join(output_dir, file))
 

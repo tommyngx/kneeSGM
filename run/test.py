@@ -16,7 +16,7 @@ def load_config(config_path):
         config = yaml.safe_load(file)
     return config
 
-def save_random_predictions(model, dataloader, device, output_dir, class_names, target_layer):
+def save_random_predictions(model, dataloader, device, output_dir, class_names, target_layer, acc=None):
     model.eval()
     images, labels = next(iter(dataloader))
     images, labels = images.to(device), labels.to(device)
@@ -85,7 +85,7 @@ def main(config_path='config/default.yaml', model_name=None):
     
     save_confusion_matrix(test_loader.dataset.data.iloc[:, 1].values, test_loader.dataset.data.iloc[:, 0].values, config['data']['class_names'], output_dir)
     save_roc_curve(test_loader.dataset.data.iloc[:, 1].values, test_loader.dataset.data.iloc[:, 0].values, config['data']['class_names'], output_dir)
-    save_random_predictions(model, test_loader, device, output_dir, config['data']['class_names'], target_layer)
+    save_random_predictions(model, test_loader, device, output_dir, config['data']['class_names'], target_layer, acc=test_acc)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Test a model for knee osteoarthritis classification.')
