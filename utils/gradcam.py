@@ -84,6 +84,30 @@ def generate_gradcam(model, image, target_layer):
     output = model(image)
     forward_handle.remove()  # Remove forward hook
 
+    # Retrieve activations and gradients
+    activations = activations[0].detach()  # Shape: [batch_size, num_patches, embedding_dim]
+    gradients = gradients[0].detach()  # Shape: [batch_size, num_patches, embedding_dim]
+
+    # Debugging: Log shapes
+    with open('tensor_shapes.txt', "w") as f:
+        f.write(f"Activations shape: {activations.shape}\n")
+        f.write(f"Gradients shape: {gradients.shape}\n")
+
+    if activations.dim() == 3:  # ViT models
+        # Calculate pooled_gradients
+        pooled_gradients = torch.mean(gradients, dim=1, keepdim=True)  # Average over patches
+        pooled_gradients = pooled_gradients.expand_as(activations)  # Match activations shape
+
+        # Debugging: Log pooled_gradients shape
+        with open('tensor_shapes.txt', "a") as f:
+            f.write(f"Pooled gradients shape after adjustment: {pooled_gradients.shape}\n")
+
+        # Calculate heatmap for ViT models
+        heatmap = torch.sum(activations * pooled_gradients, dim=-1).squeeze()  # [batch_size, num_patches]
+
+    else:
+        raise ValueError(f"Unexpected activations dimensions: {activations.dim()}")
+
     heatmap = F.relu(heatmap)
     heatmap /= torch.max(heatmap)
 
