@@ -35,25 +35,15 @@ def generate_gradcam(model, image, target_layer):
         for i in range(min(activations.shape[1], pooled_gradients.shape[0])):
             activations[:, i, :, :] *= pooled_gradients[i]
         heatmap = torch.mean(activations, dim=1).squeeze()
-    elif activations.dim() == 3:  # ViT models
-        # Exclude class token (first patch)
-        activations = activations[:, 1:, :]  # Remove class token
-        gradients = gradients[:, 1:, :]  # Remove class token
 
-        # Calculate pooled_gradients
-        pooled_gradients = torch.mean(gradients, dim=1, keepdim=True)  # Average across patches
-        pooled_gradients = pooled_gradients.expand_as(activations)  # Match activations shape
+    elif activations.dim() == 3:  # For activations shaped as [channels, height, width]
+        # Pooled gradients: Average over height and width dimensions
+        pooled_gradients = torch.mean(gradients, dim=[1, 2], keepdim=True)  # Shape: [channels, 1, 1]
+        activations *= pooled_gradients  # Element-wise multiplication
+        heatmap = torch.mean(activations, dim=0)  # Average across channels (collapse channel dimension)
 
-        # Debugging: Log pooled_gradients shape
-        #with open('tensor_shapes.txt', "a") as f:
-        #    f.write(f"Pooled gradients shape after adjustment: {pooled_gradients.shape}\n")
-
-        # Calculate heatmap for ViT models
-        heatmap = torch.sum(activations * pooled_gradients, dim=-1)  # [batch_size, num_patches]
-
-        # Reshape heatmap to spatial dimensions
-        grid_size = int(np.sqrt(heatmap.size(1)))  # Compute grid size (e.g., 14x14)
-        heatmap = heatmap.view(activations.size(0), grid_size, grid_size) 
+    else:
+        raise ValueError(f"Unexpected activations dimensions: {activations.dim()}") 
 
     heatmap = F.relu(heatmap)
     heatmap /= torch.max(heatmap)
