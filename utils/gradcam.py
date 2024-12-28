@@ -65,8 +65,8 @@ def generate_gradcam(model, image, target_layer):
         heatmap = torch.sum(weighted_activations, dim=-1).squeeze()  # Shape: [batch_size, num_patches]
 
         # Reshape heatmap to spatial dimensions (square grid)
-        grid_size = int(np.sqrt(heatmap.size(1)))  # Compute grid size (e.g., 14x14 for 196 patches)
-        heatmap = heatmap.view(activations.size(0), grid_size, grid_size)  # Shape: [batch_size, grid_size, grid_size]
+        grid_size = int(np.sqrt(heatmap.size(0)))  # Compute grid size (e.g., 14x14 for 196 patches)
+        heatmap = heatmap.view(grid_size, grid_size)  # Shape: [grid_size, grid_size]
 
         # Debugging: Log heatmap shape
         with open('tensor_shapes.txt', "a") as f:
