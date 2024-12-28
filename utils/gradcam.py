@@ -69,7 +69,7 @@ def generate_gradcam(model, image, target_layer):
         with open('tensor_shapes.txt', "a") as f:
             f.write(f"Heatmap shape: {heatmap.shape}\n")
 
-        else:
+    else:
             raise ValueError(f"Unexpected activations dimensions: {activations.dim()}") 
 
     heatmap = F.relu(heatmap)
