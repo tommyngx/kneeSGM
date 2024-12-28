@@ -445,7 +445,7 @@ def get_target_layer(model, model_name):
         return model.features[-1]
     elif 'caformer_s18' in model_name:
         return model.stages[-1][-1].norm
-    elif 'fastvit_t8' in model_name:
+    elif 'fastvit' in model_name:
         return model.blocks[-1].norm
     elif 'efficientnet_b0' in model_name:
         return model.conv_head
