@@ -143,11 +143,11 @@ def main(config_path='config/default.yaml', model_name=None, epochs=None, resume
         
         if val_acc > best_val_acc:
             checkpoint = {
-            'epoch': epoch,
-            'model_state_dict': model.state_dict(),
-            'optimizer_state_dict': optimizer.state_dict(),
-            'best_val_acc': best_val_acc,
-            'training_history': training_history
+                'epoch': epoch,
+                'model_state_dict': model.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                'best_val_acc': best_val_acc,
+                'training_history': training_history
             }
             best_val_acc = val_acc
             model_filename = f"{model_name}_epoch_{epoch+1}_acc_{val_acc:.4f}.pth"
@@ -161,6 +161,7 @@ def main(config_path='config/default.yaml', model_name=None, epochs=None, resume
         for _, model_path in best_models[3:]:
             if os.path.exists(model_path):
                 os.remove(model_path)
+        best_models = best_models[:3]  # Ensure best_models list only contains top 3
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Train a model for knee osteoarthritis classification.')
