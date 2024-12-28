@@ -25,7 +25,9 @@ def get_model(model_name, config_path='config/default.yaml', pretrained=True):
         model.classifier = nn.Linear(model.classifier.in_features, num_classes)
     elif 'caformer_s18' in model_name:
         #model.head = nn.Linear(model.head.in_features, num_classes)
-        model.head = nn.Linear(model.head.in_features, num_classes)
+        #model.head = nn.Linear(model.head.in_features, num_classes)
+        last_layer = model.head[-1]  # Get the last layer of the Sequential
+        model.head[-1] = nn.Linear(last_layer.in_features, num_classes)
     elif 'fastvit_t8' in model_name:
         model.head.fc = nn.Linear(model.head.fc.in_features, num_classes)
     elif 'efficientnet_b0' in model_name:
