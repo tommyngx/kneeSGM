@@ -14,7 +14,7 @@ def get_model(model_name, config_path='config/default.yaml', pretrained=True):
     num_classes = len(config['data']['class_labels'])
     print("model name is: ", model_name)
     #model = timm.create_model(model_name, pretrained=pretrained)
-    model = timm.create_model('fastvit_sa12.apple_in1k', pretrained=True)
+    model = timm.create_model('fastvit_sa12.apple_in1k', pretrained=pretrained)
     
     if 'convnext_base' in model_name:
         model.head.fc = nn.Linear(model.head.fc.in_features, num_classes)
