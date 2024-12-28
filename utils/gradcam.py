@@ -416,11 +416,15 @@ def save_random_predictions(model, dataloader, device, output_dir, epoch, class_
             axes[i, 3].axis('off')
     
     plt.tight_layout()
-    plt.savefig(os.path.join(output_dir, f"random_predictions_epoch_{epoch}_acc_{acc:.4f}.png"))
+    if acc is not None:
+        filename = f"random_predictions_epoch_{epoch}_acc_{acc:.4f}.png"
+    else:
+        filename = f"random_predictions_epoch_{epoch}.png"
+    plt.savefig(os.path.join(output_dir, filename))
     plt.close()
     
     # Keep only the best top 3 random predictions based on accuracy
-    saved_files = sorted([f for f in os.listdir(output_dir) if f.startswith("random_predictions_epoch_")], key=lambda x: float(x.split('_acc_')[-1].split('.png')[0]), reverse=True)
+    saved_files = sorted([f for f in os.listdir(output_dir) if f.startswith("random_predictions_epoch_")], key=lambda x: float(x.split('_acc_')[-1].split('.png')[0]) if '_acc_' in x else 0, reverse=True)
     for file in saved_files[3:]:
         os.remove(os.path.join(output_dir, file))
 
