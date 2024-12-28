@@ -32,8 +32,8 @@ def generate_gradcam(model, image, target_layer):
             activations[:, i, :, :] *= pooled_gradients[i]
         heatmap = torch.mean(activations, dim=1).squeeze()
     elif activations.dim() == 3:  # ViT models
-        pooled_gradients = pooled_gradients.unsqueeze(0).unsqueeze(-1)
-        heatmap = torch.matmul(activations, pooled_gradients).squeeze()
+        pooled_gradients = pooled_gradients.unsqueeze(-1).expand_as(activations)
+        heatmap = torch.sum(activations * pooled_gradients, dim=1).squeeze()
 
     heatmap = F.relu(heatmap)
     heatmap /= torch.max(heatmap)
