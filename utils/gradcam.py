@@ -51,6 +51,9 @@ def generate_gradcam(model, image, target_layer):
             gradients = gradients.unsqueeze(1).expand(activations.size(0), activations.size(1), gradients.size(1))  # Expand to [batch_size, num_patches, embedding_dim]
         elif gradients.dim() == 3 and gradients.size(1) == 1:  # [batch_size, 1, embedding_dim]
             gradients = gradients.expand(activations.size(0), activations.size(1), gradients.size(2))  # Expand to [batch_size, num_patches, embedding_dim]
+        elif gradients.dim() == 3 and gradients.size(2) == 224:  # [batch_size, channels, height]
+            gradients = torch.mean(gradients, dim=1, keepdim=True)  # Average across channels to reduce to [batch_size, 1, height]
+            gradients = gradients.expand(activations.size(0), activations.size(1), activations.size(2))  # Match activations shape [batch_size, num_patches, embedding_dim]
         else:
             raise ValueError(f"Unexpected gradients dimensions: {gradients.dim()}")
 
