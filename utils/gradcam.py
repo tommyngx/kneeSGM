@@ -26,31 +26,27 @@ def generate_gradcam(model, image, target_layer):
     gradients = image.grad.data
     pooled_gradients = torch.mean(gradients, dim=[0, 2, 3])
     activations = features[0].detach()
-
-    with open('tensor_shapes.txt', "w") as f:
-        f.write(f"Activations shape: {activations[0].shape}\n")
-        f.write(f"Pooled gradients shape: {pooled_gradients.shape}\n")
     
     if activations.dim() == 4:  # CNN-based models
         for i in range(min(activations.shape[1], pooled_gradients.shape[0])):
             activations[:, i, :, :] *= pooled_gradients[i]
         heatmap = torch.mean(activations, dim=1).squeeze()
-    elif activations.dim() == 2:  # ViT models
+        # ViT models
+    elif activations.dim() == 2:
         # Ensure pooled_gradients matches activations
-        if pooled_gradients.dim() == 1:  # If 1D, reshape and match activations
-                pooled_gradients = pooled_gradients.unsqueeze(0)  # [1, embedding_dim]
+        if pooled_gradients.dim() == 1:
+            pooled_gradients = pooled_gradients.unsqueeze(0)  # [1, embedding_dim]
 
         # Fix pooled_gradients pooling logic
-        pooled_gradients = torch.mean(activations, dim=0, keepdim=True)  # Pool across patches [1, embedding_dim]
+        pooled_gradients = torch.mean(activations, dim=0, keepdim=True)  # [1, embedding_dim]
         pooled_gradients = pooled_gradients.expand_as(activations)  # Match activations shape [num_patches, embedding_dim]
 
         # Calculate heatmap for ViT models
         heatmap = torch.sum(activations * pooled_gradients, dim=-1)  # [num_patches]
-        heatmap = heatmap.unsqueeze(0)  # Ensure batch dimension for further processing 
-
-    with open('tensor_shapes.txt', "a") as f:
-        f.write(f"Activations shape after : {activations[0].shape}\n")
-        f.write(f"Pooled gradients shape after: {pooled_gradients.shape}\n")
+        heatmap = heatmap.unsqueeze(0)  # Ensure batch dimension
+    
+    else:
+        raise ValueError(f"Unexpected activations dimensions: {activations.dim()}")
 
     heatmap = F.relu(heatmap)
     heatmap /= torch.max(heatmap)
