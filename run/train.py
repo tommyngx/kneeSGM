@@ -31,6 +31,12 @@ def create_output_dirs(base_dir, timezone):
     os.makedirs(os.path.join(output_dir, "final_logs"), exist_ok=True)
     return output_dir
 
+def compute_class_weights(dataset):
+    class_counts = np.bincount(dataset.data[dataset.label_column])
+    total_samples = len(dataset)
+    class_weights = total_samples / (len(class_counts) * class_counts)
+    return torch.tensor(class_weights, dtype=torch.float)
+
 def train_one_epoch(model, dataloader, criterion, optimizer, device):
     model.train()
     running_loss = 0.0
@@ -81,6 +87,9 @@ def main(config_path='config/default.yaml', model_name=None, epochs=None, resume
     train_loader = get_dataloader('train', config['data']['batch_size'], config['data']['num_workers'], config_path=config_path)
     val_loader = get_dataloader('val', config['data']['batch_size'], config['data']['num_workers'], config_path=config_path)
     
+    # Compute class weights
+    class_weights = compute_class_weights(train_loader.dataset).to(device)
+    
     # Print details before training
     print(f"Model: {model_name}")
     print(f"Number of epochs: {epochs}")
@@ -89,7 +98,7 @@ def main(config_path='config/default.yaml', model_name=None, epochs=None, resume
     print(f"Number of training images: {len(train_loader.dataset)}")
     print(f"Number of validation images: {len(val_loader.dataset)}")
     
-    criterion = nn.CrossEntropyLoss()
+    criterion = nn.CrossEntropyLoss(weight=class_weights)
     optimizer = optim.Adam(model.parameters(), lr=config['training']['learning_rate'], weight_decay=config['training']['weight_decay'])
     
     start_epoch = 0
