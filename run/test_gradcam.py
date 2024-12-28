@@ -43,7 +43,7 @@ def main(config_path='config/default.yaml', model_name=None, model_path=None, us
     save_random_predictions(model, test_loader, device, output_dir, epoch=0, class_names=config['data']['class_names'], use_gradcam_plus_plus=use_gradcam_plus_plus, target_layer=target_layer)
 
     # Load and display the saved image
-    saved_image_path = os.path.join(output_dir, "random_predictions_epoch_0.png")
+    saved_image_path = os.path.join(output_dir, f"random_predictions_{model_name}_epoch_0.png")
     if os.path.exists(saved_image_path):
         img = Image.open(saved_image_path)
         plt.imshow(img)
@@ -51,7 +51,7 @@ def main(config_path='config/default.yaml', model_name=None, model_path=None, us
         plt.show()
 
     # Keep only the last 3 latest saved epochs
-    saved_files = sorted([f for f in os.listdir(output_dir) if f.startswith("random_predictions_epoch_")], reverse=True)
+    saved_files = sorted([f for f in os.listdir(output_dir) if f.startswith(f"random_predictions_{model_name}_epoch_")], reverse=True)
     for file in saved_files[3:]:
         os.remove(os.path.join(output_dir, file))
 

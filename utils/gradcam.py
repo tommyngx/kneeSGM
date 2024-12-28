@@ -42,9 +42,9 @@ def generate_gradcam(model, image, target_layer):
     gradients = gradients[0].detach()  # Shape: [batch_size, num_patches, embedding_dim]
 
     # Debugging: Log shapes
-    with open('tensor_shapes.txt', "w") as f:
-        f.write(f"Activations shape: {activations.shape}\n")
-        f.write(f"Gradients shape: {gradients.shape}\n")
+    #with open('tensor_shapes.txt', "w") as f:
+    #    f.write(f"Activations shape: {activations.shape}\n")
+    #    f.write(f"Gradients shape: {gradients.shape}\n")
 
     if activations.dim() == 4:  # CNN-based models
         pooled_gradients = torch.mean(gradients, dim=[0, 2, 3])
@@ -61,8 +61,8 @@ def generate_gradcam(model, image, target_layer):
         pooled_gradients = pooled_gradients.expand_as(activations)  # Match activations shape
 
         # Debugging: Log pooled_gradients shape
-        with open('tensor_shapes.txt', "a") as f:
-            f.write(f"Pooled gradients shape after adjustment: {pooled_gradients.shape}\n")
+        #with open('tensor_shapes.txt', "a") as f:
+        #    f.write(f"Pooled gradients shape after adjustment: {pooled_gradients.shape}\n")
 
         # Calculate heatmap for ViT models
         heatmap = torch.sum(activations * pooled_gradients, dim=-1)  # [batch_size, num_patches]
