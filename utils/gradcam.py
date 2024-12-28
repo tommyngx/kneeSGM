@@ -56,7 +56,7 @@ def generate_gradcam(model, image, target_layer):
 
         # Compute pooled gradients
         pooled_gradients = torch.mean(gradients, dim=1, keepdim=True)  # Shape: [batch_size, 1, embedding_dim]
-        pooled_gradients = pooled_gradients.expand(activations.size(0), activations.size(1), pooled_gradients.size(2))  # Match activations shape [batch_size, num_patches, embedding_dim]
+        pooled_gradients = pooled_gradients.expand(activations.size(0), activations.size(1), activations.size(2))  # Match activations shape [batch_size, num_patches, embedding_dim]
 
         # Calculate weighted activations
         weighted_activations = activations * pooled_gradients  # Element-wise multiplication
