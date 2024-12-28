@@ -66,7 +66,8 @@ def generate_gradcam(model, image, target_layer):
 
     # Hook to capture gradients
     def backward_hook(module, grad_input, grad_output):
-        gradients.append(grad_output[0])  # Capture gradients w.r.t. activations
+        if grad_output:  # Ensure grad_output is not None
+            gradients.append(grad_output[0])  # Capture gradients w.r.t. activations
 
     model.eval()
     if image.dim() == 3:
@@ -83,6 +84,16 @@ def generate_gradcam(model, image, target_layer):
     # Forward pass
     output = model(image)
     forward_handle.remove()  # Remove forward hook
+
+    # Backward pass
+    score = output[:, output.max(1)[-1]]  # Class of interest
+    model.zero_grad()
+    score.backward(retain_graph=True)
+    backward_handle.remove()  # Remove backward hook
+
+    # Ensure gradients are captured
+    if not gradients:
+        raise RuntimeError("Gradients were not captured. Check backward_hook or target_layer.")
 
     # Retrieve activations and gradients
     activations = activations[0].detach()  # Shape: [batch_size, num_patches, embedding_dim]
@@ -117,7 +128,7 @@ def generate_gradcam(model, image, target_layer):
     heatmap = 255 - heatmap
 
     heatmap_colored = np.stack([heatmap] * 3, axis=-1)
-    return heatmap_colored #heatmap
+    return heatmap_colored
 
 def blue_to_gray_np(image: np.ndarray) -> np.ndarray:
     """
