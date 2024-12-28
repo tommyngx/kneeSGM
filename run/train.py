@@ -22,10 +22,10 @@ def load_config(config_path):
         config = yaml.safe_load(file)
     return config
 
-def create_output_dirs(base_dir, timezone):
+def create_output_dirs(base_dir, timezone, model_name):
     tz = pytz.timezone(timezone)
     timestamp = datetime.datetime.now(tz).strftime("%Y%m%d_%H%M%S")
-    output_dir = os.path.join(base_dir, timestamp)
+    output_dir = os.path.join(base_dir, f"{timestamp}_{model_name}")
     os.makedirs(os.path.join(output_dir, "models"), exist_ok=True)
     os.makedirs(os.path.join(output_dir, "logs"), exist_ok=True)
     os.makedirs(os.path.join(output_dir, "final_logs"), exist_ok=True)
@@ -74,12 +74,12 @@ def main(config_path='config/default.yaml', model_name=None, epochs=None, resume
     config = load_config(config_path)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
-    output_dir = create_output_dirs(config['output_dir'], config['timezone'])
-    
     if model_name is None:
         model_name = config['model']['name']
     if epochs is None:
         epochs = config['training']['epochs']
+    
+    output_dir = create_output_dirs(config['output_dir'], config['timezone'], model_name)
     
     model = get_model(model_name, config_path=config_path, pretrained=config['model']['pretrained'])
     model = model.to(device)
