@@ -42,14 +42,12 @@ def generate_gradcam(model, image, target_layer):
             f.write(f"Activations shape: {activations.shape}\n")
             f.write(f"Gradients shape before adjustment: {gradients.shape}\n")
 
-        # Ensure gradients align with activations
-        if gradients.dim() == 4:  # Gradients from CNN-like backbones
-            # Average gradients spatially to reduce to [batch_size, channels]
-            gradients = torch.mean(gradients, dim=[2, 3])  # Shape: [batch_size, channels]
+        # Handle CNN-like gradients
+        if gradients.dim() == 4:  # [batch_size, channels, height, width]
+            gradients = torch.mean(gradients, dim=[2, 3])  # Average spatially to reduce to [batch_size, channels]
 
-        # Exclude class token
-        activations = activations[:, 1:, :]  # Remove class token
-        gradients = gradients[:, 1:, :]  # Match activations shape
+        # Match gradients to activations shape
+        gradients = gradients[:, :activations.size(1), :]  # Remove excess tokens if necessary
 
         # Compute pooled gradients
         pooled_gradients = torch.mean(gradients, dim=1, keepdim=True)  # Shape: [batch_size, 1, embedding_dim]
