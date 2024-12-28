@@ -47,7 +47,7 @@ def generate_gradcam(model, image, target_layer):
         heatmap = torch.sum(activations * pooled_gradients, dim=-1)  # [num_patches]
         heatmap = heatmap.unsqueeze(0)  
 
-    with open('tensor_shapes.txt', "w") as f:
+    with open('tensor_shapes.txt', "a") as f:
         f.write(f"Activations shape after : {activations[0].shape}\n")
         f.write(f"Pooled gradients shape after: {pooled_gradients.shape}\n")
 
