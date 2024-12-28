@@ -46,9 +46,11 @@ def generate_gradcam(model, image, target_layer):
         # Calculate heatmap
         heatmap = torch.sum(activations * pooled_gradients, dim=-1)  # [batch_size, num_patches]
         heatmap = heatmap.squeeze()
+    
+    with open('tensor_shapes.txt', "w") as f:
+        f.write(f"Activations shape: {activations[0].shape}\n")
+        f.write(f"Pooled gradients shape: {pooled_gradients.shape}\n")
 
-    print("Activations shape:", activations.shape , flush=True)  # [batch_size, num_patches, embedding_dim]
-    print("Pooled gradients shape:", pooled_gradients.shape, flush=True)  # [batch_size, num_patches, embedding_dim]
 
     heatmap = F.relu(heatmap)
     heatmap /= torch.max(heatmap)
