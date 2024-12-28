@@ -38,6 +38,8 @@ def test(model, dataloader, device):
     running_f1 = 0.0
     running_precision = 0.0
     running_recall = 0.0
+    all_preds = []
+    all_labels = []
     with torch.no_grad():
         for images, labels in tqdm(dataloader):
             images, labels = images.to(device), labels.to(device)
@@ -47,7 +49,9 @@ def test(model, dataloader, device):
             running_f1 += f1(outputs, labels)
             running_precision += precision(outputs, labels)
             running_recall += recall(outputs, labels)
-    return running_acc / len(dataloader), running_f1 / len(dataloader), running_precision / len(dataloader), running_recall / len(dataloader)
+            all_preds.extend(torch.argmax(outputs, dim=1).cpu().numpy())
+            all_labels.extend(labels.cpu().numpy())
+    return running_acc / len(dataloader), running_f1 / len(dataloader), running_precision / len(dataloader), running_recall / len(dataloader), all_preds, all_labels
 
 def main(config_path='config/default.yaml', model_name=None):
     config = load_config(config_path)
@@ -68,7 +72,7 @@ def main(config_path='config/default.yaml', model_name=None):
     print(f"Class names: {config['data']['class_names']}")
     print(f"Number of test images: {len(test_loader.dataset)}")
     
-    test_acc, test_f1, test_precision, test_recall = test(model, test_loader, device)
+    test_acc, test_f1, test_precision, test_recall, test_preds, test_labels = test(model, test_loader, device)
     
     output_dir = os.path.join(config['output_dir'], "final_logs")
     os.makedirs(output_dir, exist_ok=True)
@@ -83,8 +87,8 @@ def main(config_path='config/default.yaml', model_name=None):
     
     target_layer = get_target_layer(model, model_name)
     
-    save_confusion_matrix(test_loader.dataset.data.iloc[:, 1].values, test_loader.dataset.data.iloc[:, 0].values, config['data']['class_names'], output_dir)
-    save_roc_curve(test_loader.dataset.data.iloc[:, 1].values, test_loader.dataset.data.iloc[:, 0].values, config['data']['class_names'], output_dir)
+    save_confusion_matrix(test_labels, test_preds, config['data']['class_names'], output_dir)
+    save_roc_curve(test_labels, test_preds, config['data']['class_names'], output_dir)
     save_random_predictions(model, test_loader, device, output_dir, config['data']['class_names'], target_layer, acc=test_acc)
 
 if __name__ == "__main__":
