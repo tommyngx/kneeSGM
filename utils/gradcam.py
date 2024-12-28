@@ -28,7 +28,7 @@ def generate_gradcam(model, image, target_layer):
 
     with open('tensor_shapes.txt', "w") as f:
         f.write(f"Activations shape: {activations[0].shape}\n")
-        f.write(f"Pooled gradients shape: {pooled_gradients.shape}\n")
+        #f.write(f"Pooled gradients shape: {pooled_gradients.shape}\n")
     
     if activations.dim() == 4:  # CNN-based models
         pooled_gradients = torch.mean(gradients, dim=[0, 2, 3])
