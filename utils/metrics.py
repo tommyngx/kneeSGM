@@ -16,7 +16,7 @@ def f1(output, target):
 def precision(output, target):
     with torch.no_grad():
         pred = torch.argmax(output, dim=1)
-        return precision_score(target.cpu(), pred.cpu(), average='weighted')
+        return precision_score(target.cpu(), pred.cpu(), average='weighted', zero_division=0)
 
 def recall(output, target):
     with torch.no_grad():
