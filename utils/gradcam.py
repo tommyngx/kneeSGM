@@ -49,6 +49,8 @@ def generate_gradcam(model, image, target_layer):
         # Ensure gradients match activations shape
         if gradients.dim() == 2:  # [batch_size, embedding_dim]
             gradients = gradients.unsqueeze(1).expand_as(activations)  # Expand to [batch_size, num_patches, embedding_dim]
+        elif gradients.dim() == 3 and gradients.size(1) == 1:  # [batch_size, 1, embedding_dim]
+            gradients = gradients.expand_as(activations)  # Expand to [batch_size, num_patches, embedding_dim]
 
         # Compute pooled gradients
         pooled_gradients = torch.mean(gradients, dim=1, keepdim=True)  # Shape: [batch_size, 1, embedding_dim]
