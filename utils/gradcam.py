@@ -1,114 +1,10 @@
 import torch, os
 import torch.nn.functional as F
 from torchvision import transforms
-import numpy as np
+import numpy np
 import cv2
 import matplotlib.pyplot as plt
 from PIL import Image
-
-def generate_gradcam_ori_vit_eror(model, image, target_layer):
-    model.eval()
-    if image.dim() == 3:
-        image = image.unsqueeze(0)
-    image.requires_grad = True
-
-    features = []
-    def hook_fn(module, input, output):
-        features.append(output)
-
-    handle = target_layer.register_forward_hook(hook_fn)
-    output = model(image)
-    handle.remove()
-
-    score = output[:, output.max(1)[-1]]
-    score.backward()
-
-    gradients = image.grad.data
-    activations = features[0].detach()
-    
-    if activations.dim() == 4:  # CNN-based models
-        pooled_gradients = torch.mean(gradients, dim=[0, 2, 3])
-        for i in range(min(activations.shape[1], pooled_gradients.shape[0])):
-            activations[:, i, :, :] *= pooled_gradients[i]
-        heatmap = torch.mean(activations, dim=1).squeeze()
-
-    # ViT models (with 3D activations)
-    elif activations.dim() == 3:  # [batch_size, num_patches, embedding_dim]
-        # Calculate gradients w.r.t activations
-        pooled_gradients = torch.mean(gradients, dim=1, keepdim=True)  # Average across patches
-        pooled_gradients = pooled_gradients.expand_as(activations)  # Match activations shape [batch_size, num_patches, embedding_dim]
-
-        # Debugging: Log pooled_gradients shape
-        with open('tensor_shapes.txt', "a") as f:
-            f.write(f"Pooled gradients shape after adjustment: {pooled_gradients.shape}\n")
-
-        # Calculate heatmap for ViT models
-        heatmap = torch.sum(activations * pooled_gradients, dim=-1).squeeze()  # [batch_size, num_patches]
-
-    else:
-        raise ValueError(f"Unexpected activations dimensions: {activations.dim()}")
-
-    heatmap = F.relu(heatmap)
-    heatmap /= torch.max(heatmap)
-
-    heatmap = heatmap.cpu().numpy()  # Move to CPU before converting to NumPy
-    heatmap = cv2.resize(heatmap, (image.shape[2], image.shape[3]))
-    heatmap = np.uint8(255 * heatmap)
-    heatmap = 255 - heatmap
-
-    heatmap_colored = np.stack([heatmap] * 3, axis=-1)
-    return heatmap_colored #heatmap
-
-def generate_gradcam2(model, image, target_layer):
-    model.eval()
-    if image.dim() == 3:
-        image = image.unsqueeze(0)
-    image.requires_grad = True
-
-    features = []
-    def hook_fn(module, input, output):
-        features.append(output)
-
-    handle = target_layer.register_forward_hook(hook_fn)
-    output = model(image)
-    handle.remove()
-
-    score = output[:, output.max(1)[-1]]
-    score.backward()
-
-    gradients = image.grad.data
-    pooled_gradients = torch.mean(gradients, dim=[0, 2, 3])
-    activations = features[0].detach()
-    
-    if activations.dim() == 4:  # CNN-based models
-        for i in range(min(activations.shape[1], pooled_gradients.shape[0])):
-            activations[:, i, :, :] *= pooled_gradients[i]
-        heatmap = torch.mean(activations, dim=1).squeeze()
-    elif activations.dim() == 2:  # ViT models
-        # activations: [num_patches, embedding_dim]
-        # pooled_gradients: Gradients w.r.t. activations
-
-        # Check if pooled_gradients has the right dimensions
-        if pooled_gradients.dim() == 1:  # If it's 1D, we need to reshape and expand it
-            pooled_gradients = pooled_gradients.unsqueeze(0)  # [1, 3]
-
-        # Resize pooled_gradients to match activations
-        pooled_gradients = torch.mean(pooled_gradients, dim=0, keepdim=True)  # Adjust gradient pooling
-        pooled_gradients = pooled_gradients.expand_as(activations)  # Match activations
-
-        # Calculate heatmap
-        heatmap = torch.sum(activations * pooled_gradients, dim=-1)  # [num_patches]
-
-    heatmap = F.relu(heatmap)
-    heatmap /= torch.max(heatmap)
-
-    heatmap = heatmap.cpu().numpy()  # Move to CPU before converting to NumPy
-    heatmap = cv2.resize(heatmap, (image.shape[2], image.shape[3]))
-    heatmap = np.uint8(255 * heatmap)
-    heatmap = 255 - heatmap
-
-    heatmap_colored = np.stack([heatmap] * 3, axis=-1)
-    return heatmap_colored #heatmap
 
 def generate_gradcam(model, image, target_layer):
     model.eval()
@@ -139,17 +35,17 @@ def generate_gradcam(model, image, target_layer):
         for i in range(min(activations.shape[1], pooled_gradients.shape[0])):
             activations[:, i, :, :] *= pooled_gradients[i]
         heatmap = torch.mean(activations, dim=1).squeeze()
-    elif activations.dim() == 2:  # ViT models
+    elif activations.dim() == 3:  # ViT models
         # Ensure pooled_gradients matches activations
         if pooled_gradients.dim() == 1:  # If 1D, reshape and match activations
             pooled_gradients = pooled_gradients.unsqueeze(0)  # [1, embedding_dim]
 
         # Match dimensions between activations and pooled_gradients
-        pooled_gradients = pooled_gradients.expand_as(activations)  # Match activations shape [num_patches, embedding_dim]
+        pooled_gradients = pooled_gradients.unsqueeze(1).expand_as(activations)  # Match activations shape [batch_size, num_patches, embedding_dim]
 
         # Calculate heatmap for ViT models
-        heatmap = torch.sum(activations * pooled_gradients, dim=-1)  # [num_patches]
-        heatmap = heatmap.unsqueeze(0)  # Ensure batch dimension for further processing
+        heatmap = torch.sum(activations * pooled_gradients, dim=-1)  # [batch_size, num_patches]
+        heatmap = heatmap.view(activations.size(0), int(np.sqrt(activations.size(1))), int(np.sqrt(activations.size(1))))  # Reshape to [batch_size, height, width]
     else:
         raise ValueError("Unexpected activations dimensions.")
 
