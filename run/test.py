@@ -3,6 +3,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 import yaml
 import os
+import matplotlib.pyplot as plt
 import argparse
 from sklearn.metrics import classification_report
 from models.model_architectures import get_model
@@ -91,6 +92,10 @@ def main(config_path='config/default.yaml', model_name=None, model_path=None):
     save_confusion_matrix(test_labels, test_preds, config['data']['class_names'], output_dir)
     save_roc_curve(test_labels, test_preds, config['data']['class_names'], output_dir)
     save_random_predictions(model, test_loader, device, output_dir, config['data']['class_names'], target_layer, acc=test_acc)
+    
+    # Print classification report
+    print("Classification Report:")
+    print(classification_report(test_labels, test_preds, target_names=config['data']['class_names'], zero_division=0))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Test a model for knee osteoarthritis classification.')
