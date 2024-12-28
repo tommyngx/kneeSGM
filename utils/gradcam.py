@@ -6,7 +6,7 @@ import cv2
 import matplotlib.pyplot as plt
 from PIL import Image
 
-def generate_gradcam(model, image, target_layer):
+def generate_gradcam_ori_vit_eror(model, image, target_layer):
     model.eval()
     if image.dim() == 3:
         image = image.unsqueeze(0)
@@ -58,6 +58,73 @@ def generate_gradcam(model, image, target_layer):
 
     heatmap_colored = np.stack([heatmap] * 3, axis=-1)
     return heatmap_colored #heatmap
+
+def generate_gradcam(model, image, target_layer):
+    model.eval()
+    if image.dim() == 3:
+        image = image.unsqueeze(0)
+    image.requires_grad = True
+
+    activations = []
+    gradients = []
+
+    # Hook to capture activations
+    def forward_hook(module, input, output):
+        activations.append(output)
+
+    # Hook to capture gradients
+    def backward_hook(module, grad_input, grad_output):
+        gradients.append(grad_output[0])  # Capture gradients w.r.t. activations
+
+    # Register hooks
+    forward_handle = target_layer.register_forward_hook(forward_hook)
+    backward_handle = target_layer.register_full_backward_hook(backward_hook)
+
+    # Forward pass
+    output = model(image)
+    forward_handle.remove()  # Remove forward hook
+
+    # Backward pass
+    score = output[:, output.max(1)[-1]]  # Class of interest
+    model.zero_grad()
+    score.backward(retain_graph=True)
+    backward_handle.remove()  # Remove backward hook
+
+    # Retrieve activations and gradients
+    activations = activations[0].detach()  # Shape: [batch_size, num_patches, embedding_dim]
+    gradients = gradients[0].detach()  # Shape: [batch_size, num_patches, embedding_dim]
+
+    # Debugging: Log shapes
+    with open('tensor_shapes.txt', "w") as f:
+        f.write(f"Activations shape: {activations.shape}\n")
+        f.write(f"Gradients shape: {gradients.shape}\n")
+
+    if activations.dim() == 3:  # ViT models
+        # Calculate pooled_gradients
+        pooled_gradients = torch.mean(gradients, dim=1, keepdim=True)  # Average over patches
+        pooled_gradients = pooled_gradients.expand_as(activations)  # Match activations shape
+
+        # Debugging: Log pooled_gradients shape
+        with open('tensor_shapes.txt', "a") as f:
+            f.write(f"Pooled gradients shape after adjustment: {pooled_gradients.shape}\n")
+
+        # Calculate heatmap for ViT models
+        heatmap = torch.sum(activations * pooled_gradients, dim=-1).squeeze()  # [batch_size, num_patches]
+
+    else:
+        raise ValueError(f"Unexpected activations dimensions: {activations.dim()}")
+
+    # Post-process heatmap
+    heatmap = F.relu(heatmap)
+    heatmap /= torch.max(heatmap)
+
+    heatmap = heatmap.cpu().numpy()  # Move to CPU before converting to NumPy
+    heatmap = cv2.resize(heatmap, (image.shape[2], image.shape[3]))
+    heatmap = np.uint8(255 * heatmap)
+    heatmap = 255 - heatmap
+
+    heatmap_colored = np.stack([heatmap] * 3, axis=-1)
+    return heatmap_colored
 
 def blue_to_gray_np(image: np.ndarray) -> np.ndarray:
     """
