@@ -6,57 +6,6 @@ import cv2
 import matplotlib.pyplot as plt
 from PIL import Image
 
-def generate_gradcam3(model, image, target_layer):
-    model.eval()
-    if image.dim() == 3:
-        image = image.unsqueeze(0)
-    image.requires_grad = True
-
-    features = []
-    def hook_fn(module, input, output):
-        features.append(output)
-
-    handle = target_layer.register_forward_hook(hook_fn)
-    output = model(image)
-    handle.remove()
-
-    score = output[:, output.max(1)[-1]]
-    score.backward()
-
-    gradients = image.grad.data
-    activations = features[0].detach()
-
-    with open('tensor_shapes.txt', "w") as f:
-        f.write(f"Activations shape: {activations.shape}\n")
-        f.write(f"Pooled gradients shape: {gradients.shape}\n")
-    
-    if activations.dim() == 4:  # CNN-based models
-        pooled_gradients = torch.mean(gradients, dim=[0, 2, 3])
-        for i in range(min(activations.shape[1], pooled_gradients.shape[0])):
-            activations[:, i, :, :] *= pooled_gradients[i]
-        heatmap = torch.mean(activations, dim=1).squeeze()
-    elif activations.dim() == 3:  # ViT models
-        pooled_gradients = torch.mean(gradients, dim=1, keepdim=True)  # Average across patches
-        pooled_gradients = pooled_gradients.expand_as(activations)  # Match activations shape [batch_size, num_patches, embedding_dim]
-
-        # Calculate heatmap for ViT models
-        heatmap = torch.sum(activations * pooled_gradients, dim=-1).squeeze()  # [batch_size, num_patches]
-        heatmap = heatmap.view(activations.size(0), int(np.sqrt(activations.size(1))), int(np.sqrt(activations.size(1))))  # Reshape to [batch_size, height, width]
-    else:
-        raise ValueError("Unexpected activations dimensions.")
-
-    # Post-process heatmap
-    heatmap = F.relu(heatmap)
-    heatmap /= torch.max(heatmap)
-
-    heatmap = heatmap.cpu().numpy()  # Move to CPU before converting to NumPy
-    heatmap = cv2.resize(heatmap, (image.shape[2], image.shape[3]))
-    heatmap = np.uint8(255 * heatmap)
-    heatmap = 255 - heatmap
-
-    heatmap_colored = np.stack([heatmap] * 3, axis=-1)
-    return heatmap_colored
-
 def generate_gradcam(model, image, target_layer):
     model.eval()
     if image.dim() == 3:
@@ -399,7 +348,7 @@ def get_target_layer(model, model_name):
     if 'vit_base_patch16_224' in model_name:
         return model.blocks[-1].norm1
     elif 'convnext_base' in model_name:
-        return model.stages[-1][-1].norm
+        return model.stages[-1].norm
     elif 'resnet' in model_name or 'resnext' in model_name:
         return model.layer4[-1]
     elif 'densenet' in model_name:
