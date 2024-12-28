@@ -444,8 +444,7 @@ def get_target_layer(model, model_name):
     elif 'densenet' in model_name:
         return model.features[-1]
     elif 'caformer_s18' in model_name:
-        print(model)
-        return model.stages[-1].blocks[-1].norm
+        return model.stages[-1].blocks[-1].norm2
     elif 'fastvit' in model_name:
         return model.stages[-1].blocks[-1].norm
     elif 'efficientnet_b0' in model_name:
