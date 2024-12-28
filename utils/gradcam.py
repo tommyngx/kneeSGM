@@ -5,8 +5,6 @@ import numpy as np
 import cv2
 import matplotlib.pyplot as plt
 from PIL import Image
-#from pytorch_grad_cam import GradCAM
-#from pytorch_grad_cam.utils.image import show_cam_on_image, preprocess_image
 
 def generate_gradcam(model, image, target_layer):
     model.eval()
@@ -247,7 +245,7 @@ def show_cam_on_image(img, mask, use_rgb=False):
     #cv2.imwrite("abc2.png", cam)
     return cam
 
-def save_random_predictions(model, dataloader, device, output_dir, epoch, class_names, use_gradcam_plus_plus=False):
+def save_random_predictions(model, dataloader, device, output_dir, epoch, class_names, use_gradcam_plus_plus=False, target_layer=None):
     model.eval()
     images, labels = next(iter(dataloader))
     images, labels = images.to(device), labels.to(device)
@@ -262,9 +260,9 @@ def save_random_predictions(model, dataloader, device, output_dir, epoch, class_
         label = labels[i].item()
         pred = preds[i].item()
         if use_gradcam_plus_plus:
-            heatmap = generate_gradcam_plus_plus(model, images[i].unsqueeze(0), model.layer4[-1])
+            heatmap = generate_gradcam_plus_plus(model, images[i].unsqueeze(0), target_layer)
         else:
-            heatmap = generate_gradcam(model, images[i].unsqueeze(0), model.layer4[-1])
+            heatmap = generate_gradcam(model, images[i].unsqueeze(0), target_layer)
         cam_image = show_cam_on_image(img, heatmap, use_rgb=True)
         
         axes[i, 0].imshow(img)
@@ -281,9 +279,9 @@ def save_random_predictions(model, dataloader, device, output_dir, epoch, class_
             label = labels[i + 4].item()
             pred = preds[i + 4].item()
             if use_gradcam_plus_plus:
-                heatmap = generate_gradcam_plus_plus(model, images[i + 4].unsqueeze(0), model.layer4[-1])
+                heatmap = generate_gradcam_plus_plus(model, images[i + 4].unsqueeze(0), target_layer)
             else:
-                heatmap = generate_gradcam(model, images[i + 4].unsqueeze(0), model.layer4[-1])
+                heatmap = generate_gradcam(images[i + 4].unsqueeze(0), model, target_layer)
             cam_image = show_cam_on_image(img, heatmap, use_rgb=True)
             
             axes[i, 2].imshow(img)
@@ -302,3 +300,19 @@ def save_random_predictions(model, dataloader, device, output_dir, epoch, class_
     saved_files = sorted([f for f in os.listdir(output_dir) if f.startswith("random_predictions_epoch_")], reverse=True)
     for file in saved_files[3:]:
         os.remove(os.path.join(output_dir, file))
+
+def get_target_layer(model, model_name):
+    if 'vit_base_patch16_224' in model_name:
+        return model.blocks[-1].norm1
+    elif 'convnext_base' in model_name:
+        return model.stages[-1][-1].norm
+    elif 'resnet' in model_name or 'resnext' in model_name:
+        return model.layer4[-1]
+    elif 'densenet' in model_name:
+        return model.features[-1]
+    elif 'caformer_s18' in model_name:
+        return model.stages[-1][-1].norm
+    elif 'fastvit_t8' in model_name:
+        return model.blocks[-1].norm
+    else:
+        raise ValueError(f"Model {model_name} not supported for Grad-CAM.")

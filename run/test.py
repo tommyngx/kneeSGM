@@ -8,7 +8,7 @@ from sklearn.metrics import classification_report
 from models.model_architectures import get_model
 from data.data_loader import get_dataloader
 from utils.metrics import accuracy, f1, precision, recall
-from utils.gradcam import generate_gradcam, show_cam_on_image
+from utils.gradcam import generate_gradcam, show_cam_on_image, get_target_layer
 from utils.plotting import save_confusion_matrix, save_roc_curve
 
 def load_config(config_path):
@@ -16,7 +16,7 @@ def load_config(config_path):
         config = yaml.safe_load(file)
     return config
 
-def save_random_predictions(model, dataloader, device, output_dir, class_names):
+def save_random_predictions(model, dataloader, device, output_dir, class_names, target_layer):
     model.eval()
     images, labels = next(iter(dataloader))
     images, labels = images.to(device), labels.to(device)
@@ -28,7 +28,7 @@ def save_random_predictions(model, dataloader, device, output_dir, class_names):
         img = (img - img.min()) / (img.max() - img.min())
         label = labels[i].item()
         pred = preds[i].item()
-        heatmap = generate_gradcam(model, images[i].unsqueeze(0), model.layer4[-1])
+        heatmap = generate_gradcam(model, images[i].unsqueeze(0), target_layer)
         cam_image = show_cam_on_image(img, heatmap, use_rgb=True)
         plt.imsave(os.path.join(output_dir, f"prediction_img_{i}_pred_{class_names[pred]}_label_{class_names[label]}.png"), cam_image)
 
@@ -81,9 +81,11 @@ def main(config_path='config/default.yaml', model_name=None):
         f.write(f"Test Precision: {test_precision:.4f}\n")
         f.write(f"Test Recall: {test_recall:.4f}\n")
     
+    target_layer = get_target_layer(model, model_name)
+    
     save_confusion_matrix(test_loader.dataset.data.iloc[:, 1].values, test_loader.dataset.data.iloc[:, 0].values, config['data']['class_names'], output_dir)
     save_roc_curve(test_loader.dataset.data.iloc[:, 1].values, test_loader.dataset.data.iloc[:, 0].values, config['data']['class_names'], output_dir)
-    save_random_predictions(model, test_loader, device, output_dir, config['data']['class_names'])
+    save_random_predictions(model, test_loader, device, output_dir, config['data']['class_names'], target_layer)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Test a model for knee osteoarthritis classification.')

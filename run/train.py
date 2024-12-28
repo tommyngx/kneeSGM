@@ -14,7 +14,7 @@ import numpy as np
 from models.model_architectures import get_model
 from data.data_loader import get_dataloader
 from utils.metrics import accuracy, f1, precision, recall
-from utils.gradcam import generate_gradcam, show_cam_on_image, save_random_predictions
+from utils.gradcam import generate_gradcam, show_cam_on_image, save_random_predictions, get_target_layer
 from utils.plotting import save_confusion_matrix, save_roc_curve, tr_plot
 
 def load_config(config_path):
@@ -122,7 +122,10 @@ def main(config_path='config/default.yaml', model_name=None, epochs=None, resume
             print(classification_report(val_labels, val_preds, target_names=config['data']['class_names'], zero_division=0))
             save_confusion_matrix(val_labels, val_preds, config['data']['class_names'], os.path.join(output_dir, "logs"), epoch)
             save_roc_curve(val_labels, val_preds, config['data']['class_names'], os.path.join(output_dir, "logs"), epoch)
-            save_random_predictions(model, val_loader, device, os.path.join(output_dir, "logs"), epoch, config['data']['class_names'], use_gradcam_plus_plus)
+            
+            target_layer = get_target_layer(model, model_name)
+            
+            save_random_predictions(model, val_loader, device, os.path.join(output_dir, "logs"), epoch, config['data']['class_names'], use_gradcam_plus_plus, target_layer)
         
         tr_plot(training_history, start_epoch, output_dir)
         

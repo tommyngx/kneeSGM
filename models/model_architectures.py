@@ -16,8 +16,8 @@ def get_model(model_name, config_path='config/default.yaml', pretrained=True):
     if 'convnext_base' in model_name:
         model.head.fc = nn.Linear(model.head.fc.in_features, num_classes)
     elif 'resnet50' in model_name or 'resnet101' in model_name: # test ok
-        model.fc = nn.Linear(model.fc.in_features, num_classes)
-    elif 'resnext50_32x4d' in model_name:
+        model.fc = nn.Linear(model.fc.in_features, num_classes) 
+    elif 'resnext50_32x4d' in model_name or 'resnext101_32x8d' in model_name:
         model.fc = nn.Linear(model.fc.in_features, num_classes)
     elif 'vit_base_patch16_224' in model_name:
         model.head = nn.Linear(model.head.in_features, num_classes)
