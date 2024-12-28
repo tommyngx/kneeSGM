@@ -37,21 +37,26 @@ def generate_gradcam(model, image, target_layer):
         heatmap = torch.mean(activations, dim=1).squeeze()
 
     elif activations.dim() == 3:  # ViT models with activations shaped [num_patches, embedding_dim]
-        # Exclude class token (first patch), if applicable
-        activations = activations[:, 1:, :]  # [num_patches, embedding_dim]
-        gradients = gradients[:, 1:, :]  # Match shape with activations
+        # Debugging: Log activations shape
+        with open('tensor_shapes.txt', "a") as f:
+            f.write(f"Activations shape: {activations.shape}\n")
+            f.write(f"Gradients shape: {gradients.shape}\n")
 
-        # Compute pooled_gradients: Average across patches
-        pooled_gradients = torch.mean(gradients, dim=1, keepdim=True)  # Shape: [1, 1, embedding_dim]
-        pooled_gradients = pooled_gradients.expand_as(activations)  # Match activations shape [1, num_patches, embedding_dim]
+        # Ensure gradients match activations
+        pooled_gradients = torch.mean(gradients, dim=0, keepdim=True)  # Shape: [1, embedding_dim]
+        pooled_gradients = pooled_gradients.expand_as(activations)  # Match activations shape [num_patches, embedding_dim]
 
-        # Weighted activations
+        # Debugging: Log pooled_gradients shape
+        with open('tensor_shapes.txt', "a") as f:
+            f.write(f"Pooled gradients shape after adjustment: {pooled_gradients.shape}\n")
+
+        # Calculate weighted activations
         weighted_activations = activations * pooled_gradients  # Element-wise multiplication
 
         # Generate heatmap by summing across the embedding dimension
         heatmap = torch.sum(weighted_activations, dim=-1).squeeze()  # Shape: [num_patches]
 
-        # Reshape heatmap into a spatial grid
+        # Reshape heatmap to spatial dimensions (square grid)
         grid_size = int(np.sqrt(heatmap.size(0)))  # Compute grid size (e.g., 14x14 for 196 patches)
         heatmap = heatmap.view(grid_size, grid_size)  # Shape: [grid_size, grid_size]
 
