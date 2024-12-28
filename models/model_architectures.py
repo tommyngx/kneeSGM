@@ -27,9 +27,8 @@ def get_model(model_name, config_path='config/default.yaml', pretrained=True):
         #model.head = nn.Linear(model.head.in_features, num_classes)
         #model.head = nn.Linear(model.head.in_features, num_classes)
         print(model.head)  # Inspect the structure first
-
-        # Assuming the final layer is accessible as model.head.dense
-        model.head.dense = nn.Linear(model.head.dense.in_features, num_classes)
+        model.head.fc.fc2 = nn.Linear(model.head.fc.fc2.in_features, num_classes)
+        
     elif 'fastvit_t8' in model_name:
         model.head.fc = nn.Linear(model.head.fc.in_features, num_classes)
     elif 'efficientnet_b0' in model_name:
