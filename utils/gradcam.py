@@ -46,7 +46,12 @@ def generate_gradcam(model, image, target_layer):
         f.write(f"Activations shape: {activations.shape}\n")
         f.write(f"Gradients shape: {gradients.shape}\n")
 
-    if activations.dim() == 3:  # ViT models
+    if activations.dim() == 4:  # CNN-based models
+        pooled_gradients = torch.mean(gradients, dim=[0, 2, 3])
+        for i in range(min(activations.shape[1], pooled_gradients.shape[0])):
+            activations[:, i, :, :] *= pooled_gradients[i]
+        heatmap = torch.mean(activations, dim=1).squeeze()
+    elif activations.dim() == 3:  # ViT models
         # Exclude class token (first patch)
         activations = activations[:, 1:, :]  # Remove class token
         gradients = gradients[:, 1:, :]  # Remove class token
