@@ -36,25 +36,33 @@ def generate_gradcam(model, image, target_layer):
             activations[:, i, :, :] *= pooled_gradients[i]
         heatmap = torch.mean(activations, dim=1).squeeze()
 
-    elif activations.dim() == 3:  # ViT models with activations shaped [num_patches, embedding_dim]
-        # Debugging: Log activations shape
+    elif activations.dim() == 3:  # ViT models with activations shaped [batch_size, num_patches, embedding_dim]
+        # Debugging: Log activations and gradients shape
         with open('tensor_shapes.txt', "a") as f:
             f.write(f"Activations shape: {activations.shape}\n")
-            f.write(f"Gradients shape: {gradients.shape}\n")
+            f.write(f"Gradients shape before adjustment: {gradients.shape}\n")
 
-        # Ensure gradients match activations
-        pooled_gradients = torch.mean(gradients, dim=0, keepdim=True)  # Shape: [1, embedding_dim]
-        pooled_gradients = pooled_gradients.expand_as(activations)  # Match activations shape [num_patches, embedding_dim]
+        # Ensure gradients align with activations
+        if gradients.dim() == 4:  # Gradients from CNN-like backbones
+            # Average gradients spatially to reduce to [batch_size, channels]
+            gradients = torch.mean(gradients, dim=[2, 3])  # Shape: [batch_size, channels]
 
-        # Debugging: Log pooled_gradients shape
+        # Reshape gradients to match activations
+        gradients = gradients[:, :activations.size(1)]  # Remove excess tokens if necessary
+
+        # Debugging: Log adjusted gradients shape
         with open('tensor_shapes.txt', "a") as f:
-            f.write(f"Pooled gradients shape after adjustment: {pooled_gradients.shape}\n")
+            f.write(f"Gradients shape after adjustment: {gradients.shape}\n")
+
+        # Compute pooled gradients
+        pooled_gradients = torch.mean(gradients, dim=1, keepdim=True)  # Shape: [batch_size, 1, embedding_dim]
+        pooled_gradients = pooled_gradients.expand_as(activations)  # Match activations shape [batch_size, num_patches, embedding_dim]
 
         # Calculate weighted activations
         weighted_activations = activations * pooled_gradients  # Element-wise multiplication
 
         # Generate heatmap by summing across the embedding dimension
-        heatmap = torch.sum(weighted_activations, dim=-1).squeeze()  # Shape: [num_patches]
+        heatmap = torch.sum(weighted_activations, dim=-1).squeeze()  # Shape: [batch_size, num_patches]
 
         # Reshape heatmap to spatial dimensions (square grid)
         grid_size = int(np.sqrt(heatmap.size(0)))  # Compute grid size (e.g., 14x14 for 196 patches)
