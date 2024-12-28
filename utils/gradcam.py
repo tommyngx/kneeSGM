@@ -80,6 +80,10 @@ def generate_gradcam(model, image, target_layer):
     forward_handle = target_layer.register_forward_hook(forward_hook)
     backward_handle = target_layer.register_full_backward_hook(backward_hook)
 
+    # Forward pass
+    output = model(image)
+    forward_handle.remove()  # Remove forward hook
+
     # Backward pass
     score = output[:, output.max(1)[-1]]  # Class of interest
     model.zero_grad()
