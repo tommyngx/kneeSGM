@@ -24,26 +24,26 @@ def generate_gradcam(model, image, target_layer):
     score.backward()
 
     gradients = image.grad.data
-    pooled_gradients = torch.mean(gradients, dim=[0, 2, 3])
     activations = features[0].detach()
     
     if activations.dim() == 4:  # CNN-based models
+        pooled_gradients = torch.mean(gradients, dim=[0, 2, 3])
         for i in range(min(activations.shape[1], pooled_gradients.shape[0])):
             activations[:, i, :, :] *= pooled_gradients[i]
         heatmap = torch.mean(activations, dim=1).squeeze()
 
     # ViT models (with 3D activations)
     elif activations.dim() == 3:  # [batch_size, num_patches, embedding_dim]
-        # Correct pooled_gradients calculation
-        pooled_gradients = torch.mean(gradients, dim=1, keepdim=True)  # Average over patches
-        pooled_gradients = pooled_gradients.expand_as(activations)  # Match activations shape
+        # Calculate gradients w.r.t activations
+        pooled_gradients = torch.mean(gradients, dim=1, keepdim=True)  # Average across patches
+        pooled_gradients = pooled_gradients.expand_as(activations)  # Match activations shape [batch_size, num_patches, embedding_dim]
 
         # Debugging: Log pooled_gradients shape
         with open('tensor_shapes.txt', "a") as f:
             f.write(f"Pooled gradients shape after adjustment: {pooled_gradients.shape}\n")
 
         # Calculate heatmap for ViT models
-        heatmap = torch.sum(activations * pooled_gradients, dim=-1).squeeze()  # [num_patches]
+        heatmap = torch.sum(activations * pooled_gradients, dim=-1).squeeze()  # [batch_size, num_patches]
 
     else:
         raise ValueError(f"Unexpected activations dimensions: {activations.dim()}")
