@@ -49,6 +49,7 @@ def generate_gradcam(model, image, target_layer):
 
         # Calculate heatmap
         heatmap = torch.sum(activations * pooled_gradients, dim=-1)  # [num_patches]
+        heatmap = heatmap.unsqueeze(0)
 
 
     heatmap = F.relu(heatmap)
