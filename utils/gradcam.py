@@ -27,6 +27,10 @@ def generate_gradcam(model, image, target_layer):
     pooled_gradients = torch.mean(gradients, dim=[0, 2, 3])
     activations = features[0].detach()
 
+    with open('tensor_shapes.txt', "w") as f:
+        f.write(f"Activations shape: {activations[0].shape}\n")
+        f.write(f"Pooled gradients shape: {pooled_gradients.shape}\n")
+    
     if activations.dim() == 4:  # CNN-based models
         for i in range(min(activations.shape[1], pooled_gradients.shape[0])):
             activations[:, i, :, :] *= pooled_gradients[i]
@@ -46,10 +50,6 @@ def generate_gradcam(model, image, target_layer):
         # Calculate heatmap
         heatmap = torch.sum(activations * pooled_gradients, dim=-1)  # [batch_size, num_patches]
         heatmap = heatmap.squeeze()
-    
-    with open('tensor_shapes.txt', "w") as f:
-        f.write(f"Activations shape: {activations[0].shape}\n")
-        f.write(f"Pooled gradients shape: {pooled_gradients.shape}\n")
 
 
     heatmap = F.relu(heatmap)
