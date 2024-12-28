@@ -1,7 +1,7 @@
 import torch, os
 import torch.nn.functional as F
 from torchvision import transforms
-import numpy np
+import numpy as np
 import cv2
 import matplotlib.pyplot as plt
 from PIL import Image
