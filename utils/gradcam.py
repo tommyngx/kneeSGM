@@ -12,6 +12,62 @@ def generate_gradcam(model, image, target_layer):
         image = image.unsqueeze(0)
     image.requires_grad = True
 
+    features = []
+    def hook_fn(module, input, output):
+        features.append(output)
+
+    handle = target_layer.register_forward_hook(hook_fn)
+    output = model(image)
+    handle.remove()
+
+    score = output[:, output.max(1)[-1]]
+    score.backward()
+
+    gradients = image.grad.data
+    pooled_gradients = torch.mean(gradients, dim=[0, 2, 3])
+    activations = features[0].detach()
+
+    with open('tensor_shapes.txt', "w") as f:
+        f.write(f"Activations shape: {activations[0].shape}\n")
+        f.write(f"Pooled gradients shape: {pooled_gradients.shape}\n")
+    
+    if activations.dim() == 4:  # CNN-based models
+        for i in range(min(activations.shape[1], pooled_gradients.shape[0])):
+            activations[:, i, :, :] *= pooled_gradients[i]
+        heatmap = torch.mean(activations, dim=1).squeeze()
+    elif activations.dim() == 2:  # ViT models
+        # activations: [num_patches, embedding_dim]
+        # pooled_gradients: Gradients w.r.t. activations
+
+        # Check if pooled_gradients has the right dimensions
+        if pooled_gradients.dim() == 1:  # If it's 1D, we need to reshape and expand it
+            pooled_gradients = pooled_gradients.unsqueeze(0)  # [1, 3]
+
+        # Resize pooled_gradients to match activations
+        pooled_gradients = torch.mean(pooled_gradients, dim=0, keepdim=True)  # Adjust gradient pooling
+        pooled_gradients = pooled_gradients.expand_as(activations)  # Match activations
+
+        # Calculate heatmap
+        heatmap = torch.sum(activations * pooled_gradients, dim=-1)  # [num_patches]
+
+    heatmap = F.relu(heatmap)
+    heatmap /= torch.max(heatmap)
+
+    heatmap = heatmap.cpu().numpy()  # Move to CPU before converting to NumPy
+    heatmap = cv2.resize(heatmap, (image.shape[2], image.shape[3]))
+    heatmap = np.uint8(255 * heatmap)
+    heatmap = 255 - heatmap
+
+    heatmap_colored = np.stack([heatmap] * 3, axis=-1)
+    return heatmap_colored #heatmap
+
+
+def generate_gradcam2(model, image, target_layer):
+    model.eval()
+    if image.dim() == 3:
+        image = image.unsqueeze(0)
+    image.requires_grad = True
+
     activations = []
     gradients = []
 
@@ -51,6 +107,7 @@ def generate_gradcam(model, image, target_layer):
         for i in range(min(activations.shape[1], pooled_gradients.shape[0])):
             activations[:, i, :, :] *= pooled_gradients[i]
         heatmap = torch.mean(activations, dim=1).squeeze()
+
     elif activations.dim() == 3:  # ViT models
         # Exclude class token (first patch)
         activations = activations[:, 1:, :]  # Remove class token

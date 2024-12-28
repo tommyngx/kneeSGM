@@ -94,7 +94,7 @@ def save_roc_curve(labels, preds, class_names, output_dir, epoch=None, acc=None)
     # Plot ROC curve
     fpr, tpr, _ = roc_curve(labels, preds, pos_label=1)
     roc_auc = auc(fpr, tpr)
-    plt.figure(figsize=(10, 6))
+    plt.figure(figsize=(8, 6))
     plt.plot(fpr, tpr, color='darkorange', lw=2, label=f'ROC curve (area = {roc_auc:.2f})')
     plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
     plt.xlim([0.0, 1.0])
@@ -106,6 +106,12 @@ def save_roc_curve(labels, preds, class_names, output_dir, epoch=None, acc=None)
         title += f" - Epoch {epoch}"
     plt.title(title, fontproperties=prop)
     plt.legend(loc="lower right", prop=prop)
+    
+    # Customize legend
+    legend = plt.legend()
+    legend.get_frame().set_facecolor('white')
+    legend.get_frame().set_edgecolor('black')
+
     filename = "roc_curve.png" if epoch is None else f"roc_curve_epoch_{epoch}_acc_{acc:.4f}.png"
     plt.savefig(os.path.join(output_dir, filename))
     plt.close()
