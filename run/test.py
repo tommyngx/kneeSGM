@@ -9,7 +9,7 @@ from sklearn.metrics import classification_report
 from models.model_architectures import get_model
 from data.data_loader import get_dataloader
 from utils.metrics import accuracy, f1, precision, recall
-from utils.gradcam import generate_gradcam, show_cam_on_image, get_target_layer
+from utils.gradcam import save_random_predictions, get_target_layer
 from utils.plotting import save_confusion_matrix, save_roc_curve
 
 def load_config(config_path):
@@ -17,21 +17,6 @@ def load_config(config_path):
         config = yaml.safe_load(file)
     return config
 
-def save_random_predictions(model, dataloader, device, output_dir, class_names, target_layer, acc=None):
-    model.eval()
-    images, labels = next(iter(dataloader))
-    images, labels = images.to(device), labels.to(device)
-    outputs = model(images)
-    outputs = torch.softmax(outputs, dim=1)  # Apply softmax
-    preds = torch.argmax(outputs, dim=1)
-    for i in range(12):
-        img = images[i].cpu().numpy().transpose(1, 2, 0)
-        img = (img - img.min()) / (img.max() - img.min())
-        label = labels[i].item()
-        pred = preds[i].item()
-        heatmap = generate_gradcam(model, images[i].unsqueeze(0), target_layer)
-        cam_image = show_cam_on_image(img, heatmap, use_rgb=True)
-        plt.imsave(os.path.join(output_dir, f"prediction_img_{i}_pred_{class_names[pred]}_label_{class_names[label]}.png"), cam_image)
 
 def test(model, dataloader, device):
     model.eval()
