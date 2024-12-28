@@ -40,13 +40,13 @@ def generate_gradcam(model, image, target_layer):
         if pooled_gradients.dim() == 1:  # If 1D, reshape and match activations
                 pooled_gradients = pooled_gradients.unsqueeze(0)  # [1, embedding_dim]
 
-            # Fix pooled_gradients pooling logic
-            pooled_gradients = torch.mean(activations, dim=0, keepdim=True)  # Pool across patches [1, embedding_dim]
-            pooled_gradients = pooled_gradients.expand_as(activations)  # Match activations shape [num_patches, embedding_dim]
+        # Fix pooled_gradients pooling logic
+        pooled_gradients = torch.mean(activations, dim=0, keepdim=True)  # Pool across patches [1, embedding_dim]
+        pooled_gradients = pooled_gradients.expand_as(activations)  # Match activations shape [num_patches, embedding_dim]
 
-            # Calculate heatmap for ViT models
-            heatmap = torch.sum(activations * pooled_gradients, dim=-1)  # [num_patches]
-            heatmap = heatmap.unsqueeze(0)  # Ensure batch dimension for further processing 
+        # Calculate heatmap for ViT models
+        heatmap = torch.sum(activations * pooled_gradients, dim=-1)  # [num_patches]
+        heatmap = heatmap.unsqueeze(0)  # Ensure batch dimension for further processing 
 
     with open('tensor_shapes.txt', "a") as f:
         f.write(f"Activations shape after : {activations[0].shape}\n")
