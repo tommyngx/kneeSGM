@@ -35,21 +35,20 @@ def generate_gradcam(model, image, target_layer):
         for i in range(min(activations.shape[1], pooled_gradients.shape[0])):
             activations[:, i, :, :] *= pooled_gradients[i]
         heatmap = torch.mean(activations, dim=1).squeeze()
-    elif activations.dim() == 3:  # ViT models
-        #pooled_gradients = pooled_gradients.unsqueeze(-1).expand_as(activations)
-        #heatmap = torch.sum(activations * pooled_gradients, dim=1).squeeze()
-    # Ensure pooled_gradients has the right dimensions
-        if pooled_gradients.dim() == 1:  # [embedding_dim]
-            pooled_gradients = pooled_gradients.view(1, 1, -1)  # Reshape to [1, 1, embedding_dim]
-        elif pooled_gradients.dim() == 2:  # [batch_size, embedding_dim]
-            pooled_gradients = pooled_gradients.unsqueeze(1)  # Reshape to [batch_size, 1, embedding_dim]
+    elif activations.dim() == 2:  # ViT models
+        # activations: [num_patches, embedding_dim]
+        # pooled_gradients: Gradients w.r.t. activations
 
-        # Match dimensions with activations
-        pooled_gradients = pooled_gradients.expand_as(activations)  # Expand to [batch_size, num_patches, embedding_dim]
+        # Check if pooled_gradients has the right dimensions
+        if pooled_gradients.dim() == 1:  # If it's 1D, we need to reshape and expand it
+            pooled_gradients = pooled_gradients.unsqueeze(0)  # [1, 3]
+
+        # Resize pooled_gradients to match activations
+        pooled_gradients = torch.mean(pooled_gradients, dim=0, keepdim=True)  # Adjust gradient pooling
+        pooled_gradients = pooled_gradients.expand_as(activations)  # Match activations
 
         # Calculate heatmap
-        heatmap = torch.sum(activations * pooled_gradients, dim=-1)  # [batch_size, num_patches]
-        heatmap = heatmap.squeeze()
+        heatmap = torch.sum(activations * pooled_gradients, dim=-1)  # [num_patches]
 
 
     heatmap = F.relu(heatmap)
