@@ -46,8 +46,9 @@ def generate_gradcam(model, image, target_layer):
         if gradients.dim() == 4:  # [batch_size, channels, height, width]
             gradients = torch.mean(gradients, dim=[2, 3])  # Average spatially to reduce to [batch_size, channels]
 
-        # Match gradients to activations shape
-        gradients = gradients[:, :activations.size(1), :]  # Remove excess tokens if necessary
+        # Ensure gradients match activations shape
+        if gradients.dim() == 2:  # [batch_size, embedding_dim]
+            gradients = gradients.unsqueeze(1).expand_as(activations)  # Expand to [batch_size, num_patches, embedding_dim]
 
         # Compute pooled gradients
         pooled_gradients = torch.mean(gradients, dim=1, keepdim=True)  # Shape: [batch_size, 1, embedding_dim]
@@ -60,8 +61,8 @@ def generate_gradcam(model, image, target_layer):
         heatmap = torch.sum(weighted_activations, dim=-1).squeeze()  # Shape: [batch_size, num_patches]
 
         # Reshape heatmap to spatial dimensions (square grid)
-        grid_size = int(np.sqrt(heatmap.size(0)))  # Compute grid size (e.g., 14x14 for 196 patches)
-        heatmap = heatmap.view(grid_size, grid_size)  # Shape: [grid_size, grid_size]
+        grid_size = int(np.sqrt(heatmap.size(1)))  # Compute grid size (e.g., 14x14 for 196 patches)
+        heatmap = heatmap.view(activations.size(0), grid_size, grid_size)  # Shape: [batch_size, grid_size, grid_size]
 
         # Debugging: Log heatmap shape
         with open('tensor_shapes.txt', "a") as f:
