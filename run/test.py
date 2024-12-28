@@ -61,7 +61,8 @@ def main(config_path='config/default.yaml', model_name=None, model_path=None):
         model_name = config['model']['name']
     
     model = get_model(model_name, config_path=config_path, pretrained=config['model']['pretrained'])
-    model.load_state_dict(torch.load(model_path, map_location=device))
+    checkpoint = torch.load(model_path, map_location=device,weights_only=True)
+    model.load_state_dict(checkpoint['model_state_dict'])
     model = model.to(device)
     
     test_loader = get_dataloader('test', config['data']['batch_size'], config['data']['num_workers'], config_path=config_path)
