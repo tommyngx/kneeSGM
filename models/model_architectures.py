@@ -8,7 +8,7 @@ def load_config(config_path):
     return config
 
 def get_model(model_name, config_path='config/default.yaml', pretrained=True):
-    if model_name == 'fastvit':
+    if 'fastvit' in model_name:
         model_name = "fastvit_sa12.apple_in1k"
     config = load_config(config_path)
     num_classes = len(config['data']['class_labels'])
