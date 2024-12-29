@@ -38,9 +38,8 @@ def process_files(folder_path):
         dest_path = os.path.join(folder_path, row['path2'])
         dest_dir = os.path.dirname(dest_path)
         
-        if os.path.exists(dest_dir):
-            shutil.rmtree(dest_dir)
-        os.makedirs(dest_dir, exist_ok=True)
+        if not os.path.exists(dest_dir):
+            os.makedirs(dest_dir, exist_ok=True)
         
         if os.path.exists(src_path):
             shutil.copy(src_path, dest_path)
