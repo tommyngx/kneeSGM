@@ -25,7 +25,7 @@ def process_files(folder_path):
     
     # Fix path and path2 columns
     combined_df['filename'] = combined_df['filename'].str.replace(r'\.jpg$', '', regex=True)
-    combined_df['path'] = combined_df['split'] + "/" + combined_df['filename'] + ".jpg"
+    combined_df['path'] = combined_df['split'].str.lower() + "/" + combined_df['filename'] + ".jpg"
     combined_df['path2'] = "OAI16/" + combined_df['split'] + "/" + combined_df['KL'].astype(int).astype(str) + "/" + combined_df['filename'] + ".png"
     
     output_path = os.path.join(folder_path, 'OAI16metadata.csv')
