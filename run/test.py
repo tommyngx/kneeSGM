@@ -52,7 +52,7 @@ def main(config_path='config/default.yaml', model_name=None, model_path=None, us
         model_name = config['model']['name']
     
     model = get_model(model_name, config_path=config_path, pretrained=config['model']['pretrained'])
-    checkpoint = torch.load(model_path, map_location=device, weights_only=True)
+    checkpoint = torch.load(model_path, map_location=device)
     model.load_state_dict(checkpoint['model_state_dict'])
     model = model.to(device)
     
@@ -79,7 +79,8 @@ def main(config_path='config/default.yaml', model_name=None, model_path=None, us
     
     target_layer = get_target_layer(model, model_name)
     
-    save_confusion_matrix(test_labels, test_preds, config['data']['class_names'], output_dir)
+    # Ensure the same parameters are used for save_confusion_matrix
+    save_confusion_matrix(test_labels, test_preds, config['data']['class_names'], output_dir, epoch=0, acc=test_acc)
     
     # Calculate risk percentages for ROC curve
     test_outputs = np.array(test_outputs)
@@ -88,6 +89,7 @@ def main(config_path='config/default.yaml', model_name=None, model_path=None, us
     save_roc_curve(test_labels, positive_risk, config['data']['class_names'], output_dir)
     
     save_random_predictions(model, test_loader, device, output_dir, epoch=0, class_names=config['data']['class_names'], use_gradcam_plus_plus=use_gradcam_plus_plus, target_layer=target_layer, model_name=model_name)
+    
     
     # Print classification report
     print("Classification Report:")
