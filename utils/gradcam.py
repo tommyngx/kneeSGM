@@ -74,34 +74,39 @@ def generate_gradcam_vit(activations, gradients, image):
     return post_process_heatmap(heatmap, image)
 
 def generate_gradcam_caformer(activations, gradients, image):
-    print(f"Activations shape: {activations.shape}")
-    print(f"Gradients shape: {gradients.shape}")
-    print(f"Image shape: {image.shape}")
-    if gradients.dim() == 4:
-        gradients = torch.mean(gradients, dim=[2, 3])
-    if gradients.dim() == 2:
-        gradients = gradients.unsqueeze(1).expand(activations.size(0), activations.size(1), gradients.size(1))
-    elif gradients.dim() == 3 and gradients.size(1) == 1:
-        gradients = gradients.expand(activations.size(0), activations.size(1), activations.size(2))
-    elif gradients.dim() == 3 and gradients.size(2) == 224:
-        gradients = torch.mean(gradients, dim=1, keepdim=True)
-        gradients = gradients.expand(activations.size(0), activations.size(1), activations.size(2))
-    elif gradients.dim() == 3 and gradients.size(2) == 3:
-        gradients = torch.mean(gradients, dim=2, keepdim=True)
-        gradients = gradients.expand(activations.size(0), activations.size(1), activations.size(2))
-    elif gradients.dim() == 3 and gradients.size(2) == 7:
-        gradients = torch.mean(gradients, dim=1, keepdim=True)
-        gradients = gradients.expand(activations.size(0), activations.size(1), activations.size(2))
-    else:
-        gradients = torch.mean(gradients, dim=2, keepdim=True)
-        gradients = gradients.expand(activations.size(0), activations.size(1), activations.size(2))
+    print(f"Activations shape: {activations.shape}")  # [batch_size, num_patches, embedding_dim]
+    print(f"Gradients shape: {gradients.shape}")  # [batch_size, channels, height, width]
+    print(f"Image shape: {image.shape}")  # [batch_size, channels, height, width]
 
-    pooled_gradients = torch.mean(gradients, dim=1, keepdim=True)
-    pooled_gradients = pooled_gradients.expand(activations.size(0), activations.size(1), activations.size(2))
-    weighted_activations = activations * pooled_gradients
-    heatmap = torch.sum(weighted_activations, dim=-1).squeeze()
-    grid_size = int(np.sqrt(heatmap.size(0)))
-    heatmap = heatmap.view(activations.size(1), grid_size, grid_size)
+    # Handle gradients with 4 dimensions (CNN-like case)
+    if gradients.dim() == 4:
+        # Average spatial dimensions to reduce to [batch_size, channels]
+        gradients = torch.mean(gradients, dim=[2, 3])  # [batch_size, channels]
+
+    # Match gradients to activations' shape
+    if gradients.dim() == 2:  # [batch_size, embedding_dim]
+        # Expand gradients to match activations [batch_size, num_patches, embedding_dim]
+        gradients = gradients.unsqueeze(1).expand(-1, activations.size(1), -1)
+    elif gradients.dim() == 3:  # [batch_size, num_patches, embedding_dim]
+        # Ensure dimensions match exactly
+        if gradients.size(1) != activations.size(1) or gradients.size(2) != activations.size(2):
+            gradients = torch.mean(gradients, dim=1, keepdim=True)  # Average over patches
+            gradients = gradients.expand_as(activations)  # Match activations shape
+    else:
+        raise ValueError(f"Unexpected gradients dimensions: {gradients.shape}")
+
+    # Compute pooled gradients
+    pooled_gradients = torch.mean(gradients, dim=1, keepdim=True)  # [batch_size, 1, embedding_dim]
+    pooled_gradients = pooled_gradients.expand_as(activations)  # Match activations shape
+
+    # Apply weights to activations
+    weighted_activations = activations * pooled_gradients  # Element-wise multiplication
+    heatmap = torch.sum(weighted_activations, dim=-1).squeeze()  # Sum over embedding dimension
+
+    # Reshape heatmap to spatial dimensions
+    grid_size = int(np.sqrt(heatmap.size(0)))  # Compute grid size (e.g., 7x7 for 49 patches)
+    heatmap = heatmap.view(grid_size, grid_size)  # Shape: [grid_size, grid_size]
+
     return post_process_heatmap(heatmap, image)
 
 def generate_gradcam_fastvit(activations, gradients, image):
