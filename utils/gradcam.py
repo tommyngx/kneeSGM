@@ -86,15 +86,11 @@ def generate_gradcam_vit(activations, gradients, image):
     weighted_activations = activations * pooled_gradients  # Element-wise multiplication
     heatmap = torch.sum(weighted_activations, dim=-1).squeeze()  # Sum over embedding dimension
 
-    # Reshape heatmap to a square grid
-    grid_size = int(np.sqrt(heatmap.size(1)))  # Compute grid size (e.g., 14x14 for 196 patches)
-    if heatmap.size(1) != grid_size * grid_size:
-        raise ValueError(f"Cannot reshape heatmap of size {heatmap.size(1)} into a square grid.")
-    heatmap = heatmap.view(heatmap.size(0), grid_size, grid_size)  # Shape: [batch_size, grid_size, grid_size]
-
     # Reshape heatmap to spatial dimensions (exclude class token)
-    #grid_size = int(np.sqrt(heatmap.size(0)))  # Compute grid size (e.g., 14x14 for 196 patches)
-    #heatmap = heatmap.view(grid_size, grid_size)  # Shape: [grid_size, grid_size]
+    grid_size = int(np.sqrt(heatmap.size(0)))  # Compute grid size (e.g., 14x14 for 196 patches)
+    print(f"Grid size: {grid_size}")  # Debugging grid size
+    print(f"Heatmap shape: {heatmap.shape}")  # Debugging heatmap shape
+    heatmap = heatmap.view(grid_size, grid_size)  # Shape: [grid_size, grid_size]
 
     print(f"Heatmap shape: {heatmap.shape}")  # Debugging heatmap shape
 
