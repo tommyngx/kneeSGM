@@ -1,7 +1,7 @@
 import torch, os
 import torch.nn.functional as F
 from torchvision import transforms
-import numpy as np
+import numpy np
 import cv2
 import matplotlib.pyplot as plt
 from PIL import Image
@@ -87,10 +87,10 @@ def generate_gradcam_vit(activations, gradients, image):
     heatmap = torch.sum(weighted_activations, dim=-1).squeeze()  # Sum over embedding dimension
 
     # Reshape heatmap to spatial dimensions (exclude class token)
-    grid_size = int(np.sqrt(heatmap.size(0)))  # Compute grid size (e.g., 14x14 for 196 patches)
+    grid_size = int(np.sqrt(heatmap.size(0) - 1))  # Compute grid size (e.g., 14x14 for 196 patches)
     print(f"Grid size: {grid_size}")  # Debugging grid size
     print(f"Heatmap shape: {heatmap.shape}")  # Debugging heatmap shape
-    heatmap = heatmap.view(grid_size, grid_size)  # Shape: [grid_size, grid_size]
+    heatmap = heatmap[1:].view(grid_size, grid_size)  # Shape: [grid_size, grid_size]
 
     print(f"Heatmap shape: {heatmap.shape}")  # Debugging heatmap shape
 
