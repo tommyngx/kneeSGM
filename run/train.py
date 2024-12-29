@@ -1,3 +1,6 @@
+import warnings
+warnings.filterwarnings("ignore", message="TypedStorage is deprecated. It will be removed in the future and UntypedStorage will be the only storage class.")
+
 import torch
 import torch.optim as optim
 import torch.nn as nn

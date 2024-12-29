@@ -10,6 +10,10 @@ from models.model_architectures import get_model
 from data.data_loader import get_dataloader
 from utils.gradcam import save_random_predictions, get_target_layer
 
+import warnings
+warnings.filterwarnings("ignore", message="TypedStorage is deprecated. It will be removed in the future and UntypedStorage will be the only storage class.")
+
+
 def load_config(config_path):
     with open(config_path, 'r') as file:
         config = yaml.safe_load(file)

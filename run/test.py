@@ -1,3 +1,6 @@
+import warnings
+warnings.filterwarnings("ignore", message="TypedStorage is deprecated. It will be removed in the future and UntypedStorage will be the only storage class.")
+
 import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
