@@ -60,7 +60,7 @@ def save_confusion_matrix(labels, preds, class_names, output_dir, epoch=None, ac
     )
     # Customize the color bar
     max_value = np.ceil(np.max(cm_normalized) * 10) / 10  # Round up to the nearest multiple of 10
-    ticks = np.linspace(0, max_value, 4)  # Define ticks from 0 to max_value
+    ticks = np.linspace(0, max_value, 5)  # Define ticks from 0 to max_value
     cbar = ax.collections[0].colorbar  # Get the color bar from the current Axes
     cbar.set_ticks(ticks)  # Set specific ticks
     cbar.ax.set_yticklabels([f'{int(t * 100)}%' for t in ticks])    
