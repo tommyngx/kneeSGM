@@ -60,8 +60,12 @@ def generate_gradcam_vit(activations, gradients, image):
 
     # Match gradients to activations' shape
     if gradients.dim() == 2:  # [batch_size, embedding_dim]
-        # Expand gradients to match activations [batch_size, num_patches, embedding_dim]
-        gradients = gradients.unsqueeze(1).expand(-1, activations.size(1), activations.size(2))
+        # Check if gradients need to be expanded correctly
+        if gradients.size(1) == activations.size(2):  # Already matching embedding_dim
+            gradients = gradients.unsqueeze(1).expand(-1, activations.size(1), -1)
+        else:
+            raise ValueError(f"Unexpected mismatch in dimensions: gradients={gradients.shape}, activations={activations.shape}")
+        
     elif gradients.dim() == 3 and gradients.size(1) == 1:  # [batch_size, 1, embedding_dim]
         gradients = gradients.expand(-1, activations.size(1), activations.size(2))
     elif gradients.dim() == 3 and gradients.size(2) == 3:  # [batch_size, channels, 3]
