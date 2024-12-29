@@ -52,5 +52,5 @@ def get_dataloader(split, batch_size, num_workers, transform=None, config_path='
     dataset_based_link = config['data']['dataset_based_link']
     
     dataset = KneeOsteoarthritisDataset(csv_file, split, image_path_column, label_column, dataset_based_link, dataset_name, external_datasets, transform=transform, config_path=config_path)
-    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
+    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=(split == 'train'), num_workers=num_workers)
     return dataloader
