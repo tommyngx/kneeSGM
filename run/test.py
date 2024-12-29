@@ -11,6 +11,7 @@ from data.data_loader import get_dataloader
 from utils.metrics import accuracy, f1, precision, recall
 from utils.gradcam import save_random_predictions, get_target_layer
 from utils.plotting import save_confusion_matrix, save_roc_curve
+import numpy as np
 
 def load_config(config_path):
     with open(config_path, 'r') as file:
