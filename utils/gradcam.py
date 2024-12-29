@@ -104,22 +104,16 @@ def generate_gradcam_fastvit(activations, gradients, image):
     print(f"Activations shape: {activations.shape}")  # [batch_size, channels, height, width]
     print(f"Gradients shape: {gradients.shape}")  # [batch_size, channels, height, width] or similar
     print(f"Image shape: {image.shape}")  # [batch_size, channels, height, width]
-    
+
     if gradients.dim() == 4:
-        # Average spatial dimensions (height, width) to reduce gradients to [batch_size, channels]
-        gradients = torch.mean(gradients, dim=[2, 3])  
-    
-    if gradients.dim() == 2:  # [batch_size, channels]
-        # Expand gradients to match activations' spatial dimensions
-        gradients = gradients.unsqueeze(-1).unsqueeze(-1)  # [batch_size, channels, 1, 1]
-        gradients = gradients.expand_as(activations)  # [batch_size, channels, height, width]
-    elif gradients.dim() == 3:  # Handle cases where gradients might be [batch_size, channels, height]
-        if gradients.size(2) == activations.size(2):  # Match height/width
-            gradients = gradients.unsqueeze(-1).expand_as(activations)  # Expand width
-        else:
-            raise ValueError(f"Unexpected gradients shape: {gradients.shape}")
-    else:
-        raise ValueError(f"Unsupported gradients dimensions: {gradients.dim()}")
+        # Match the number of channels in gradients to activations
+        gradients = torch.mean(gradients, dim=[2, 3], keepdim=True)  # Average spatial dimensions
+        gradients = gradients.expand(-1, activations.size(1), -1, -1)  # Expand channels to match activations
+
+    if gradients.shape[1] != activations.shape[1]:
+        # Adjust channel dimensions by averaging over the available channels in gradients
+        gradients = gradients.mean(dim=1, keepdim=True)  # Reduce gradients to 1 channel
+        gradients = gradients.expand(-1, activations.size(1), -1, -1)  # Expand to match activations' channels
 
     # Compute pooled gradients
     pooled_gradients = torch.mean(gradients, dim=[2, 3], keepdim=True)  # Average across spatial dimensions
@@ -130,8 +124,7 @@ def generate_gradcam_fastvit(activations, gradients, image):
     heatmap = torch.sum(weighted_activations, dim=1).squeeze()  # Sum over the channel dimension
 
     # Reshape heatmap to spatial dimensions (square grid)
-    grid_size = activations.shape[2]  # Use height/width of activations
-    heatmap = heatmap.view(grid_size, grid_size)  # Reshape to [grid_size, grid_size]
+    heatmap = F.interpolate(heatmap.unsqueeze(0).unsqueeze(0), size=(image.shape[2], image.shape[3]), mode='bilinear', align_corners=False).squeeze()
 
     return post_process_heatmap(heatmap, image)
 
