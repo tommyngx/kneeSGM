@@ -49,7 +49,7 @@ def generate_gradcam_cnn(activations, gradients, image):
     heatmap = torch.mean(activations, dim=1).squeeze()
     return post_process_heatmap(heatmap, image)
 
-def generate_gradcam_vit2(activations, gradients, image):
+def generate_gradcam_vit(activations, gradients, image):
     print(f"Activations shape: {activations.shape}")  # [batch_size, num_patches, embedding_dim]
     print(f"Gradients shape: {gradients.shape}")  # [batch_size, channels, height, width]
 
@@ -86,38 +86,20 @@ def generate_gradcam_vit2(activations, gradients, image):
     weighted_activations = activations * pooled_gradients  # Element-wise multiplication
     heatmap = torch.sum(weighted_activations, dim=-1).squeeze()  # Sum over embedding dimension
 
+    # Remove the class token (first patch) if present
+    heatmap = heatmap[:, 1:]  # Remove the class token, shape becomes [batch_size, 196]
+
+    # Reshape heatmap to a square grid
+    grid_size = int(np.sqrt(heatmap.size(1)))  # Compute grid size (e.g., 14x14 for 196 patches)
+    if heatmap.size(1) != grid_size * grid_size:
+        raise ValueError(f"Cannot reshape heatmap of size {heatmap.size(1)} into a square grid.")
+    heatmap = heatmap.view(heatmap.size(0), grid_size, grid_size)  # Shape: [batch_size, grid_size, grid_size]
+
     # Reshape heatmap to spatial dimensions (exclude class token)
-    grid_size = int(np.sqrt(heatmap.size(0)))  # Compute grid size (e.g., 14x14 for 196 patches)
-    heatmap = heatmap.view(grid_size, grid_size)  # Shape: [grid_size, grid_size]
+    #grid_size = int(np.sqrt(heatmap.size(0)))  # Compute grid size (e.g., 14x14 for 196 patches)
+    #heatmap = heatmap.view(grid_size, grid_size)  # Shape: [grid_size, grid_size]
 
     print(f"Heatmap shape: {heatmap.shape}")  # Debugging heatmap shape
-
-    return post_process_heatmap(heatmap, image)
-
-def generate_gradcam_vit(activations, gradients, image):
-    if gradients.dim() == 4:
-        gradients = torch.mean(gradients, dim=[2, 3])  # Average spatial dimensions
-
-    if gradients.dim() == 2:  # [batch_size, embedding_dim]
-        gradients = gradients.unsqueeze(1).expand(-1, activations.size(1), gradients.size(1))
-    elif gradients.dim() == 3:  # [batch_size, num_patches, embedding_dim]
-        if gradients.size(1) != activations.size(1) or gradients.size(2) != activations.size(2):
-            gradients = torch.mean(gradients, dim=1, keepdim=True)
-            gradients = gradients.expand(activations.size(0), activations.size(1), activations.size(2))
-    else:
-        raise ValueError(f"Unexpected gradients dimensions: {gradients.shape}")
-
-    pooled_gradients = torch.mean(gradients, dim=1, keepdim=True)
-    pooled_gradients = pooled_gradients.expand(activations.size(0), activations.size(1), activations.size(2))
-    weighted_activations = activations * pooled_gradients
-    heatmap = torch.sum(weighted_activations, dim=-1).squeeze()
-
-    # Handle class token and reshape to grid
-    heatmap = heatmap[1:]  # Exclude class token
-    grid_size = int(np.sqrt(heatmap.size(0)))
-    if heatmap.size(0) != grid_size * grid_size:
-        raise ValueError(f"Cannot reshape heatmap of size {heatmap.size(0)} into a square grid.")
-    heatmap = heatmap.view(grid_size, grid_size)
 
     return post_process_heatmap(heatmap, image)
 
