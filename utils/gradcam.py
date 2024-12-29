@@ -31,12 +31,14 @@ def generate_gradcam(model, image, target_layer, model_name):
         f.write(f"Activations shape: {activations[0].shape}\n")
         #f.write(f"Pooled gradients shape: {pooled_gradients.shape}\n")
     
-    if 'cnn' in model_name:
+    if any(cnn_model in model_name for cnn_model in ['resnet', 'resnext', 'efficientnet', 'densenet', 'convnext']):
         return generate_gradcam_cnn(activations, gradients, image)
     elif 'vit' in model_name:
         return generate_gradcam_vit(activations, gradients, image)
     elif 'caformer' in model_name:
         return generate_gradcam_caformer(activations, gradients, image)
+    elif 'fastvit' in model_name:
+        return generate_gradcam_fastvit(activations, gradients, image)
     else:
         raise ValueError(f"Model {model_name} not supported for Grad-CAM.")
 
@@ -72,6 +74,30 @@ def generate_gradcam_vit(activations, gradients, image):
     return post_process_heatmap(heatmap, image)
 
 def generate_gradcam_caformer(activations, gradients, image):
+    if gradients.dim() == 4:
+        gradients = torch.mean(gradients, dim=[2, 3])
+    if gradients.dim() == 2:
+        gradients = gradients.unsqueeze(1).expand(activations.size(0), activations.size(1), gradients.size(1))
+    elif gradients.dim() == 3 and gradients.size(1) == 1:
+        gradients = gradients.expand(activations.size(0), activations.size(1), activations.size(2))
+    elif gradients.dim() == 3 and gradients.size(2) == 224:
+        gradients = torch.mean(gradients, dim=1, keepdim=True)
+        gradients = gradients.expand(activations.size(0), activations.size(1), activations.size(2))
+    elif gradients.dim() == 3 and gradients.size(2) == 3:
+        gradients = torch.mean(gradients, dim=2, keepdim=True)
+        gradients = gradients.expand(activations.size(0), activations.size(1), activations.size(2))
+    else:
+        raise ValueError(f"Unexpected gradients dimensions: {gradients.dim()}")
+
+    pooled_gradients = torch.mean(gradients, dim=1, keepdim=True)
+    pooled_gradients = pooled_gradients.expand(activations.size(0), activations.size(1), activations.size(2))
+    weighted_activations = activations * pooled_gradients
+    heatmap = torch.sum(weighted_activations, dim=-1).squeeze()
+    grid_size = int(np.sqrt(heatmap.size(0)))
+    heatmap = heatmap.view(grid_size, grid_size)
+    return post_process_heatmap(heatmap, image)
+
+def generate_gradcam_fastvit(activations, gradients, image):
     if gradients.dim() == 4:
         gradients = torch.mean(gradients, dim=[2, 3])
     if gradients.dim() == 2:
