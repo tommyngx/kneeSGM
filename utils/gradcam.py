@@ -74,6 +74,9 @@ def generate_gradcam_vit(activations, gradients, image):
     return post_process_heatmap(heatmap, image)
 
 def generate_gradcam_caformer(activations, gradients, image):
+    print(f"Activations shape: {activations.shape}")
+    print(f"Gradients shape: {gradients.shape}")
+    print(f"Image shape: {image.shape}")
     if gradients.dim() == 4:
         gradients = torch.mean(gradients, dim=[2, 3])
     if gradients.dim() == 2:
