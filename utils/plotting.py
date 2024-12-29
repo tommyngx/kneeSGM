@@ -58,7 +58,7 @@ def save_confusion_matrix(labels, preds, class_names, output_dir, epoch=None, ac
         xticklabels=class_names, 
         yticklabels=class_names, 
         cbar=True, 
-        #cbar_kws={'ticks': np.linspace(0, 100, 6), 'format': '%.0f%%'}
+        cbar_kws={'ticks': np.linspace(0, 100, 6), 'format': '%.0f%%'}
     )
     # Customize the color bar
     #cbar = ax.collections[0].colorbar  # Get the color bar from the current Axes
