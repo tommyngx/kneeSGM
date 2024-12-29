@@ -105,36 +105,56 @@ def generate_gradcam_fastvit(activations, gradients, image):
     print(f"Gradients shape: {gradients.shape}")
     print(f"Image shape: {image.shape}")
 
-    if gradients.dim() == 4:  # [batch_size, channels, height, width]
-        gradients = torch.mean(gradients, dim=[2, 3])  # Average spatially to reduce to [batch_size, channels]
+    if activations.dim() == 4:  # CNN-based models
+        pooled_gradients = torch.mean(gradients, dim=[0, 2, 3])
+        for i in range(min(activations.shape[1], pooled_gradients.shape[0])):
+            activations[:, i, :, :] *= pooled_gradients[i]
+        heatmap = torch.mean(activations, dim=1).squeeze()
 
-    # Ensure gradients match activations shape
-    if gradients.dim() == 2:  # [batch_size, embedding_dim]
-        gradients = gradients.unsqueeze(1).expand(activations.size(0), activations.size(1), gradients.size(1))  # Expand to [batch_size, num_patches, embedding_dim]
-    elif gradients.dim() == 3 and gradients.size(1) == 1:  # [batch_size, 1, embedding_dim]
-        gradients = gradients.expand(activations.size(0), activations.size(1), gradients.size(2))  # Expand to [batch_size, num_patches, embedding_dim]
-    elif gradients.dim() == 3 and gradients.size(2) == 224:  # [batch_size, channels, height]
-        gradients = torch.mean(gradients, dim=1, keepdim=True)  # Average across channels to reduce to [batch_size, 1, height]
-        gradients = gradients.expand(activations.size(0), activations.size(1), activations.size(2))  # Match activations shape [batch_size, num_patches, embedding_dim]
-    elif gradients.dim() == 3 and gradients.size(2) == 3:  # [batch_size, channels, 3]
-        gradients = torch.mean(gradients, dim=2, keepdim=True)  # Average across channels to reduce to [batch_size, channels, 1]
-        gradients = gradients.expand(activations.size(0), activations.size(1), activations.size(2))  # Match activations shape [batch_size, num_patches, embedding_dim]
+    elif activations.dim() == 3:  # ViT models with activations shaped [batch_size, num_patches, embedding_dim]
+        # Debugging: Log activations and gradients shape
+        with open('tensor_shapes.txt', "a") as f:
+            f.write(f"Activations shape: {activations.shape}\n")
+            f.write(f"Gradients shape before adjustment: {gradients.shape}\n")
+
+        # Handle CNN-like gradients
+        if gradients.dim() == 4:  # [batch_size, channels, height, width]
+            gradients = torch.mean(gradients, dim=[2, 3])  # Average spatially to reduce to [batch_size, channels]
+
+        # Ensure gradients match activations shape
+        if gradients.dim() == 2:  # [batch_size, embedding_dim]
+            gradients = gradients.unsqueeze(1).expand(activations.size(0), activations.size(1), gradients.size(1))  # Expand to [batch_size, num_patches, embedding_dim]
+        elif gradients.dim() == 3 and gradients.size(1) == 1:  # [batch_size, 1, embedding_dim]
+            gradients = gradients.expand(activations.size(0), activations.size(1), gradients.size(2))  # Expand to [batch_size, num_patches, embedding_dim]
+        elif gradients.dim() == 3 and gradients.size(2) == 224:  # [batch_size, channels, height]
+            gradients = torch.mean(gradients, dim=1, keepdim=True)  # Average across channels to reduce to [batch_size, 1, height]
+            gradients = gradients.expand(activations.size(0), activations.size(1), activations.size(2))  # Match activations shape [batch_size, num_patches, embedding_dim]
+        elif gradients.dim() == 3 and gradients.size(2) == 3:  # [batch_size, channels, 3]
+            gradients = torch.mean(gradients, dim=2, keepdim=True)  # Average across channels to reduce to [batch_size, channels, 1]
+            gradients = gradients.expand(activations.size(0), activations.size(1), activations.size(2))  # Match activations shape [batch_size, num_patches, embedding_dim]
+        else:
+            raise ValueError(f"Unexpected gradients dimensions: {gradients.dim()}")
+
+        # Compute pooled gradients
+        pooled_gradients = torch.mean(gradients, dim=1, keepdim=True)  # Shape: [batch_size, 1, embedding_dim]
+        pooled_gradients = pooled_gradients.expand(activations.size(0), activations.size(1), activations.size(2))  # Match activations shape [batch_size, num_patches, embedding_dim]
+
+        # Calculate weighted activations
+        weighted_activations = activations * pooled_gradients  # Element-wise multiplication
+
+        # Generate heatmap by summing across the embedding dimension
+        heatmap = torch.sum(weighted_activations, dim=-1).squeeze()  # Shape: [batch_size, num_patches]
+
+        # Reshape heatmap to spatial dimensions (square grid)
+        grid_size = int(np.sqrt(heatmap.size(0)))  # Compute grid size (e.g., 14x14 for 196 patches)
+        heatmap = heatmap.view(grid_size, grid_size)  # Shape: [grid_size, grid_size]
+
+        # Debugging: Log heatmap shape
+        with open('tensor_shapes.txt', "a") as f:
+            f.write(f"Heatmap shape: {heatmap.shape}\n")
+
     else:
-        raise ValueError(f"Unexpected gradients dimensions: {gradients.dim()}")
-
-    # Compute pooled gradients
-    pooled_gradients = torch.mean(gradients, dim=1, keepdim=True)  # Shape: [batch_size, 1, embedding_dim]
-    pooled_gradients = pooled_gradients.expand(activations.size(0), activations.size(1), activations.size(2))  # Match activations shape [batch_size, num_patches, embedding_dim]
-
-    # Calculate weighted activations
-    weighted_activations = activations * pooled_gradients  # Element-wise multiplication
-
-    # Generate heatmap by summing across the embedding dimension
-    heatmap = torch.sum(weighted_activations, dim=-1).squeeze()  # Shape: [batch_size, num_patches]
-
-    # Reshape heatmap to spatial dimensions (square grid)
-    grid_size = int(np.sqrt(heatmap.size(0)))  # Compute grid size (e.g., 14x14 for 196 patches)
-    heatmap = heatmap.view(grid_size, grid_size)  # Shape: [grid_size, grid_size]
+            raise ValueError(f"Unexpected activations dimensions: {activations.dim()}") 
     return post_process_heatmap(heatmap, image)
 
 def post_process_heatmap(heatmap, image):
