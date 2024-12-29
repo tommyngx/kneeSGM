@@ -93,14 +93,15 @@ def generate_gradcam_caformer(activations, gradients, image):
         gradients = torch.mean(gradients, dim=1, keepdim=True)
         gradients = gradients.expand(activations.size(0), activations.size(1), activations.size(2))
     else:
-        raise ValueError(f"Unexpected gradients dimensions: {gradients.dim()}")
+        gradients = torch.mean(gradients, dim=2, keepdim=True)
+        gradients = gradients.expand(activations.size(0), activations.size(1), activations.size(2))
 
     pooled_gradients = torch.mean(gradients, dim=1, keepdim=True)
     pooled_gradients = pooled_gradients.expand(activations.size(0), activations.size(1), activations.size(2))
     weighted_activations = activations * pooled_gradients
     heatmap = torch.sum(weighted_activations, dim=-1).squeeze()
     grid_size = int(np.sqrt(heatmap.size(0)))
-    heatmap = heatmap.view(grid_size, grid_size)
+    heatmap = heatmap.view(activations.size(1), grid_size, grid_size)
     return post_process_heatmap(heatmap, image)
 
 def generate_gradcam_fastvit(activations, gradients, image):
