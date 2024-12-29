@@ -50,23 +50,26 @@ def generate_gradcam_cnn(activations, gradients, image):
     return post_process_heatmap(heatmap, image)
 
 def generate_gradcam_vit(activations, gradients, image):
-    # Ensure gradients are compatible with activations
     print(f"Activations shape: {activations.shape}")  # [batch_size, num_patches, embedding_dim]
     print(f"Gradients shape: {gradients.shape}")  # [batch_size, channels, height, width]
 
     if gradients.dim() == 4:  # [batch_size, channels, height, width]
         # Average spatial dimensions to reduce to [batch_size, channels]
         gradients = torch.mean(gradients, dim=[2, 3])  # [batch_size, channels]
-    elif gradients.dim() == 2:  # [batch_size, channels]
+
+    # Exclude the class token (first patch)
+    activations = activations[:, 1:, :]  # Remove class token
+    gradients = gradients[:, 1:, :] if gradients.dim() == 3 else gradients  # Remove class token if necessary
+
+    # Match gradients to activations' shape
+    if gradients.dim() == 2:  # [batch_size, embedding_dim]
         # Expand gradients to match activations [batch_size, num_patches, embedding_dim]
         gradients = gradients.unsqueeze(1).expand(-1, activations.size(1), activations.size(2))
-    elif gradients.dim() == 3 and gradients.size(1) == 1:  # [batch_size, 1, embedding_dim]
-        # Expand gradients to match activations [batch_size, num_patches, embedding_dim]
-        gradients = gradients.expand(-1, activations.size(1), activations.size(2))
-    elif gradients.dim() == 3 and gradients.size(2) == 3:  # [batch_size, num_patches, 3]
-        # Reduce last dimension and expand to match [batch_size, num_patches, embedding_dim]
-        gradients = torch.mean(gradients, dim=2, keepdim=True)
-        gradients = gradients.expand(-1, activations.size(1), activations.size(2))
+    elif gradients.dim() == 3:  # [batch_size, num_patches, embedding_dim]
+        # Ensure dimensions match exactly
+        if gradients.size(1) != activations.size(1) or gradients.size(2) != activations.size(2):
+            gradients = torch.mean(gradients, dim=1, keepdim=True)  # Average over patches
+            gradients = gradients.expand(activations.size(0), activations.size(1), activations.size(2))  # Match activations shape
     else:
         raise ValueError(f"Unexpected gradients dimensions: {gradients.shape}")
 
@@ -78,7 +81,7 @@ def generate_gradcam_vit(activations, gradients, image):
     weighted_activations = activations * pooled_gradients  # Element-wise multiplication
     heatmap = torch.sum(weighted_activations, dim=-1).squeeze()  # Sum over embedding dimension
 
-    # Reshape heatmap to spatial dimensions
+    # Reshape heatmap to spatial dimensions (exclude class token)
     grid_size = int(np.sqrt(heatmap.size(0)))  # Compute grid size (e.g., 14x14 for 196 patches)
     heatmap = heatmap.view(grid_size, grid_size)  # Shape: [grid_size, grid_size]
 
