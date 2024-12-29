@@ -60,11 +60,14 @@ def generate_gradcam_vit(activations, gradients, image):
 
     # Match gradients to activations' shape
     if gradients.dim() == 2:  # [batch_size, embedding_dim]
-        # Check if gradients need to be expanded correctly
-        if gradients.size(1) == activations.size(2):  # Already matching embedding_dim
-            gradients = gradients.unsqueeze(1).expand(-1, activations.size(1), -1)
+        if gradients.size(1) != activations.size(2):  # If embedding dimensions don't match
+            # Expand gradients to match activations' embedding dimensions
+            gradients = gradients.unsqueeze(1)  # [batch_size, 1, embedding_dim]
+            gradients = torch.mean(gradients, dim=-1, keepdim=True)  # Average across embedding dim to reduce to [batch_size, 1, 1]
+            gradients = gradients.expand(-1, activations.size(1), activations.size(2))  # Expand to [batch_size, num_patches, embedding_dim]
         else:
-            raise ValueError(f"Unexpected mismatch in dimensions: gradients={gradients.shape}, activations={activations.shape}")
+            # Expand along the patches dimension
+            gradients = gradients.unsqueeze(1).expand(-1, activations.size(1), -1)
         
     elif gradients.dim() == 3 and gradients.size(1) == 1:  # [batch_size, 1, embedding_dim]
         gradients = gradients.expand(-1, activations.size(1), activations.size(2))
