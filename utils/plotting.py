@@ -49,7 +49,6 @@ def save_confusion_matrix(labels, preds, class_names, output_dir, epoch=None, ac
     
     # Plot the heatmap
     plt.figure(figsize=(10, 8))
-    #ax = sns.heatmap(cm_normalized, annot=annot, fmt='', cmap="Purples", xticklabels=class_names, yticklabels=class_names, cbar=True)
     ax = sns.heatmap(
         cm_normalized, 
         annot=annot, 
@@ -57,21 +56,23 @@ def save_confusion_matrix(labels, preds, class_names, output_dir, epoch=None, ac
         cmap="Purples", 
         xticklabels=class_names, 
         yticklabels=class_names, 
-        cbar=True, 
-        #cbar_kws={'shrink': 0., 'aspect': 10}
+        cbar=True
     )
     # Customize the color bar
     cbar = ax.collections[0].colorbar  # Get the color bar from the current Axes
     ticks = np.linspace(0, 0.90 , 4)  # Define ticks from 0 to 0.2
     cbar.set_ticks(ticks)  # Set specific ticks
     cbar.ax.set_yticklabels([f'{int(t * 100)}%' for t in ticks])    
-        
+    
     plt.xlabel("Predicted")
     plt.ylabel("Actual")
     title = "Confusion Matrix"
     if epoch is not None:
         title += f" - Epoch {epoch}"
     plt.title(title)
+    
+    # Adjust layout to leave some space around the plot
+    plt.subplots_adjust(left=0.10, right=0.90, top=0.90, bottom=0.10)
     
     # Save the figure
     filename = "confusion_matrix.png" if epoch is None else f"confusion_matrix_epoch_{epoch}_acc_{acc:.4f}.png"
