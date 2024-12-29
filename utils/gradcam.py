@@ -91,15 +91,15 @@ def generate_gradcam_caformer(activations, gradients, image):
         # Ensure dimensions match exactly
         if gradients.size(1) != activations.size(1) or gradients.size(2) != activations.size(2):
             gradients = torch.mean(gradients, dim=1, keepdim=True)  # Average over patches
-            gradients = gradients.expand_as(activations)  # Match activations shape
+            gradients = gradients.expand(activations.size(0), activations.size(1), activations.size(2))  # Match activations shape
     else:
         raise ValueError(f"Unexpected gradients dimensions: {gradients.shape}")
 
     # Compute pooled gradients
-    print( f"Gradients shape after processed: {gradients.shape}")
+    print(f"Gradients shape after processed: {gradients.shape}")
     pooled_gradients = torch.mean(gradients, dim=1, keepdim=True)  # [batch_size, 1, embedding_dim]
     print(f"Pooled gradients shape: {pooled_gradients.shape}")  # [batch_size, 1, embedding_dim]
-    pooled_gradients = pooled_gradients.expand_as(activations)  # Match activations shape
+    pooled_gradients = pooled_gradients.expand(activations.size(0), activations.size(1), activations.size(2))  # Match activations shape
 
     # Apply weights to activations
     weighted_activations = activations * pooled_gradients  # Element-wise multiplication
