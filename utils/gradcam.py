@@ -128,7 +128,7 @@ def generate_gradcam_fastvit(activations, gradients, image):
     weighted_activations = activations * pooled_gradients
     heatmap = torch.sum(weighted_activations, dim=-1).squeeze()
     grid_size = int(np.sqrt(heatmap.size(0)))
-    heatmap = heatmap.view(grid_size, grid_size)
+    heatmap = heatmap.view(activations.size(1), grid_size, grid_size)
     return post_process_heatmap(heatmap, image)
 
 def post_process_heatmap(heatmap, image):
