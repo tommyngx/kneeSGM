@@ -17,7 +17,6 @@ def load_config(config_path):
         config = yaml.safe_load(file)
     return config
 
-
 def test(model, dataloader, device):
     model.eval()
     running_acc = 0.0
@@ -26,6 +25,7 @@ def test(model, dataloader, device):
     running_recall = 0.0
     all_preds = []
     all_labels = []
+    all_outputs = []
     with torch.no_grad():
         for images, labels in tqdm(dataloader):
             images, labels = images.to(device), labels.to(device)
@@ -37,7 +37,8 @@ def test(model, dataloader, device):
             running_recall += recall(outputs, labels)
             all_preds.extend(torch.argmax(outputs, dim=1).cpu().numpy())
             all_labels.extend(labels.cpu().numpy())
-    return running_acc / len(dataloader), running_f1 / len(dataloader), running_precision / len(dataloader), running_recall / len(dataloader), all_preds, all_labels
+            all_outputs.extend(outputs.cpu().numpy())
+    return running_acc / len(dataloader), running_f1 / len(dataloader), running_precision / len(dataloader), running_recall / len(dataloader), all_preds, all_labels, all_outputs
 
 def main(config_path='config/default.yaml', model_name=None, model_path=None, use_gradcam_plus_plus=False):
     config = load_config(config_path)
@@ -47,7 +48,7 @@ def main(config_path='config/default.yaml', model_name=None, model_path=None, us
         model_name = config['model']['name']
     
     model = get_model(model_name, config_path=config_path, pretrained=config['model']['pretrained'])
-    checkpoint = torch.load(model_path, map_location=device,weights_only=True)
+    checkpoint = torch.load(model_path, map_location=device, weights_only=True)
     model.load_state_dict(checkpoint['model_state_dict'])
     model = model.to(device)
     
@@ -59,7 +60,7 @@ def main(config_path='config/default.yaml', model_name=None, model_path=None, us
     print(f"Class names: {config['data']['class_names']}")
     print(f"Number of test images: {len(test_loader.dataset)}")
     
-    test_acc, test_f1, test_precision, test_recall, test_preds, test_labels = test(model, test_loader, device)
+    test_acc, test_f1, test_precision, test_recall, test_preds, test_labels, test_outputs = test(model, test_loader, device)
     
     output_dir = os.path.join(config['output_dir'], "final_logs")
     os.makedirs(output_dir, exist_ok=True)
@@ -75,12 +76,14 @@ def main(config_path='config/default.yaml', model_name=None, model_path=None, us
     target_layer = get_target_layer(model, model_name)
     
     save_confusion_matrix(test_labels, test_preds, config['data']['class_names'], output_dir)
-    save_roc_curve(test_labels, test_preds, config['data']['class_names'], output_dir)
-
+    
+    # Calculate risk percentages for ROC curve
+    test_outputs = np.array(test_outputs)
+    positive_risk = test_outputs[:, 2:].sum(axis=1)  # Sum of class 2, 3, 4
+    negative_risk = test_outputs[:, :2].sum(axis=1)  # Sum of class 0, 1
+    save_roc_curve(test_labels, positive_risk, config['data']['class_names'], output_dir)
     
     save_random_predictions(model, test_loader, device, output_dir, epoch=0, class_names=config['data']['class_names'], use_gradcam_plus_plus=use_gradcam_plus_plus, target_layer=target_layer, model_name=model_name)
-
-    #save_random_predictions(model, test_loader, device, output_dir, config['data']['class_names'], target_layer, acc=test_acc)
     
     # Print classification report
     print("Classification Report:")
