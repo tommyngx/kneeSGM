@@ -16,6 +16,7 @@ from sklearn.metrics import classification_report, roc_curve, auc
 import numpy as np
 from models.model_architectures import get_model
 from data.data_loader import get_dataloader
+from data.preprocess import get_transforms
 from utils.metrics import accuracy, f1, precision, recall
 from utils.gradcam import generate_gradcam, show_cam_on_image, save_random_predictions, get_target_layer
 from utils.plotting import save_confusion_matrix, save_roc_curve, tr_plot
@@ -89,8 +90,9 @@ def main(config_path='config/default.yaml', model_name=None, epochs=None, resume
     model = get_model(model_name, config_path=config_path, pretrained=config['model']['pretrained'])
     model = model.to(device)
     
-    train_loader = get_dataloader('train', config['data']['batch_size'], config['data']['num_workers'], config_path=config_path)
-    val_loader = get_dataloader('val', config['data']['batch_size'], config['data']['num_workers'], config_path=config_path)
+    train_transform, val_transform = get_transforms(config['data']['image_size'], config_path=config_path)
+    train_loader = get_dataloader('train', config['data']['batch_size'], config['data']['num_workers'], transform=train_transform, config_path=config_path)
+    val_loader = get_dataloader('val', config['data']['batch_size'], config['data']['num_workers'], transform=val_transform, config_path=config_path)
     
     # Compute class weights
     class_weights = compute_class_weights(train_loader.dataset).to(device)
