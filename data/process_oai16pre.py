@@ -49,6 +49,7 @@ def process_files(folder_path, process_oai_raw=False):
     combined_df['filename'] = combined_df['filename'].str.replace(r'\.jpg$', '', regex=True)
     combined_df['path'] = combined_df['split'].str.lower() + "/" + combined_df['filename'] + ".jpg"
     combined_df['path2'] = "OAI16/" + combined_df['split'] + "/" + combined_df['KL'].astype(int).astype(str) + "/" + combined_df['filename'] + ".png"
+    combined_df['KL'] = combined_df['KL'].astype(int)
     
     # Save combined file to OAI16 folder
     oai16_folder = os.path.join(folder_path, 'OAI16')
