@@ -290,8 +290,8 @@ def save_random_predictions(model, dataloader, device, output_dir, epoch, class_
     plt.savefig(os.path.join(output_dir, filename))
     plt.close()
     
-    # Keep only the best top 3 random predictions based on accuracy
-    saved_files = sorted([f for f in os.listdir(output_dir) if f.startswith("random_predictions_")], key=lambda x: float(x.split('_acc_')[-1].split('.png')[0]) if '_acc_' in x else 0, reverse=True)
+    # Keep only the best top 3 random predictions based on accuracy for the same model_name
+    saved_files = sorted([f for f in os.listdir(output_dir) if f.startswith(f"random_predictions_{model_name}_")], key=lambda x: float(x.split('_acc_')[-1].split('.png')[0]) if '_acc_' in x else 0, reverse=True)
     for file in saved_files[3:]:
         os.remove(os.path.join(output_dir, file))
 
