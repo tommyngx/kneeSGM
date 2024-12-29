@@ -53,23 +53,21 @@ def generate_gradcam_vit(activations, gradients, image):
     print(f"Activations shape: {activations.shape}")  # [batch_size, num_patches, embedding_dim]
     print(f"Gradients shape: {gradients.shape}")  # [batch_size, channels, height, width]
 
+    # Handle gradients with 4 dimensions (CNN-like case)
     if gradients.dim() == 4:  # [batch_size, channels, height, width]
         # Average spatial dimensions to reduce to [batch_size, channels]
         gradients = torch.mean(gradients, dim=[2, 3])  # [batch_size, channels]
-
-    # Exclude the class token (first patch)
-    activations = activations[:, 1:, :]  # Remove class token
-    gradients = gradients[:, 1:, :] if gradients.dim() == 3 else gradients  # Remove class token if necessary
 
     # Match gradients to activations' shape
     if gradients.dim() == 2:  # [batch_size, embedding_dim]
         # Expand gradients to match activations [batch_size, num_patches, embedding_dim]
         gradients = gradients.unsqueeze(1).expand(-1, activations.size(1), activations.size(2))
-    elif gradients.dim() == 3:  # [batch_size, num_patches, embedding_dim]
-        # Ensure dimensions match exactly
-        if gradients.size(1) != activations.size(1) or gradients.size(2) != activations.size(2):
-            gradients = torch.mean(gradients, dim=1, keepdim=True)  # Average over patches
-            gradients = gradients.expand(activations.size(0), activations.size(1), activations.size(2))  # Match activations shape
+    elif gradients.dim() == 3 and gradients.size(1) == 1:  # [batch_size, 1, embedding_dim]
+        gradients = gradients.expand(-1, activations.size(1), activations.size(2))
+    elif gradients.dim() == 3 and gradients.size(2) == 3:  # [batch_size, channels, 3]
+        # Average across the last dimension and expand to match activations
+        gradients = torch.mean(gradients, dim=2, keepdim=True)
+        gradients = gradients.expand(activations.size(0), activations.size(1), activations.size(2))
     else:
         raise ValueError(f"Unexpected gradients dimensions: {gradients.shape}")
 
