@@ -4,7 +4,29 @@ import argparse
 from tqdm import tqdm
 import shutil
 
-def process_files(folder_path):
+def process_files(folder_path, process_oai_raw=False):
+    if process_oai_raw:
+        # Process OAIraw folder
+        oai_raw_folder = os.path.join(folder_path, 'OAIraw')
+        trainval_lab_path = os.path.join(oai_raw_folder, 'trainval_lab.csv')
+        test_lab_path = os.path.join(oai_raw_folder, 'test_lab.csv')
+        
+        if not os.path.exists(trainval_lab_path) or not os.path.exists(test_lab_path):
+            print("trainval_lab.csv or test_lab.csv not found in the OAIraw folder.")
+            return
+        
+        trainval_lab_df = pd.read_csv(trainval_lab_path)
+        test_lab_df = pd.read_csv(test_lab_path)
+        
+        trainval_lab_df['split'] = 'TRAIN'
+        test_lab_df['split'] = 'TEST'
+        
+        combined_lab_df = pd.concat([trainval_lab_df, test_lab_df])
+        
+        output_lab_path = os.path.join(oai_raw_folder, 'OAIrawmetadata.csv')
+        combined_lab_df.to_csv(output_lab_path, index=False)
+        print(f"Combined lab file saved to {output_lab_path}")
+
     train_path = os.path.join(folder_path, 'train.csv')
     test_path = os.path.join(folder_path, 'test.csv')
     
@@ -28,12 +50,27 @@ def process_files(folder_path):
     combined_df['path'] = combined_df['split'].str.lower() + "/" + combined_df['filename'] + ".jpg"
     combined_df['path2'] = "OAI16/" + combined_df['split'] + "/" + combined_df['KL'].astype(int).astype(str) + "/" + combined_df['filename'] + ".png"
     
-    output_path = os.path.join(folder_path, 'OAI16metadata.csv')
+    # Save combined file to OAI16 folder
+    oai16_folder = os.path.join(folder_path, 'OAI16')
+    output_path = os.path.join(oai16_folder, 'OAI16metadata.csv')
     combined_df.to_csv(output_path, index=False)
     print(f"Combined file saved to {output_path}")
     
+    # Filter out rows where KL is not equal to 5
+    filtered_df = combined_df[combined_df['KL'] != 5]
+    filtered_output_path = os.path.join(folder_path, 'OAI16metadata.csv')
+    filtered_df.to_csv(filtered_output_path, index=False)
+    print(f"Filtered combined file saved to {filtered_output_path}")
+    
+    # Remove folder 5 in TRAIN and TEST within OAI16 folder
+    for split in ['train', 'test']:
+        folder_to_remove = os.path.join(oai16_folder, split, '5')
+        if os.path.exists(folder_to_remove):
+            shutil.rmtree(folder_to_remove)
+            print(f"Removed folder: {folder_to_remove}")
+    
     # Load images from path and save to path2
-    for _, row in tqdm(combined_df.iterrows(), total=combined_df.shape[0]):
+    for _, row in tqdm(filtered_df.iterrows(), total=filtered_df.shape[0]):
         src_path = os.path.join(folder_path, row['path'])
         dest_path = os.path.join(folder_path, row['path2'])
         dest_dir = os.path.dirname(dest_path)
@@ -45,31 +82,11 @@ def process_files(folder_path):
             shutil.copy(src_path, dest_path)
         else:
             print(f"Source file {src_path} not found.")
-    
-    # Process OAIraw folder
-    oai_raw_folder = os.path.join(folder_path, 'OAIraw')
-    trainval_lab_path = os.path.join(oai_raw_folder, 'trainval_lab.csv')
-    test_lab_path = os.path.join(oai_raw_folder, 'test_lab.csv')
-    
-    if not os.path.exists(trainval_lab_path) or not os.path.exists(test_lab_path):
-        print("trainval_lab.csv or test_lab.csv not found in the OAIraw folder.")
-        return
-    
-    trainval_lab_df = pd.read_csv(trainval_lab_path)
-    test_lab_df = pd.read_csv(test_lab_path)
-    
-    trainval_lab_df['split'] = 'TRAINVAL'
-    test_lab_df['split'] = 'TEST'
-    
-    combined_lab_df = pd.concat([trainval_lab_df, test_lab_df])
-    
-    output_lab_path = os.path.join(oai_raw_folder, 'OAIrawmetadata.csv')
-    combined_lab_df.to_csv(output_lab_path, index=False)
-    print(f"Combined lab file saved to {output_lab_path}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Process train.csv and test.csv files.')
     parser.add_argument('--folder_path', type=str, help='Path to the folder containing train.csv and test.csv')
+    parser.add_argument('--process_oai_raw', action='store_true', help='Process OAIraw folder if specified')
     
     args = parser.parse_args()
-    process_files(args.folder_path)
+    process_files(args.folder_path, args.process_oai_raw)
