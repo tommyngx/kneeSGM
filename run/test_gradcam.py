@@ -51,9 +51,9 @@ def main(config_path='config/default.yaml', model_name=None, model_path=None, us
         plt.show()
 
     # Keep only the last 3 latest saved epochs
-    saved_files = sorted([f for f in os.listdir(output_dir) if f.startswith(f"random_predictions_{model_name}_epoch_")], reverse=True)
-    for file in saved_files[3:]:
-        os.remove(os.path.join(output_dir, file))
+    #saved_files = sorted([f for f in os.listdir(output_dir) if f.startswith(f"random_predictions_{model_name}_epoch_")], reverse=True)
+    #for file in saved_files[3:]:
+    #    os.remove(os.path.join(output_dir, file))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Generate Grad-CAM for knee osteoarthritis classification.')
