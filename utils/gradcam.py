@@ -35,7 +35,7 @@ def generate_gradcam(model, image, target_layer, model_name):
         return generate_gradcam_cnn(activations, gradients, image)
     elif 'fastvit' in model_name:
         return generate_gradcam_fastvit(activations, gradients, image)
-    elif 'vit' in model_name:
+    elif 'vit' in model_name and 'fastvit' not in model_name:
         return generate_gradcam_vit(activations, gradients, image)
     elif 'caformer' in model_name:
         return generate_gradcam_caformer(activations, gradients, image)
@@ -85,6 +85,9 @@ def generate_gradcam_caformer(activations, gradients, image):
         gradients = gradients.expand(activations.size(0), activations.size(1), activations.size(2))
     elif gradients.dim() == 3 and gradients.size(2) == 3:
         gradients = torch.mean(gradients, dim=2, keepdim=True)
+        gradients = gradients.expand(activations.size(0), activations.size(1), activations.size(2))
+    elif gradients.dim() == 3 and gradients.size(2) == 7:
+        gradients = torch.mean(gradients, dim=1, keepdim=True)
         gradients = gradients.expand(activations.size(0), activations.size(1), activations.size(2))
     else:
         raise ValueError(f"Unexpected gradients dimensions: {gradients.dim()}")
