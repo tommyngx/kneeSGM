@@ -142,8 +142,9 @@ def save_roc_curve(labels, positive_risk, class_names, output_dir, epoch=None, a
     legend.get_frame().set_facecolor('white')
     legend.get_frame().set_edgecolor('black')
 
-    plt.gcf().set_facecolor('white')  # Set the background color outside the plot area to white
-    plt.gca().set_facecolor('white')  # Set the background color inside the plot area to white
+    fig = plt.gcf()
+    fig.patch.set_facecolor('white')  # Set the background color outside the plot area to white
+    #plt.gca().set_facecolor('white')  # Set the background color inside the plot area to white
     plt.subplots_adjust(left=0.12, right=0.95, top=0.9, bottom=0.10)
     filename = "roc_curve.png" if epoch is None else f"roc_curve_epoch_{epoch}_acc_{acc:.4f}.png"
     plt.savefig(os.path.join(output_dir, filename))
