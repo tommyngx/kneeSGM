@@ -15,11 +15,24 @@ from utils.metrics import accuracy, f1, precision, recall
 from utils.gradcam import save_random_predictions, get_target_layer
 from utils.plotting import save_confusion_matrix, save_roc_curve
 import numpy as np
+from torchvision import transforms
 
 def load_config(config_path):
     with open(config_path, 'r') as file:
         config = yaml.safe_load(file)
     return config
+
+def get_test_transform(image_size, config_path='config/default.yaml'):
+    config = load_config(config_path)
+    mean = config['transforms']['normalize']['mean']
+    std = config['transforms']['normalize']['std']
+    
+    test_transform = transforms.Compose([
+        transforms.Resize((image_size, image_size)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=mean, std=std)
+    ])
+    return test_transform
 
 def test(model, dataloader, device):
     model.eval()
@@ -56,7 +69,8 @@ def main(config_path='config/default.yaml', model_name=None, model_path=None, us
     model.load_state_dict(checkpoint['model_state_dict'])
     model = model.to(device)
     
-    test_loader = get_dataloader('test', config['data']['batch_size'], config['data']['num_workers'], config_path=config_path)
+    test_transform = get_test_transform(config['data']['image_size'], config_path=config_path)
+    test_loader = get_dataloader('test', config['data']['batch_size'], config['data']['num_workers'], transform=test_transform, config_path=config_path)
     
     # Print details before testing
     print(f"Model: {model_name}")
@@ -90,6 +104,8 @@ def main(config_path='config/default.yaml', model_name=None, model_path=None, us
     
     save_random_predictions(model, test_loader, device, output_dir, epoch=0, class_names=config['data']['class_names'], use_gradcam_plus_plus=use_gradcam_plus_plus, target_layer=target_layer, model_name=model_name)
     
+    # Save test outputs
+    np.save(os.path.join(output_dir, "test_outputs.npy"), test_outputs)
     
     # Print classification report
     print("Classification Report:")
