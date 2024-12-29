@@ -5,6 +5,8 @@ import seaborn as sns
 from sklearn.metrics import confusion_matrix, roc_curve, auc
 import requests
 from matplotlib import font_manager
+from scipy import interp
+from sklearn.utils import resample
 
 def save_confusion_matrix_ori(labels, preds, class_names, output_dir, epoch=None, acc=None):
     cm = confusion_matrix(labels, preds)
@@ -46,8 +48,8 @@ def save_confusion_matrix(labels, preds, class_names, output_dir, epoch=None, ac
             annot[i, j] = f'{percent:.1f}%\n({count})'
     
     # Plot the heatmap
-    plt.figure(figsize=(10, 8))
-    sns.heatmap(cm_normalized, annot=annot, fmt='', cmap="Purples", xticklabels=class_names, yticklabels=class_names, cbar=False)
+    plt.figure(figsize=(8, 6))
+    sns.heatmap(cm_normalized, annot=annot, fmt='', cmap="Purples", xticklabels=class_names, yticklabels=class_names, cbar=True)
     
     plt.xlabel("Predicted")
     plt.ylabel("Actual")
@@ -92,13 +94,27 @@ def save_roc_curve(labels, positive_risk, class_names, output_dir, epoch=None, a
     # Plot ROC curve
     fpr, tpr, _ = roc_curve(labels, positive_risk, pos_label=1)
     roc_auc = auc(fpr, tpr)
-    plt.figure(figsize=(8, 6))
-    plt.plot(fpr, tpr, color='darkorange', lw=2, label=f'ROC curve (area = {roc_auc:.2f})')
+
+    # Bootstrap for confidence interval
+    bootstrapped_scores = []
+    for i in range(1000):
+        indices = resample(np.arange(len(labels)), replace=True)
+        if len(np.unique(labels[indices])) < 2:
+            continue
+        score = auc(fpr, tpr)
+        bootstrapped_scores.append(score)
+    sorted_scores = np.array(bootstrapped_scores)
+    sorted_scores.sort()
+    confidence_lower = sorted_scores[int(0.025 * len(sorted_scores))]
+    confidence_upper = sorted_scores[int(0.975 * len(sorted_scores))]
+
+    plt.figure(figsize=(8, 8))
+    plt.plot(fpr, tpr, color='darkred', lw=2, label=f'AUC: {roc_auc*100:.0f}% ({confidence_lower*100:.0f}% - {confidence_upper*100:.0f}%)')
     plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
-    plt.xlim([0.0, 1.0])
-    plt.ylim([0.0, 1.05])
-    plt.xlabel('False Positive Rate', fontproperties=prop)
-    plt.ylabel('True Positive Rate', fontproperties=prop)
+    plt.xlim([-0.05, 1.05])
+    plt.ylim([-0.05, 1.05])
+    plt.xlabel('1 - Specificity (%)', fontproperties=prop)
+    plt.ylabel('Sensitivity (%)', fontproperties=prop)
     title = 'Receiver Operating Characteristic'
     if epoch is not None:
         title += f" - Epoch {epoch}"
