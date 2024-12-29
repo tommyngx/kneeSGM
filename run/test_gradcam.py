@@ -40,7 +40,7 @@ def main(config_path='config/default.yaml', model_name=None, model_path=None, us
     
     target_layer = get_target_layer(model, model_name)
     
-    save_random_predictions(model, test_loader, device, output_dir, epoch=0, class_names=config['data']['class_names'], use_gradcam_plus_plus=use_gradcam_plus_plus, target_layer=target_layer)
+    save_random_predictions(model, test_loader, device, output_dir, epoch=0, class_names=config['data']['class_names'], use_gradcam_plus_plus=use_gradcam_plus_plus, target_layer=target_layer, model_name=model_name)
 
     # Load and display the saved image
     saved_image_path = os.path.join(output_dir, f"random_predictions_{model_name}_epoch_0.png")

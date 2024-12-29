@@ -78,7 +78,7 @@ def main(config_path='config/default.yaml', model_name=None, model_path=None, us
     save_roc_curve(test_labels, test_preds, config['data']['class_names'], output_dir)
 
     
-    save_random_predictions(model, test_loader, device, output_dir, epoch=0, class_names=config['data']['class_names'], use_gradcam_plus_plus=use_gradcam_plus_plus, target_layer=target_layer)
+    save_random_predictions(model, test_loader, device, output_dir, epoch=0, class_names=config['data']['class_names'], use_gradcam_plus_plus=use_gradcam_plus_plus, target_layer=target_layer, model_name=model_name)
 
     #save_random_predictions(model, test_loader, device, output_dir, config['data']['class_names'], target_layer, acc=test_acc)
     

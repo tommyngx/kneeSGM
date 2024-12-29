@@ -197,6 +197,9 @@ def show_cam_on_image(img, mask, use_rgb=False):
     return cam
 
 def save_random_predictions(model, dataloader, device, output_dir, epoch, class_names, use_gradcam_plus_plus=False, target_layer=None, acc=None, model_name=None):
+    if model_name is None:
+        raise ValueError("model_name must be provided")
+    
     model.eval()
     images, labels = next(iter(dataloader))
     images, labels = images.to(device), labels.to(device)

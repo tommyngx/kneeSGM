@@ -134,7 +134,7 @@ def main(config_path='config/default.yaml', model_name=None, epochs=None, resume
             
             target_layer = get_target_layer(model, model_name)
             
-            save_random_predictions(model, val_loader, device, os.path.join(output_dir, "logs"), epoch, config['data']['class_names'], use_gradcam_plus_plus, target_layer, acc=val_acc)
+            save_random_predictions(model, val_loader, device, os.path.join(output_dir, "logs"), epoch, config['data']['class_names'], use_gradcam_plus_plus, target_layer, acc=val_acc, model_name=model_name)
         
         tr_plot(training_history, start_epoch, output_dir)
         
