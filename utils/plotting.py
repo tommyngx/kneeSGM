@@ -48,8 +48,8 @@ def save_confusion_matrix(labels, preds, class_names, output_dir, epoch=None, ac
             annot[i, j] = f'{percent:.1f}%\n({count})'
     
     # Plot the heatmap
-    plt.figure(figsize=(8, 6))
-    sns.heatmap(cm_normalized, annot=annot, fmt='', cmap="Purples", xticklabels=class_names, yticklabels=class_names, cbar=True)
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(cm_normalized, annot=annot, fmt='', cmap="Purples", xticklabels=class_names, yticklabels=class_names, cbar=True, cbar_kws={'format': '%.0f%%'})
     
     plt.xlabel("Predicted")
     plt.ylabel("Actual")
