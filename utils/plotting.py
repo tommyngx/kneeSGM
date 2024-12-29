@@ -73,7 +73,7 @@ def save_confusion_matrix(labels, preds, class_names, output_dir, epoch=None, ac
     plt.title(title)
     
     # Adjust layout to leave some space around the plot
-    plt.subplots_adjust(left=0.10, right=0.90, top=0.90, bottom=0.10)
+    #plt.subplots_adjust(left=0.10, right=0.90, top=0.90, bottom=0.10)
     
     # Save the figure
     filename = "confusion_matrix.png" if epoch is None else f"confusion_matrix_epoch_{epoch}_acc_{acc:.4f}.png"
