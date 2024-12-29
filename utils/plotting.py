@@ -143,6 +143,7 @@ def save_roc_curve(labels, positive_risk, class_names, output_dir, epoch=None, a
     legend.get_frame().set_edgecolor('black')
 
     plt.gcf().set_facecolor('white')  # Set the background color outside the plot area to white
+    plt.gca().set_facecolor('white')  # Set the background color inside the plot area to white
     plt.subplots_adjust(left=0.12, right=0.95, top=0.9, bottom=0.10)
     filename = "roc_curve.png" if epoch is None else f"roc_curve_epoch_{epoch}_acc_{acc:.4f}.png"
     plt.savefig(os.path.join(output_dir, filename))
@@ -175,14 +176,18 @@ def tr_plot(tr_data, start_epoch, output_dir):
     axes[0].set_title('Training and Validation Loss')
     axes[0].set_xlabel('Epochs')
     axes[0].set_ylabel('Loss')
-    axes[0].legend()
+    legend = axes[0].legend()
+    legend.get_frame().set_facecolor('white')
+    legend.get_frame().set_edgecolor('black')
     axes[1].plot(Epochs, tacc, 'r', label='Training Accuracy')
     axes[1].plot(Epochs, vacc, 'g', label='Validation Accuracy')
     axes[1].scatter(index_acc + 1 + start_epoch, acc_highest, s=150, c='blue', label=vc_label)
     axes[1].set_title('Training and Validation Accuracy')
     axes[1].set_xlabel('Epochs')
     axes[1].set_ylabel('Accuracy')
-    axes[1].legend()
+    legend = axes[1].legend()
+    legend.get_frame().set_facecolor('white')
+    legend.get_frame().set_edgecolor('black')
     plt.tight_layout()
     plt.savefig(os.path.join(output_dir,'logs', f"training_plot.png"))
     plt.close()
