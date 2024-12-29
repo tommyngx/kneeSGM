@@ -23,7 +23,7 @@ class KneeOsteoarthritisDataset(Dataset):
         self.image_path_column = image_path_column
         self.label_column = label_column
         self.dataset_based_link = dataset_based_link
-        self.transform = transform or get_augmentations(config_path)
+        self.transform = transform or get_augmentations(config_path, split=split.lower())
 
     def __len__(self):
         return len(self.data)
