@@ -101,22 +101,12 @@ def generate_gradcam_caformer(activations, gradients, image):
     return post_process_heatmap(heatmap, image)
 
 def generate_gradcam_fastvit(activations, gradients, image):
-    print(f"Activations shape: {activations.shape}")
-    print(f"Gradients shape: {gradients.shape}")
-    print(f"Image shape: {image.shape}")
-
     if activations.dim() == 4:  # CNN-based models
         pooled_gradients = torch.mean(gradients, dim=[0, 2, 3])
         for i in range(min(activations.shape[1], pooled_gradients.shape[0])):
             activations[:, i, :, :] *= pooled_gradients[i]
         heatmap = torch.mean(activations, dim=1).squeeze()
-
     elif activations.dim() == 3:  # ViT models with activations shaped [batch_size, num_patches, embedding_dim]
-        # Debugging: Log activations and gradients shape
-        with open('tensor_shapes.txt', "a") as f:
-            f.write(f"Activations shape: {activations.shape}\n")
-            f.write(f"Gradients shape before adjustment: {gradients.shape}\n")
-
         # Handle CNN-like gradients
         if gradients.dim() == 4:  # [batch_size, channels, height, width]
             gradients = torch.mean(gradients, dim=[2, 3])  # Average spatially to reduce to [batch_size, channels]
@@ -148,10 +138,6 @@ def generate_gradcam_fastvit(activations, gradients, image):
         # Reshape heatmap to spatial dimensions (square grid)
         grid_size = int(np.sqrt(heatmap.size(0)))  # Compute grid size (e.g., 14x14 for 196 patches)
         heatmap = heatmap.view(grid_size, grid_size)  # Shape: [grid_size, grid_size]
-
-        # Debugging: Log heatmap shape
-        with open('tensor_shapes.txt', "a") as f:
-            f.write(f"Heatmap shape: {heatmap.shape}\n")
 
     else:
             raise ValueError(f"Unexpected activations dimensions: {activations.dim()}") 
