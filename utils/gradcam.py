@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from PIL import Image
 from .utils import blue_to_gray_np, red_to_gray_np, red_to_0_np
 
-def generate_gradcam(model, image, target_layer, model_name):
+def register_hooks(model, image, target_layer):
     model.eval()
     if image.dim() == 3:
         image = image.unsqueeze(0)
@@ -26,10 +26,10 @@ def generate_gradcam(model, image, target_layer, model_name):
 
     gradients = image.grad.data
     activations = features[0].detach()
+    return activations, gradients
 
-    with open('tensor_shapes.txt', "w") as f:
-        f.write(f"Activations shape: {activations[0].shape}\n")
-        #f.write(f"Pooled gradients shape: {pooled_gradients.shape}\n")
+def generate_gradcam(model, image, target_layer, model_name):
+    activations, gradients = register_hooks(model, image, target_layer)
     
     if any(cnn_model in model_name for cnn_model in ['resnet', 'resnext', 'efficientnet', 'densenet', 'convnext', 'resnext50_32x4d']):
         return generate_gradcam_cnn(activations, gradients, image)
@@ -50,143 +50,89 @@ def generate_gradcam_cnn(activations, gradients, image):
     return post_process_heatmap(heatmap, image)
 
 def generate_gradcam_vit(activations, gradients, image):
-    #print(f"Activations shape: {activations.shape}")  # [batch_size, num_patches, embedding_dim]
-    #print(f"Gradients shape: {gradients.shape}")  # [batch_size, channels, height, width]
-
-    # Handle gradients with 4 dimensions (CNN-like case)
-    if gradients.dim() == 4:  # [batch_size, channels, height, width]
-        # Average spatial dimensions to reduce to [batch_size, channels]
-        gradients = torch.mean(gradients, dim=[2, 3])  # [batch_size, channels]
-
-    # Match gradients to activations' shape
-    if gradients.dim() == 2:  # [batch_size, embedding_dim]
-        if gradients.size(1) != activations.size(2):  # If embedding dimensions don't match
-            # Expand gradients to match activations' embedding dimensions
-            gradients = gradients.unsqueeze(1)  # [batch_size, 1, embedding_dim]
-            gradients = torch.mean(gradients, dim=-1, keepdim=True)  # Average across embedding dim to reduce to [batch_size, 1, 1]
-            gradients = gradients.expand(-1, activations.size(1), activations.size(2))  # Expand to [batch_size, num_patches, embedding_dim]
+    if gradients.dim() == 4:
+        gradients = torch.mean(gradients, dim=[2, 3])
+    if gradients.dim() == 2:
+        if gradients.size(1) != activations.size(2):
+            gradients = gradients.unsqueeze(1)
+            gradients = torch.mean(gradients, dim=-1, keepdim=True)
+            gradients = gradients.expand(-1, activations.size(1), activations.size(2))
         else:
-            # Expand along the patches dimension
             gradients = gradients.unsqueeze(1).expand(-1, activations.size(1), -1)
-        
-    elif gradients.dim() == 3 and gradients.size(1) == 1:  # [batch_size, 1, embedding_dim]
+    elif gradients.dim() == 3 and gradients.size(1) == 1:
         gradients = gradients.expand(-1, activations.size(1), activations.size(2))
-    elif gradients.dim() == 3 and gradients.size(2) == 3:  # [batch_size, channels, 3]
-        # Average across the last dimension and expand to match activations
+    elif gradients.dim() == 3 and gradients.size(2) == 3:
         gradients = torch.mean(gradients, dim=2, keepdim=True)
         gradients = gradients.expand(activations.size(0), activations.size(1), activations.size(2))
     else:
         raise ValueError(f"Unexpected gradients dimensions: {gradients.shape}")
 
-    # Compute pooled gradients
-    pooled_gradients = torch.mean(gradients, dim=1, keepdim=True)  # [batch_size, 1, embedding_dim]
-    pooled_gradients = pooled_gradients.expand_as(activations)  # Match activations shape [batch_size, num_patches, embedding_dim]
-
-    # Apply weights to activations
-    weighted_activations = activations * pooled_gradients  # Element-wise multiplication
-    heatmap = torch.sum(weighted_activations, dim=-1).squeeze()  # Sum over embedding dimension
-
-    # Reshape heatmap to spatial dimensions (exclude class token)
-    grid_size = int(np.sqrt(heatmap.size(0) - 1))  # Compute grid size (e.g., 14x14 for 196 patches)
-    #print(f"Grid size: {grid_size}")  # Debugging grid size
-    #print(f"Heatmap shape: {heatmap.shape}")  # Debugging heatmap shape
-    heatmap = heatmap[1:].view(grid_size, grid_size)  # Shape: [grid_size, grid_size]
-
-    print(f"Heatmap shape: {heatmap.shape}")  # Debugging heatmap shape
-
+    pooled_gradients = torch.mean(gradients, dim=1, keepdim=True)
+    pooled_gradients = pooled_gradients.expand_as(activations)
+    weighted_activations = activations * pooled_gradients
+    heatmap = torch.sum(weighted_activations, dim=-1).squeeze()
+    grid_size = int(np.sqrt(heatmap.size(0) - 1))
+    heatmap = heatmap[1:].view(grid_size, grid_size)
     return post_process_heatmap(heatmap, image)
 
 def generate_gradcam_caformer(activations, gradients, image):
-    #print(f"Activations shape: {activations.shape}")  # [batch_size, num_patches, embedding_dim]
-    #print(f"Gradients shape: {gradients.shape}")  # [batch_size, channels, height, width]
-    #print(f"Image shape: {image.shape}")  # [batch_size, channels, height, width]
-
-    # Handle gradients with 4 dimensions (CNN-like case)
     if gradients.dim() == 4:
-        # Average spatial dimensions to reduce to [batch_size, channels]
-        gradients = torch.mean(gradients, dim=[2, 3])  # [batch_size, channels]
-
-    # Match gradients to activations' shape
-    if gradients.dim() == 2:  # [batch_size, channels]
-    # Check if gradients' size matches activations' embedding dimension
+        gradients = torch.mean(gradients, dim=[2, 3])
+    if gradients.dim() == 2:
         if gradients.size(1) != activations.size(2):
-            # If the dimensions mismatch, reduce or expand gradients to match activations
-            gradients = gradients.unsqueeze(2)  # [batch_size, channels, 1]
-            gradients = gradients.expand(-1, -1, activations.size(2))  # [batch_size, channels, embedding_dim]
-            gradients = gradients.mean(dim=1, keepdim=False)  # Average across channels to match [batch_size, embedding_dim]
+            gradients = gradients.unsqueeze(2)
+            gradients = gradients.expand(-1, -1, activations.size(2))
+            gradients = gradients.mean(dim=1, keepdim=False)
         else:
-            # Directly expand gradients to match activations [batch_size, num_patches, embedding_dim]
             gradients = gradients.unsqueeze(1).expand(-1, activations.size(1), -1)
-    elif gradients.dim() == 3:  # [batch_size, num_patches, embedding_dim]
-        # Check if gradients match activations shape
+    elif gradients.dim() == 3:
         if gradients.size(1) != activations.size(1) or gradients.size(2) != activations.size(2):
-            # Average across mismatched dimensions
-            gradients = torch.mean(gradients, dim=1, keepdim=True)  # [batch_size, 1, embedding_dim]
-            gradients = gradients.expand(-1, activations.size(1), activations.size(2))  # Match activations shape
-    elif gradients.dim() == 3 and gradients.size(2) == 3:  # [batch_size, 1, channels]
-        # Reduce across mismatched channel dimensions
-        gradients = torch.mean(gradients, dim=2, keepdim=True)  # [batch_size, num_patches, 1]
-        gradients = gradients.expand(-1, activations.size(1), activations.size(2))  # Match activations shape
+            gradients = torch.mean(gradients, dim=1, keepdim=True)
+            gradients = gradients.expand(-1, activations.size(1), activations.size(2))
+    elif gradients.dim() == 3 and gradients.size(2) == 3:
+        gradients = torch.mean(gradients, dim=2, keepdim=True)
+        gradients = gradients.expand(-1, activations.size(1), activations.size(2))
     else:
         raise ValueError(f"Unexpected gradients dimensions: {gradients.shape}")
 
-    # Compute pooled gradients
-    #print(f"Gradients shape after processing: {gradients.shape}")
-    pooled_gradients = torch.mean(gradients, dim=1, keepdim=True)  # [batch_size, 1, embedding_dim]
-    #print(f"Pooled gradients shape: {pooled_gradients.shape}")  # [batch_size, 1, embedding_dim]
-    pooled_gradients = pooled_gradients.expand_as(activations)  # Match activations shape [batch_size, num_patches, embedding_dim]
-
-    # Apply weights to activations
-    weighted_activations = activations * pooled_gradients  # Element-wise multiplication
-    heatmap = torch.sum(weighted_activations, dim=-1).squeeze()  # Sum over embedding dimension
-
-    # Reshape heatmap to spatial dimensions
-    grid_size = int(np.sqrt(heatmap.size(0)))  # Compute grid size (e.g., 7x7 for 49 patches)
-    heatmap = heatmap.view(grid_size, grid_size)  # Shape: [grid_size, grid_size]
-
+    pooled_gradients = torch.mean(gradients, dim=1, keepdim=True)
+    pooled_gradients = pooled_gradients.expand_as(activations)
+    weighted_activations = activations * pooled_gradients
+    heatmap = torch.sum(weighted_activations, dim=-1).squeeze()
+    grid_size = int(np.sqrt(heatmap.size(0)))
+    heatmap = heatmap.view(grid_size, grid_size)
     return post_process_heatmap(heatmap, image)
 
 def generate_gradcam_fastvit(activations, gradients, image):
-    if activations.dim() == 4:  # CNN-based models
+    if activations.dim() == 4:
         pooled_gradients = torch.mean(gradients, dim=[0, 2, 3])
         for i in range(min(activations.shape[1], pooled_gradients.shape[0])):
             activations[:, i, :, :] *= pooled_gradients[i]
         heatmap = torch.mean(activations, dim=1).squeeze()
-    elif activations.dim() == 3:  # ViT models with activations shaped [batch_size, num_patches, embedding_dim]
-        # Handle CNN-like gradients
-        if gradients.dim() == 4:  # [batch_size, channels, height, width]
-            gradients = torch.mean(gradients, dim=[2, 3])  # Average spatially to reduce to [batch_size, channels]
-
-        # Ensure gradients match activations shape
-        if gradients.dim() == 2:  # [batch_size, embedding_dim]
-            gradients = gradients.unsqueeze(1).expand(activations.size(0), activations.size(1), gradients.size(1))  # Expand to [batch_size, num_patches, embedding_dim]
-        elif gradients.dim() == 3 and gradients.size(1) == 1:  # [batch_size, 1, embedding_dim]
-            gradients = gradients.expand(activations.size(0), activations.size(1), gradients.size(2))  # Expand to [batch_size, num_patches, embedding_dim]
-        elif gradients.dim() == 3 and gradients.size(2) == 224:  # [batch_size, channels, height]
-            gradients = torch.mean(gradients, dim=1, keepdim=True)  # Average across channels to reduce to [batch_size, 1, height]
-            gradients = gradients.expand(activations.size(0), activations.size(1), activations.size(2))  # Match activations shape [batch_size, num_patches, embedding_dim]
-        elif gradients.dim() == 3 and gradients.size(2) == 3:  # [batch_size, channels, 3]
-            gradients = torch.mean(gradients, dim=2, keepdim=True)  # Average across channels to reduce to [batch_size, channels, 1]
-            gradients = gradients.expand(activations.size(0), activations.size(1), activations.size(2))  # Match activations shape [batch_size, num_patches, embedding_dim]
+    elif activations.dim() == 3:
+        if gradients.dim() == 4:
+            gradients = torch.mean(gradients, dim=[2, 3])
+        if gradients.dim() == 2:
+            gradients = gradients.unsqueeze(1).expand(activations.size(0), activations.size(1), gradients.size(1))
+        elif gradients.dim() == 3 and gradients.size(1) == 1:
+            gradients = gradients.expand(activations.size(0), activations.size(1), gradients.size(2))
+        elif gradients.dim() == 3 and gradients.size(2) == 224:
+            gradients = torch.mean(gradients, dim=1, keepdim=True)
+            gradients = gradients.expand(activations.size(0), activations.size(1), activations.size(2))
+        elif gradients.dim() == 3 and gradients.size(2) == 3:
+            gradients = torch.mean(gradients, dim=2, keepdim=True)
+            gradients = gradients.expand(activations.size(0), activations.size(1), activations.size(2))
         else:
             raise ValueError(f"Unexpected gradients dimensions: {gradients.dim()}")
 
-        # Compute pooled gradients
-        pooled_gradients = torch.mean(gradients, dim=1, keepdim=True)  # Shape: [batch_size, 1, embedding_dim]
-        pooled_gradients = pooled_gradients.expand(activations.size(0), activations.size(1), activations.size(2))  # Match activations shape [batch_size, num_patches, embedding_dim]
-
-        # Calculate weighted activations
-        weighted_activations = activations * pooled_gradients  # Element-wise multiplication
-
-        # Generate heatmap by summing across the embedding dimension
-        heatmap = torch.sum(weighted_activations, dim=-1).squeeze()  # Shape: [batch_size, num_patches]
-
-        # Reshape heatmap to spatial dimensions (square grid)
-        grid_size = int(np.sqrt(heatmap.size(0)))  # Compute grid size (e.g., 14x14 for 196 patches)
-        heatmap = heatmap.view(grid_size, grid_size)  # Shape: [grid_size, grid_size]
-
+        pooled_gradients = torch.mean(gradients, dim=1, keepdim=True)
+        pooled_gradients = pooled_gradients.expand(activations.size(0), activations.size(1), activations.size(2))
+        weighted_activations = activations * pooled_gradients
+        heatmap = torch.sum(weighted_activations, dim=-1).squeeze()
+        grid_size = int(np.sqrt(heatmap.size(0)))
+        heatmap = heatmap.view(grid_size, grid_size)
     else:
-            raise ValueError(f"Unexpected activations dimensions: {activations.dim()}") 
+        raise ValueError(f"Unexpected activations dimensions: {activations.dim()}")
     return post_process_heatmap(heatmap, image)
 
 def post_process_heatmap(heatmap, image):
@@ -199,95 +145,55 @@ def post_process_heatmap(heatmap, image):
     heatmap_colored = np.stack([heatmap] * 3, axis=-1)
     return heatmap_colored
 
-def generate_gradcam_plus_plus(model, image, target_layer):
-    """
-    Generate Grad-CAM++ heatmap for a given model, input image, and target layer.
+def generate_gradcam_plus_plus(model, image, target_layer, model_name):
+    activations, gradients = register_hooks(model, image, target_layer)
 
-    Args:
-        model (torch.nn.Module): Trained PyTorch model.
-        image (torch.Tensor): Input image tensor of shape (C, H, W) or (1, C, H, W).
-        target_layer (torch.nn.Module): The target convolutional layer (e.g., last Conv2D layer in ResNet's Bottleneck).
+    if any(cnn_model in model_name for cnn_model in ['resnet', 'resnext', 'efficientnet', 'densenet', 'convnext', 'resnext50_32x4d']):
+        return generate_gradcam_plus_plus_cnn(activations, gradients, image)
+    elif 'fastvit' in model_name:
+        return generate_gradcam_plus_plus_fastvit(activations, gradients, image)
+    elif 'vit' in model_name and 'fastvit' not in model_name:
+        return generate_gradcam_plus_plus_vit(activations, gradients, image)
+    elif 'caformer' in model_name:
+        return generate_gradcam_plus_plus_caformer(activations, gradients, image)
+    else:
+        raise ValueError(f"Model {model_name} not supported for Grad-CAM++.")
 
-    Returns:
-        np.array: Grad-CAM++ heatmap (H, W, 3) ready to overlay on the input image.
-    """
-    model.eval()
-
-    if image.dim() == 3:
-        image = image.unsqueeze(0)
-
-    image.requires_grad = True
-
-    # Hook to capture activations and gradients
-    activations = []
-    gradients = []
-
-    def forward_hook(module, input, output):
-        activations.append(output)
-
-    def backward_hook(module, grad_input, grad_output):
-        gradients.append(grad_output[0])
-
-    # Register hooks for the target layer
-    forward_handle = target_layer.register_forward_hook(forward_hook)
-    backward_handle = target_layer.register_full_backward_hook(backward_hook)
-
-    # Forward pass
-    output = model(image)
-    target_class = output.argmax(dim=1).item()
-    score = output[:, target_class]
-
-    # Backward pass
-    model.zero_grad()
-    score.backward(retain_graph=True)
-
-    # Remove hooks
-    forward_handle.remove()
-    backward_handle.remove()
-
-    # Extract activations and gradients
-    activations = activations[0].detach()
-    gradients = gradients[0].detach()
-
-    # Grad-CAM++ weight computation
+def generate_gradcam_plus_plus_cnn(activations, gradients, image):
     b, k, u, v = gradients.size()
     alpha = gradients.pow(2)
     alpha /= (2 * gradients.pow(2) + (activations * gradients.pow(3)).sum(dim=(2, 3), keepdim=True) + 1e-8)
     weights = (alpha * F.relu(gradients)).sum(dim=(2, 3), keepdim=True)
 
-    # Weighted sum of activations
     heatmap = (weights * activations).sum(dim=1).squeeze(0)
     heatmap = F.relu(heatmap)
     heatmap = heatmap / heatmap.max()
 
-    # Convert to NumPy array
     heatmap = heatmap.cpu().numpy()
     heatmap = cv2.resize(heatmap, (image.shape[3], image.shape[2]))
-
-    # Normalize and apply colormap
     heatmap = np.uint8(255 * heatmap)
     heatmap = 255 - heatmap
-    #heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
-    #heatmap = cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB)
     return heatmap
+
+def generate_gradcam_plus_plus_vit(activations, gradients, image):
+    return generate_gradcam_vit(activations, gradients, image)
+
+def generate_gradcam_plus_plus_caformer(activations, gradients, image):
+    return generate_gradcam_caformer(activations, gradients, image)
+
+def generate_gradcam_plus_plus_fastvit(activations, gradients, image):
+    return generate_gradcam_fastvit(activations, gradients, image)
 
 def show_cam_on_image(img, mask, use_rgb=False):
     heatmap = cv2.applyColorMap(np.uint8(255 * mask), cv2.COLORMAP_JET)
     if use_rgb:
         heatmap = cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB)
-    #cv2.imwrite("abc0.png", heatmap)
     heatmap = red_to_gray_np(heatmap)
-    #heatmap = red_to_0_np(heatmap)
     heatmap = np.float32(heatmap) / 255
     
     cam = heatmap + np.float32(img)
     cam = cam / np.max(cam)
     cam = np.uint8(255 * cam)
-    
-    #cam = 255 - cam
-    #cv2.imwrite("abc1.png", cam)
-    #cam = red_to_gray_np(cam)
-    #cv2.imwrite("abc2.png", cam)
     return cam
 
 def save_random_predictions(model, dataloader, device, output_dir, epoch, class_names, use_gradcam_plus_plus=False, target_layer=None, acc=None, model_name=None):
@@ -308,7 +214,7 @@ def save_random_predictions(model, dataloader, device, output_dir, epoch, class_
         label = labels[i].item()
         pred = preds[i].item()
         if use_gradcam_plus_plus:
-            heatmap = generate_gradcam_plus_plus(model, images[i].unsqueeze(0), target_layer)
+            heatmap = generate_gradcam_plus_plus(model, images[i].unsqueeze(0), target_layer, model_name)
         else:
             heatmap = generate_gradcam(model, images[i].unsqueeze(0), target_layer, model_name)
         cam_image = show_cam_on_image(img, heatmap, use_rgb=True)
@@ -327,7 +233,7 @@ def save_random_predictions(model, dataloader, device, output_dir, epoch, class_
             label = labels[i + 4].item()
             pred = preds[i + 4].item()
             if use_gradcam_plus_plus:
-                heatmap = generate_gradcam_plus_plus(model, images[i + 4].unsqueeze(0), target_layer)
+                heatmap = generate_gradcam_plus_plus(model, images[i + 4].unsqueeze(0), target_layer, model_name)
             else:
                 heatmap = generate_gradcam(model, images[i + 4].unsqueeze(0), target_layer, model_name)
             cam_image = show_cam_on_image(img, heatmap, use_rgb=True)
