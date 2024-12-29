@@ -50,9 +50,10 @@ def process_files(folder_path, process_oai_raw=False):
     combined_df['path'] = combined_df['split'].str.lower() + "/" + combined_df['filename'] + ".jpg"
     combined_df['path2'] = "OAI16/" + combined_df['split'] + "/" + combined_df['KL'].astype(int).astype(str) + "/" + combined_df['filename'] + ".png"
     combined_df['KL'] = combined_df['KL'].astype(int)
-    
+
     # Save combined file to OAI16 folder
     oai16_folder = os.path.join(folder_path, 'OAI16')
+    os.makedirs(oai16_folder, exist_ok=True)
     output_path = os.path.join(oai16_folder, 'OAI16metadata.csv')
     combined_df.to_csv(output_path, index=False)
     print(f"Combined file saved to {output_path}")
