@@ -31,7 +31,7 @@ def generate_gradcam(model, image, target_layer, model_name):
         f.write(f"Activations shape: {activations[0].shape}\n")
         #f.write(f"Pooled gradients shape: {pooled_gradients.shape}\n")
     
-    if any(cnn_model in model_name for cnn_model in ['resnet', 'resnext', 'efficientnet', 'densenet', 'convnext']):
+    if any(cnn_model in model_name for cnn_model in ['resnet', 'resnext', 'efficientnet', 'densenet', 'convnext', 'resnext50_32x4d']):
         return generate_gradcam_cnn(activations, gradients, image)
     elif 'vit' in model_name:
         return generate_gradcam_vit(activations, gradients, image)
