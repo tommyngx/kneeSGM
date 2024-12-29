@@ -50,8 +50,8 @@ def generate_gradcam_cnn(activations, gradients, image):
     return post_process_heatmap(heatmap, image)
 
 def generate_gradcam_vit(activations, gradients, image):
-    print(f"Activations shape: {activations.shape}")  # [batch_size, num_patches, embedding_dim]
-    print(f"Gradients shape: {gradients.shape}")  # [batch_size, channels, height, width]
+    #print(f"Activations shape: {activations.shape}")  # [batch_size, num_patches, embedding_dim]
+    #print(f"Gradients shape: {gradients.shape}")  # [batch_size, channels, height, width]
 
     # Handle gradients with 4 dimensions (CNN-like case)
     if gradients.dim() == 4:  # [batch_size, channels, height, width]
@@ -88,8 +88,8 @@ def generate_gradcam_vit(activations, gradients, image):
 
     # Reshape heatmap to spatial dimensions (exclude class token)
     grid_size = int(np.sqrt(heatmap.size(0) - 1))  # Compute grid size (e.g., 14x14 for 196 patches)
-    print(f"Grid size: {grid_size}")  # Debugging grid size
-    print(f"Heatmap shape: {heatmap.shape}")  # Debugging heatmap shape
+    #print(f"Grid size: {grid_size}")  # Debugging grid size
+    #print(f"Heatmap shape: {heatmap.shape}")  # Debugging heatmap shape
     heatmap = heatmap[1:].view(grid_size, grid_size)  # Shape: [grid_size, grid_size]
 
     print(f"Heatmap shape: {heatmap.shape}")  # Debugging heatmap shape
