@@ -9,7 +9,7 @@ import os
 import datetime
 import pytz
 import argparse
-from sklearn.metrics import classification_report
+from sklearn.metrics import classification_report, roc_curve, auc
 import numpy as np
 from models.model_architectures import get_model
 from data.data_loader import get_dataloader
@@ -58,6 +58,7 @@ def validate(model, dataloader, criterion, device):
     running_acc = 0.0
     all_preds = []
     all_labels = []
+    all_outputs = []
     with torch.no_grad():
         for images, labels in tqdm(dataloader):
             images, labels = images.to(device), labels.to(device)
@@ -68,7 +69,8 @@ def validate(model, dataloader, criterion, device):
             running_acc += accuracy(outputs, labels)
             all_preds.extend(torch.argmax(outputs, dim=1).cpu().numpy())
             all_labels.extend(labels.cpu().numpy())
-    return running_loss / len(dataloader), running_acc / len(dataloader), all_preds, all_labels
+            all_outputs.extend(outputs.cpu().numpy())
+    return running_loss / len(dataloader), running_acc / len(dataloader), all_preds, all_labels, all_outputs
 
 def main(config_path='config/default.yaml', model_name=None, epochs=None, resume_from=None, use_gradcam_plus_plus=False):
     config = load_config(config_path)
@@ -117,7 +119,7 @@ def main(config_path='config/default.yaml', model_name=None, epochs=None, resume
     
     for epoch in range(start_epoch, epochs):
         train_loss, train_acc = train_one_epoch(model, train_loader, criterion, optimizer, device)
-        val_loss, val_acc, val_preds, val_labels = validate(model, val_loader, criterion, device)
+        val_loss, val_acc, val_preds, val_labels, val_outputs = validate(model, val_loader, criterion, device)
         
         training_history['accuracy'].append(train_acc)
         training_history['loss'].append(train_loss)
@@ -130,7 +132,12 @@ def main(config_path='config/default.yaml', model_name=None, epochs=None, resume
             print("Classification Report:")
             print(classification_report(val_labels, val_preds, target_names=config['data']['class_names'], zero_division=0))
             save_confusion_matrix(val_labels, val_preds, config['data']['class_names'], os.path.join(output_dir, "logs"), epoch, acc=val_acc)
-            save_roc_curve(val_labels, val_preds, config['data']['class_names'], os.path.join(output_dir, "logs"), epoch, acc=val_acc)
+            
+            # Calculate risk percentages for ROC curve
+            val_outputs = np.array(val_outputs)
+            positive_risk = val_outputs[:, 2:].sum(axis=1)  # Sum of class 2, 3, 4
+            negative_risk = val_outputs[:, :2].sum(axis=1)  # Sum of class 0, 1
+            save_roc_curve(val_labels, positive_risk, config['data']['class_names'], os.path.join(output_dir, "logs"), epoch, acc=val_acc)
             
             target_layer = get_target_layer(model, model_name)
             

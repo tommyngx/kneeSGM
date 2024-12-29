@@ -70,7 +70,7 @@ def save_confusion_matrix(labels, preds, class_names, output_dir, epoch=None, ac
     for file in saved_files[3:]:
         os.remove(os.path.join(output_dir, file))
 
-def save_roc_curve(labels, preds, class_names, output_dir, epoch=None, acc=None):
+def save_roc_curve(labels, positive_risk, class_names, output_dir, epoch=None, acc=None):
     # Apply ggplot style
     plt.style.use('ggplot')
 
@@ -85,14 +85,12 @@ def save_roc_curve(labels, preds, class_names, output_dir, epoch=None, acc=None)
     font_manager.fontManager.addfont(font_path)
     prop = font_manager.FontProperties(fname=font_path)
 
-    # Binarize labels and predictions for disease detection
+    # Binarize labels for disease detection
     labels = np.array(labels)
-    preds = np.array(preds)
     labels = np.where(labels > 1, 1, 0)
-    preds = np.where(preds > 1, 1, 0)
 
     # Plot ROC curve
-    fpr, tpr, _ = roc_curve(labels, preds, pos_label=1)
+    fpr, tpr, _ = roc_curve(labels, positive_risk, pos_label=1)
     roc_auc = auc(fpr, tpr)
     plt.figure(figsize=(8, 6))
     plt.plot(fpr, tpr, color='darkorange', lw=2, label=f'ROC curve (area = {roc_auc:.2f})')
