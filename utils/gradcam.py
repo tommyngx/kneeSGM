@@ -86,9 +86,6 @@ def generate_gradcam_vit(activations, gradients, image):
     weighted_activations = activations * pooled_gradients  # Element-wise multiplication
     heatmap = torch.sum(weighted_activations, dim=-1).squeeze()  # Sum over embedding dimension
 
-    # Remove the class token (first patch) if present
-    heatmap = heatmap[:, 1:]  # Remove the class token, shape becomes [batch_size, 196]
-
     # Reshape heatmap to a square grid
     grid_size = int(np.sqrt(heatmap.size(1)))  # Compute grid size (e.g., 14x14 for 196 patches)
     if heatmap.size(1) != grid_size * grid_size:
