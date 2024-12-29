@@ -58,13 +58,13 @@ def save_confusion_matrix(labels, preds, class_names, output_dir, epoch=None, ac
         xticklabels=class_names, 
         yticklabels=class_names, 
         cbar=True, 
-        cbar_kws={'format': '%.0f%%'}
+        #cbar_kws={'format': '%.0f%%'}
     )
     # Customize the color bar
-    #cbar = ax.collections[0].colorbar  # Get the color bar from the current Axes
-    #ticks = np.linspace(0, 100, 6)  # Define the ticks
-    #cbar.set_ticks(ticks)  # Set specific ticks
-    #cbar.set_ticklabels([f'{int(t)}%' for t in ticks]) # Format tick labels as percentages
+    cbar = ax.collections[0].colorbar  # Get the color bar from the current Axes
+    ticks = np.linspace(0, 100, 6)  # Define the ticks
+    cbar.set_ticks(ticks)  # Set specific ticks
+    cbar.set_ticklabels([f'{int(t)}%' for t in ticks]) # Format tick labels as percentages
         
     plt.xlabel("Predicted")
     plt.ylabel("Actual")
