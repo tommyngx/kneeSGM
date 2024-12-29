@@ -53,7 +53,7 @@ def generate_gradcam_vit(activations, gradients, image):
     if gradients.dim() == 2:
         gradients = gradients.unsqueeze(1).expand(activations.size(0), activations.size(1), gradients.size(1))
     elif gradients.dim() == 3 and gradients.size(1) == 1:
-        gradients = gradients.expand(activations.size(0), activations.size(1), gradients.size(2))
+        gradients = gradients.expand(activations.size(0), activations.size(1), activations.size(2))
     elif gradients.dim() == 3 and gradients.size(2) == 224:
         gradients = torch.mean(gradients, dim=1, keepdim=True)
         gradients = gradients.expand(activations.size(0), activations.size(1), activations.size(2))
@@ -77,7 +77,7 @@ def generate_gradcam_caformer(activations, gradients, image):
     if gradients.dim() == 2:
         gradients = gradients.unsqueeze(1).expand(activations.size(0), activations.size(1), gradients.size(1))
     elif gradients.dim() == 3 and gradients.size(1) == 1:
-        gradients = gradients.expand(activations.size(0), activations.size(1), gradients.size(2))
+        gradients = gradients.expand(activations.size(0), activations.size(1), activations.size(2))
     elif gradients.dim() == 3 and gradients.size(2) == 224:
         gradients = torch.mean(gradients, dim=1, keepdim=True)
         gradients = gradients.expand(activations.size(0), activations.size(1), activations.size(2))
@@ -196,7 +196,7 @@ def show_cam_on_image(img, mask, use_rgb=False):
     #cv2.imwrite("abc2.png", cam)
     return cam
 
-def save_random_predictions(model, dataloader, device, output_dir, epoch, class_names, use_gradcam_plus_plus=False, target_layer=None, acc=None):
+def save_random_predictions(model, dataloader, device, output_dir, epoch, class_names, use_gradcam_plus_plus=False, target_layer=None, acc=None, model_name=None):
     model.eval()
     images, labels = next(iter(dataloader))
     images, labels = images.to(device), labels.to(device)
@@ -245,14 +245,14 @@ def save_random_predictions(model, dataloader, device, output_dir, epoch, class_
     
     plt.tight_layout()
     if acc is not None:
-        filename = f"random_predictions_epoch_{epoch}_acc_{acc:.4f}.png"
+        filename = f"random_predictions_{model_name}_epoch_{epoch}_acc_{acc:.4f}.png"
     else:
-        filename = f"random_predictions_epoch_{epoch}.png"
+        filename = f"random_predictions_{model_name}_epoch_{epoch}.png"
     plt.savefig(os.path.join(output_dir, filename))
     plt.close()
     
     # Keep only the best top 3 random predictions based on accuracy
-    saved_files = sorted([f for f in os.listdir(output_dir) if f.startswith("random_predictions_epoch_")], key=lambda x: float(x.split('_acc_')[-1].split('.png')[0]) if '_acc_' in x else 0, reverse=True)
+    saved_files = sorted([f for f in os.listdir(output_dir) if f.startswith("random_predictions_")], key=lambda x: float(x.split('_acc_')[-1].split('.png')[0]) if '_acc_' in x else 0, reverse=True)
     for file in saved_files[3:]:
         os.remove(os.path.join(output_dir, file))
 
