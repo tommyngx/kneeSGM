@@ -52,8 +52,8 @@ def save_confusion_matrix(labels, preds, class_names, output_dir, epoch=None, ac
     sns.heatmap(cm_normalized, annot=annot, fmt='', cmap="Purples", xticklabels=class_names, yticklabels=class_names, cbar=True)
     # Customize the color bar
     colorbar = plt.gca().collections[0].colorbar  # Get the color bar from the current Axes
-    colorbar.set_ticks(np.linspace(0, 100, 11))  # Set specific ticks
-    colorbar.set_ticklabels([f'{int(t)}%' for t in np.linspace(0, 100, 11)])  # Format tick labels as percentages
+    colorbar.set_ticks(np.linspace(0, 100, 6))  # Set specific ticks
+    colorbar.set_ticklabels([f'{int(t)}%' for t in ticks]) # Format tick labels as percentages
 
         
     plt.xlabel("Predicted")
@@ -128,10 +128,11 @@ def save_roc_curve(labels, positive_risk, class_names, output_dir, epoch=None, a
     plt.title(title, fontproperties=prop, fontsize=18)
     
     # Customize legend
-    legend = plt.legend(loc="lower right", prop=prop, fontsize=16)
+    legend = plt.legend(loc="lower right", prop=prop, fontsize=20)
     legend.get_frame().set_facecolor('white')
     legend.get_frame().set_edgecolor('black')
 
+    plt.gcf().set_facecolor('white')  # Set the background color outside the plot area to white
     plt.subplots_adjust(left=0.15, right=0.95, top=0.9, bottom=0.15)
     filename = "roc_curve.png" if epoch is None else f"roc_curve_epoch_{epoch}_acc_{acc:.4f}.png"
     plt.savefig(os.path.join(output_dir, filename))
