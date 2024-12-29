@@ -113,13 +113,15 @@ def save_roc_curve(labels, positive_risk, class_names, output_dir, epoch=None, a
     plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
     plt.xlim([-0.05, 1.05])
     plt.ylim([-0.05, 1.05])
-    plt.xlabel('1 - Specificity (%)', fontproperties=prop, fontsize=16)
+    plt.xlabel('100 - Specificity (%)', fontproperties=prop, fontsize=16)
     plt.ylabel('Sensitivity (%)', fontproperties=prop, fontsize=16)
+    plt.xticks(np.arange(0, 1.1, step=0.1), labels=[f'{int(x*100)}%' for x in np.arange(0, 1.1, step=0.1)], fontsize=15)
+    plt.yticks(np.arange(0, 1.1, step=0.1), labels=[f'{int(y*100)}%' for y in np.arange(0, 1.1, step=0.1)], fontsize=15)
     title = 'Receiver Operating Characteristic'
     if epoch is not None:
         title += f" - Epoch {epoch}"
     plt.title(title, fontproperties=prop, fontsize=18)
-    plt.legend(loc="lower right", prop=prop, fontsize=14)
+    plt.legend(loc="lower right", prop=prop, fontsize=16)
     
     # Customize legend
     legend = plt.legend()
