@@ -13,7 +13,7 @@ class KneeOsteoarthritisDataset(Dataset):
         self.data = self.data[self.data['data'] == dataset_name]
         self.data = self.data[self.data['split'] == split]
         
-        if external_datasets:
+        if split == 'TRAIN' and external_datasets:
             for external_dataset in external_datasets.split(','):
                 external_data = pd.read_csv(csv_file)
                 external_data = external_data[external_data['data'] == external_dataset.strip()]
