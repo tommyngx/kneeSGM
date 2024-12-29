@@ -53,14 +53,16 @@ def process_files(folder_path, process_oai_raw=False):
 
     # Save combined file to OAI16 folder
     oai16_folder = os.path.join(folder_path, 'OAI16')
+    if os.path.exists(oai16_folder):
+        shutil.rmtree(oai16_folder)
     os.makedirs(oai16_folder, exist_ok=True)
-    output_path = os.path.join(oai16_folder, 'OAI16metadata.csv')
+    output_path = os.path.join(folder_path, 'OAI16metadata.csv')
     combined_df.to_csv(output_path, index=False)
     print(f"Combined file saved to {output_path}")
     
     # Filter out rows where KL is not equal to 5
     filtered_df = combined_df[combined_df['KL'] != 5]
-    filtered_output_path = os.path.join(folder_path, 'OAI16metadata.csv')
+    filtered_output_path = os.path.join(oai16_folder, 'OAI16metadata.csv')
     filtered_df.to_csv(filtered_output_path, index=False)
     print(f"Filtered combined file saved to {filtered_output_path}")
     
