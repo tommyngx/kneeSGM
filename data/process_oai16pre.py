@@ -24,7 +24,7 @@ def process_files(folder_path):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Process train.csv and test.csv files.')
-    parser.add_argument('folder_path', type=str, help='Path to the folder containing train.csv and test.csv')
+    parser.add_argument('--folder_path', type=str, help='Path to the folder containing train.csv and test.csv')
     
     args = parser.parse_args()
     process_files(args.folder_path)
