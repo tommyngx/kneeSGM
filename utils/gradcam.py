@@ -33,12 +33,12 @@ def generate_gradcam(model, image, target_layer, model_name):
     
     if any(cnn_model in model_name for cnn_model in ['resnet', 'resnext', 'efficientnet', 'densenet', 'convnext', 'resnext50_32x4d']):
         return generate_gradcam_cnn(activations, gradients, image)
+    elif 'fastvit' in model_name:
+        return generate_gradcam_fastvit(activations, gradients, image)
     elif 'vit' in model_name:
         return generate_gradcam_vit(activations, gradients, image)
     elif 'caformer' in model_name:
         return generate_gradcam_caformer(activations, gradients, image)
-    elif 'fastvit' in model_name:
-        return generate_gradcam_fastvit(activations, gradients, image)
     else:
         raise ValueError(f"Model {model_name} not supported for Grad-CAM.")
 
