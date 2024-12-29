@@ -49,7 +49,17 @@ def save_confusion_matrix(labels, preds, class_names, output_dir, epoch=None, ac
     
     # Plot the heatmap
     plt.figure(figsize=(10, 8))
-    ax = sns.heatmap(cm_normalized, annot=annot, fmt='', cmap="Purples", xticklabels=class_names, yticklabels=class_names, cbar=True)
+    #ax = sns.heatmap(cm_normalized, annot=annot, fmt='', cmap="Purples", xticklabels=class_names, yticklabels=class_names, cbar=True)
+    ax = sns.heatmap(
+        cm_normalized, 
+        annot=annot, 
+        fmt='', 
+        cmap="Purples", 
+        xticklabels=class_names, 
+        yticklabels=class_names, 
+        cbar=True, 
+        cbar_kws={'ticks': np.linspace(0, 100, 6), 'format': '%.0f%%'}
+    )
     # Customize the color bar
     cbar = ax.collections[0].colorbar  # Get the color bar from the current Axes
     ticks = np.linspace(0, 100, 6)  # Define the ticks
