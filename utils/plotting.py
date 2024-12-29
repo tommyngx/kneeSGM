@@ -49,7 +49,7 @@ def save_confusion_matrix(labels, preds, class_names, output_dir, epoch=None, ac
     
     # Plot the heatmap
     plt.figure(figsize=(10, 8))
-    sns.heatmap(cm_normalized, annot=annot, fmt='', cmap="Purples", xticklabels=class_names, yticklabels=class_names, cbar=True)
+    sns.heatmap(cm_normalized, annot=annot, fmt='.0f', cmap="Purples", xticklabels=class_names, yticklabels=class_names, cbar=True)
     # Customize the color bar
     cbar = plt.gca().collections[0].colorbar  # Get the color bar from the current Axes
     ticks = np.linspace(0, 100, 6)  # Define the ticks
@@ -128,7 +128,7 @@ def save_roc_curve(labels, positive_risk, class_names, output_dir, epoch=None, a
     plt.title(title, fontproperties=prop, fontsize=18)
     
     # Customize legend
-    legend = plt.legend(loc="lower right", prop=prop, fontsize=18)
+    legend = plt.legend(loc="lower right", prop={'size': 18, 'family': prop.get_name()})
     legend.get_frame().set_facecolor('white')
     legend.get_frame().set_edgecolor('black')
 
