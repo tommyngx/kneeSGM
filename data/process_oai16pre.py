@@ -13,12 +13,19 @@ def process_files(folder_path):
     train_df = pd.read_csv(train_path)
     test_df = pd.read_csv(test_path)
     
-    train_df['split'] = 'train'
-    test_df['split'] = 'test'
+    train_df['split'] = 'TRAIN'
+    test_df['split'] = 'TEST'
     
     combined_df = pd.concat([train_df, test_df])
     
-    output_path = os.path.join(folder_path, 'combined.csv')
+    # Remove specified columns
+    combined_df = combined_df.drop(columns=['Unnamed: 0', 'raw_file'])
+    
+    # Fix path and path2 columns
+    combined_df['path'] = combined_df['split'] + "/" + combined_df['filename']
+    combined_df['path2'] = "/OAI16/" + combined_df['split'] + "/" + combined_df['filename'].str.replace(r'\.\w+$', '.png')
+    
+    output_path = os.path.join(folder_path, 'OAI16metadata.csv')
     combined_df.to_csv(output_path, index=False)
     print(f"Combined file saved to {output_path}")
 
