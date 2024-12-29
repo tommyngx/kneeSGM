@@ -84,22 +84,25 @@ def generate_gradcam_caformer(activations, gradients, image):
         gradients = torch.mean(gradients, dim=[2, 3])  # [batch_size, channels]
 
     # Match gradients to activations' shape
-    if gradients.dim() == 2:  # [batch_size, embedding_dim]
+    if gradients.dim() == 2:  # [batch_size, channels]
         # Expand gradients to match activations [batch_size, num_patches, embedding_dim]
-        gradients = gradients.unsqueeze(1).expand(-1, activations.size(1), -1)
-    elif gradients.dim() == 3:  # [batch_size, num_patches, embedding_dim]
-        # Ensure dimensions match exactly
-        if gradients.size(1) != activations.size(1) or gradients.size(2) != activations.size(2):
-            gradients = torch.mean(gradients, dim=1, keepdim=True)  # Average over patches
-            gradients = gradients.expand(activations.size(0), activations.size(1), activations.size(2))  # Match activations shape
+        gradients = gradients.unsqueeze(1).expand(-1, activations.size(1), activations.size(2))
+    elif gradients.dim() == 3 and gradients.size(1) != activations.size(1):  # [batch_size, channels, embedding_dim]
+        # Average across channels if dimensions don't align
+        gradients = torch.mean(gradients, dim=1, keepdim=True)  # Reduce to [batch_size, 1, embedding_dim]
+        gradients = gradients.expand(-1, activations.size(1), activations.size(2))  # Match activations shape
+    elif gradients.dim() == 3 and gradients.size(2) != activations.size(2):
+        # Handle embedding mismatch
+        gradients = torch.mean(gradients, dim=2, keepdim=True)  # Average across embedding dimension
+        gradients = gradients.expand(-1, activations.size(1), activations.size(2))  # Match activations shape
     else:
         raise ValueError(f"Unexpected gradients dimensions: {gradients.shape}")
 
     # Compute pooled gradients
-    print(f"Gradients shape after processed: {gradients.shape}")
+    print(f"Gradients shape after processing: {gradients.shape}")
     pooled_gradients = torch.mean(gradients, dim=1, keepdim=True)  # [batch_size, 1, embedding_dim]
     print(f"Pooled gradients shape: {pooled_gradients.shape}")  # [batch_size, 1, embedding_dim]
-    pooled_gradients = pooled_gradients.expand(activations.size(0), activations.size(1), activations.size(2))  # Match activations shape
+    pooled_gradients = pooled_gradients.expand_as(activations)  # Match activations shape [batch_size, num_patches, embedding_dim]
 
     # Apply weights to activations
     weighted_activations = activations * pooled_gradients  # Element-wise multiplication
