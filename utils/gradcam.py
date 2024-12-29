@@ -116,11 +116,12 @@ def generate_gradcam_fastvit(activations, gradients, image):
     elif gradients.dim() == 3 and gradients.size(2) == 3:
         gradients = torch.mean(gradients, dim=2, keepdim=True)
         gradients = gradients.expand(activations.size(0), activations.size(1), activations.size(2))
-    #elif gradients.dim() == 3 and gradients.size(2) == 7:
-    #    gradients = torch.mean(gradients, dim=1, keepdim=True)
-    #    gradients = gradients.expand(activations.size(0), activations.size(1), activations.size(2))
+    elif gradients.dim() == 3 and gradients.size(2) == 7:
+        gradients = torch.mean(gradients, dim=1, keepdim=True)
+        gradients = gradients.expand(activations.size(0), activations.size(1), activations.size(2))
     else:
-        raise ValueError(f"Unexpected gradients dimensions: {gradients.dim()}")
+        gradients = torch.mean(gradients, dim=2, keepdim=True)
+        gradients = gradients.expand(activations.size(0), activations.size(1), activations.size(2))
 
     pooled_gradients = torch.mean(gradients, dim=1, keepdim=True)
     pooled_gradients = pooled_gradients.expand(activations.size(0), activations.size(1), activations.size(2))
