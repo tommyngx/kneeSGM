@@ -49,7 +49,7 @@ def save_confusion_matrix(labels, preds, class_names, output_dir, epoch=None, ac
     
     # Plot the heatmap
     plt.figure(figsize=(10, 8))
-    sns.heatmap(cm_normalized, annot=annot, fmt='', cmap="Purples", xticklabels=class_names, yticklabels=class_names, cbar=True, cbar_kws={'format': '%.0f%%'})
+    sns.heatmap(cm_normalized, annot=annot, fmt='', cmap="Purples", xticklabels=class_names, yticklabels=class_names, cbar=True, cbar_kws={'ticks': np.linspace(0, 100, 11), 'format': '%.0f%%'})
     
     plt.xlabel("Predicted")
     plt.ylabel("Actual")
@@ -101,14 +101,14 @@ def save_roc_curve(labels, positive_risk, class_names, output_dir, epoch=None, a
         indices = resample(np.arange(len(labels)), replace=True)
         if len(np.unique(labels[indices])) < 2:
             continue
-        score = auc(fpr, tpr)
+        score = auc(*roc_curve(labels[indices], positive_risk[indices])[:2])
         bootstrapped_scores.append(score)
     sorted_scores = np.array(bootstrapped_scores)
     sorted_scores.sort()
     confidence_lower = sorted_scores[int(0.025 * len(sorted_scores))]
     confidence_upper = sorted_scores[int(0.975 * len(sorted_scores))]
 
-    plt.figure(figsize=(8, 8))
+    plt.figure(figsize=(10, 10))
     plt.plot(fpr, tpr, color='darkred', lw=2, label=f'AUC: {roc_auc*100:.0f}% ({confidence_lower*100:.0f}% - {confidence_upper*100:.0f}%)')
     plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
     plt.xlim([-0.05, 1.05])
