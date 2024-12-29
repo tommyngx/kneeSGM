@@ -45,6 +45,27 @@ def process_files(folder_path):
             shutil.copy(src_path, dest_path)
         else:
             print(f"Source file {src_path} not found.")
+    
+    # Process OAIraw folder
+    oai_raw_folder = os.path.join(folder_path, 'OAIraw')
+    trainval_lab_path = os.path.join(oai_raw_folder, 'trainval_lab.csv')
+    test_lab_path = os.path.join(oai_raw_folder, 'test_lab.csv')
+    
+    if not os.path.exists(trainval_lab_path) or not os.path.exists(test_lab_path):
+        print("trainval_lab.csv or test_lab.csv not found in the OAIraw folder.")
+        return
+    
+    trainval_lab_df = pd.read_csv(trainval_lab_path)
+    test_lab_df = pd.read_csv(test_lab_path)
+    
+    trainval_lab_df['split'] = 'TRAINVAL'
+    test_lab_df['split'] = 'TEST'
+    
+    combined_lab_df = pd.concat([trainval_lab_df, test_lab_df])
+    
+    output_lab_path = os.path.join(oai_raw_folder, 'OAIrawmetadata.csv')
+    combined_lab_df.to_csv(output_lab_path, index=False)
+    print(f"Combined lab file saved to {output_lab_path}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Process train.csv and test.csv files.')
