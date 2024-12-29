@@ -85,8 +85,15 @@ def generate_gradcam_caformer(activations, gradients, image):
 
     # Match gradients to activations' shape
     if gradients.dim() == 2:  # [batch_size, channels]
-        # Expand gradients to match activations [batch_size, num_patches, embedding_dim]
-        gradients = gradients.unsqueeze(1).expand(-1, activations.size(1), activations.size(2))
+    # Check if gradients' size matches activations' embedding dimension
+        if gradients.size(1) != activations.size(2):
+            # If the dimensions mismatch, reduce or expand gradients to match activations
+            gradients = gradients.unsqueeze(2)  # [batch_size, channels, 1]
+            gradients = gradients.expand(-1, -1, activations.size(2))  # [batch_size, channels, embedding_dim]
+            gradients = gradients.mean(dim=1, keepdim=False)  # Average across channels to match [batch_size, embedding_dim]
+        else:
+            # Directly expand gradients to match activations [batch_size, num_patches, embedding_dim]
+            gradients = gradients.unsqueeze(1).expand(-1, activations.size(1), -1)
     elif gradients.dim() == 3:  # [batch_size, num_patches, embedding_dim]
         # Check if gradients match activations shape
         if gradients.size(1) != activations.size(1) or gradients.size(2) != activations.size(2):
