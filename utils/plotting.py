@@ -61,7 +61,7 @@ def save_confusion_matrix(labels, preds, class_names, output_dir, epoch=None, ac
     title = "Confusion Matrix"
     if epoch is not None:
         title += f" - Epoch {epoch}"
-    plt.title(title, fontproperties=prop, fontsize=18)
+    plt.title(title, fontproperties=prop, fontsize=18, pad=20)  # Adjust title position
     
     # Adjust layout to leave some space around the plot
     #plt.subplots_adjust(left=0.10, right=0.90, top=0.90, bottom=0.10)
@@ -130,7 +130,7 @@ def save_roc_curve(labels, positive_risk, class_names, output_dir, epoch=None, a
     title = 'Receiver Operating Characteristic'
     if epoch is not None:
         title += f" - Epoch {epoch}"
-    plt.title(title, fontproperties=prop, fontsize=18)
+    plt.title(title, fontproperties=prop, fontsize=18, pad=20)
     
     # Customize legend
     legend = plt.legend(loc="lower right", prop={'size': 16, 'family': prop.get_name()})
