@@ -14,8 +14,8 @@ data:
   #dataset_based_link: "/projects/OsteoLab/Tommy/KneeOA/VOS_Phase2/VOS_P2_KNEE_CROP/dataset" # gpu settings
   dataset_based_link: "/projects/OsteoLab/Tommy/KneeOA/Data" # gpu settings
   dataset_name: "VOSP2"
-  external_datasets: "OAI16" # "None"
-  #external_datasets:  "None"
+  #external_datasets: "OAI16" # "None"
+  external_datasets:  "None"
   train_split: "TRAIN"
   val_split: "VAL"
   test_split: "VAL"
