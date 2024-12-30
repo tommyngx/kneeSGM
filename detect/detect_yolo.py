@@ -25,15 +25,21 @@ def detect_yolo(dataset_location, model, conf, source_type):
     ]
     subprocess.run(command, check=True)
     
-    if source_type == 'random':
-        output_image_path = os.path.join(os.path.dirname(source), 'predictions.jpg')
-        if os.path.exists(output_image_path):
-            img = cv2.imread(output_image_path)
-            cv2.imshow('Detected Image', img)
-            cv2.waitKey(0)
-            cv2.destroyAllWindows()
-        else:
-            raise FileNotFoundError(f"Output image '{output_image_path}' not found.")
+    output_dir = os.path.join(os.getcwd(), 'runs/detect/predict')
+    if not os.path.exists(output_dir):
+        raise FileNotFoundError(f"Output directory '{output_dir}' not found.")
+    
+    output_images = [img for img in os.listdir(output_dir) if img.endswith(('.jpg', '.jpeg', '.png'))]
+    if not output_images:
+        raise FileNotFoundError("No images found in the output directory.")
+    
+    random_output_image = random.choice(output_images)
+    output_image_path = os.path.join(output_dir, random_output_image)
+    
+    img = cv2.imread(output_image_path)
+    cv2.imshow('Detected Image', img)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Detect objects using YOLO model")
