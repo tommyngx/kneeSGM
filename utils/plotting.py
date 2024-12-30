@@ -39,7 +39,7 @@ def save_confusion_matrix(labels, preds, class_names, output_dir, epoch=None, ac
             annot[i, j] = f'{percent:.1f}%\n({count})'
     
     # Plot the heatmap
-    plt.figure(figsize=(8, 7))
+    plt.figure(figsize=(7, 6))
     ax = sns.heatmap(
         cm_normalized, 
         annot=annot, 
