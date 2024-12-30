@@ -32,14 +32,14 @@ data:
       enabled: true
       p: 0.5
     vertical_flip: 
-      enabled: true
+      enabled: false
       p: 0.5
     rotate: 
       enabled: true
       limit: 10
       p: 0.5
     color_jitter: 
-      enabled: true
+      enabled: false
       brightness: 0.1
       contrast: 0.1
       saturation: 0.1
