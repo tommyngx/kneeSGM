@@ -118,13 +118,13 @@ def save_roc_curve(labels, positive_risk, class_names, output_dir, epoch=None, a
     confidence_lower = sorted_scores[int(0.025 * len(sorted_scores))]
     confidence_upper = sorted_scores[int(0.975 * len(sorted_scores))]
 
-    plt.figure(figsize=(9, 8))
+    plt.figure(figsize=(8, 8))
     plt.plot(fpr, tpr, color='darkred', lw=2, label=f'AUC: {roc_auc*100:.0f}% ({confidence_lower*100:.0f}% - {confidence_upper*100:.0f}%)')
     plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
     plt.xlim([-0.05, 1.05])
     plt.ylim([-0.05, 1.05])
-    plt.xlabel('100 - Specificity (%)', fontproperties=prop, fontsize=16)
-    plt.ylabel('Sensitivity (%)', fontproperties=prop, fontsize=16)
+    plt.xlabel('1 - Specificity', fontproperties=prop, fontsize=16)
+    plt.ylabel('Sensitivity', fontproperties=prop, fontsize=16)
     plt.xticks(np.arange(0, 1.1, step=0.20), labels=[f'{int(x*100)}%' for x in np.arange(0, 1.1, step=0.20)], fontsize=15)
     plt.yticks(np.arange(0, 1.1, step=0.20), labels=[f'{int(y*100)}%' for y in np.arange(0, 1.1, step=0.20)], fontsize=15)
     title = 'Receiver Operating Characteristic'
