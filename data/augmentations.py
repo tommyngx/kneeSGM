@@ -13,15 +13,15 @@ def get_augmentations(config_path='config/default.yaml', split='train'):
     augmentations = []
     
     # Always apply resize and normalize
+    augmentations.append(Resize(
+        height=config['data']['augmentations']['resize']['height'],
+        width=config['data']['augmentations']['resize']['width']
+    ))
+
     augmentations.append(Normalize(
         mean=config['data']['augmentations']['normalize']['mean'],
         std=config['data']['augmentations']['normalize']['std'],
         p=config['data']['augmentations']['normalize']['p']
-    ))
-
-    augmentations.append(Resize(
-        height=config['data']['augmentations']['resize']['height'],
-        width=config['data']['augmentations']['resize']['width']
     ))
 
     if split == 'train':
