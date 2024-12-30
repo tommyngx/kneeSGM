@@ -107,11 +107,14 @@ def main(config_path='config/default.yaml', model_name=None, epochs=None, resume
     
     criterion = nn.CrossEntropyLoss(weight=class_weights)
     optimizer = optim.Adam(model.parameters(), lr=config['training']['learning_rate'], weight_decay=config['training']['weight_decay'])
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=50, verbose=True)
     
     start_epoch = 0
     best_val_acc = 0.0
     training_history = {'accuracy': [], 'loss': [], 'val_accuracy': [], 'val_loss': []}
     best_models = []
+    early_stopping_patience = config['training'].get('early_stopping_patience', 10)
+    early_stopping_counter = 0
     
     if resume_from:
         checkpoint = torch.load(resume_from, weights_only=True)
@@ -153,6 +156,8 @@ def main(config_path='config/default.yaml', model_name=None, epochs=None, resume
         with open(os.path.join(output_dir, "logs", "training_log.txt"), "a") as f:
             f.write(f"Epoch {epoch+1}/{epochs}, Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f}, Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}\n")
         
+        scheduler.step(val_loss)
+        
         if val_acc > best_val_acc:
             checkpoint = {
                 'epoch': epoch,
@@ -168,12 +173,20 @@ def main(config_path='config/default.yaml', model_name=None, epochs=None, resume
             best_models.append((val_acc, model_path))
             best_models = sorted(best_models, key=lambda x: x[0], reverse=True)[:3]
             print("Best model saved!")
+            early_stopping_counter = 0  # Reset early stopping counter
+        else:
+            early_stopping_counter += 1
         
         # Remove models beyond the top 3
         for _, model_path in best_models[3:]:
             if os.path.exists(model_path):
                 os.remove(model_path)
         best_models = best_models[:3]  # Ensure best_models list only contains top 3
+        
+        # Early stopping
+        if early_stopping_counter >= early_stopping_patience:
+            print("Early stopping triggered.")
+            break
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Train a model for knee osteoarthritis classification.')
