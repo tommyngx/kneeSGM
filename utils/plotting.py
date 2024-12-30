@@ -39,7 +39,7 @@ def save_confusion_matrix(labels, preds, class_names, output_dir, epoch=None, ac
             annot[i, j] = f'{percent:.1f}%\n({count})'
     
     # Plot the heatmap
-    plt.figure(figsize=(8, 7))
+    plt.figure(figsize=(8, 8))
     ax = sns.heatmap(
         cm_normalized, 
         annot=annot, 
@@ -140,7 +140,7 @@ def save_roc_curve(labels, positive_risk, class_names, output_dir, epoch=None, a
     fig = plt.gcf()
     fig.patch.set_facecolor('white')  # Set the background color outside the plot area to white
     #plt.gca().set_facecolor('white')  # Set the background color inside the plot area to white
-    plt.subplots_adjust(left=0.12, right=0.95, top=0.9, bottom=0.10)
+    plt.subplots_adjust(left=0.20, right=0.95, top=0.9, bottom=0.10)
     filename = "roc_curve.png" if epoch is None else f"roc_curve_epoch_{epoch}_acc_{acc:.4f}.png"
     plt.savefig(os.path.join(output_dir, filename))
     plt.close()
