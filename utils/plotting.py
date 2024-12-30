@@ -82,7 +82,8 @@ def save_confusion_matrix(labels, preds, class_names, output_dir, epoch=None, ac
 
 def save_roc_curve(labels, positive_risk, class_names, output_dir, epoch=None, acc=None):
     # Apply ggplot style
-    plt.style.use('ggplot')
+    #plt.style.use('ggplot')
+    plt.style.use('default')
 
     # Download the font file if it does not exist
     font_url = 'https://github.com/tommyngx/style/blob/main/Poppins.ttf?raw=true'
