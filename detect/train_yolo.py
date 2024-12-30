@@ -11,7 +11,7 @@ def load_config(config_path):
 
 def train_yolo(dataset_location):
     config = load_config('config/default.yaml')  # Update this path to your config file
-    output_folder = config['output_dir'] + "yolo"
+    output_folder = config['output_dir'] + "/yolo"
     print("output_folder:", output_folder)
     command = [
         "yolo", "task=detect", "mode=train", "model=yolo11s.pt",
