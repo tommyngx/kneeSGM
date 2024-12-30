@@ -12,6 +12,18 @@ def get_augmentations(config_path='config/default.yaml', split='train'):
     config = load_config(config_path)
     augmentations = []
     
+    # Always apply resize and normalize
+    augmentations.append(Normalize(
+        mean=config['data']['augmentations']['normalize']['mean'],
+        std=config['data']['augmentations']['normalize']['std'],
+        p=config['data']['augmentations']['normalize']['p']
+    ))
+
+    augmentations.append(Resize(
+        height=config['data']['augmentations']['resize']['height'],
+        width=config['data']['augmentations']['resize']['width']
+    ))
+
     if split == 'train':
         if config['data']['augmentations']['horizontal_flip']['enabled']:
             augmentations.append(HorizontalFlip(p=config['data']['augmentations']['horizontal_flip']['p']))
@@ -21,10 +33,9 @@ def get_augmentations(config_path='config/default.yaml', split='train'):
             augmentations.append(Rotate(
                 limit=config['data']['augmentations']['rotate']['limit'], 
                 p=config['data']['augmentations']['rotate']['p'],
-                #border_mode=cv2.BORDER_CONSTANT,
-                #value=0
+                border_mode=cv2.BORDER_CONSTANT,
+                value=0
             ))
-
         if config['data']['augmentations']['color_jitter']['enabled']:
             augmentations.append(ColorJitter(
                 brightness=config['data']['augmentations']['color_jitter']['brightness'],
@@ -39,28 +50,6 @@ def get_augmentations(config_path='config/default.yaml', split='train'):
                 width=config['data']['augmentations']['random_crop']['width'],
                 p=config['data']['augmentations']['random_crop']['p']
             ))
-        if config['data']['augmentations']['resize']['enabled']:
-            augmentations.append(Resize(
-                height=config['data']['augmentations']['resize']['height'],
-                width=config['data']['augmentations']['resize']['width']
-            ))
-        if config['data']['augmentations']['normalize']['enabled']:
-            augmentations.append(Normalize(
-                mean=config['data']['augmentations']['normalize']['mean'],
-                std=config['data']['augmentations']['normalize']['std'],
-                p=config['data']['augmentations']['normalize']['p']
-            ))
-    
-    if split in ['val', 'test']:
-        augmentations.append(Resize(
-            height=config['data']['augmentations']['resize']['height'],
-            width=config['data']['augmentations']['resize']['width']
-        ))
-        augmentations.append(Normalize(
-            mean=config['data']['augmentations']['normalize']['mean'],
-            std=config['data']['augmentations']['normalize']['std'],
-            p=config['data']['augmentations']['normalize']['p']
-        ))
     
     augmentations.append(ToTensorV2())
     return Compose(augmentations)
