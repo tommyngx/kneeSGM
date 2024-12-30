@@ -21,9 +21,10 @@ def get_augmentations(config_path='config/default.yaml', split='train'):
             augmentations.append(Rotate(
                 limit=config['data']['augmentations']['rotate']['limit'], 
                 p=config['data']['augmentations']['rotate']['p'],
-                border_mode=cv2.BORDER_CONSTANT,
-                value=0
+                #border_mode=cv2.BORDER_CONSTANT,
+                #value=0
             ))
+
         if config['data']['augmentations']['color_jitter']['enabled']:
             augmentations.append(ColorJitter(
                 brightness=config['data']['augmentations']['color_jitter']['brightness'],
