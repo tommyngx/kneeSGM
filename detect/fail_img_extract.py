@@ -8,12 +8,12 @@ def load_config(config_path):
         config = yaml.safe_load(file)
     return config
 
-def resize_and_save_images(image_list, input_folder, output_folder, size=(640, 640)):
+def resize_and_save_images(image_list, dataset_location, output_folder, size=(640, 640)):
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
     
     for image_name in image_list:
-        image_path = os.path.join(input_folder, image_name)
+        image_path = os.path.join(dataset_location, image_name)
         if os.path.exists(image_path):
             img = cv2.imread(image_path)
             resized_img = cv2.resize(img, size)
@@ -22,7 +22,7 @@ def resize_and_save_images(image_list, input_folder, output_folder, size=(640, 6
         else:
             print(f"Image {image_path} not found.")
 
-def main(input_folder, config_path='config/default.yaml'):
+def main(dataset_location, config_path='config/default.yaml'):
     config = load_config(config_path)
     output_folder = os.path.join(config['output_dir'], 'fail_img')
     
@@ -41,12 +41,12 @@ def main(input_folder, config_path='config/default.yaml'):
         "88P2F0362KNEE01.png", "88P2F2657KNEE01.png"
     ]
     
-    resize_and_save_images(image_list, input_folder, output_folder)
+    resize_and_save_images(image_list, dataset_location , output_folder)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Extract and resize failed images")
-    parser.add_argument('--input_folder', type=str, required=True, help='Path to the input folder containing images')
+    parser.add_argument('--dataset_location', type=str, required=True, help='Path to the input folder containing images')
     parser.add_argument('--config', type=str, default='config/default.yaml', help='Path to the configuration file')
     args = parser.parse_args()
     
-    main(args.input_folder, args.config)
+    main(args.dataset_location, args.config)
