@@ -50,6 +50,10 @@ data:
       height: 256
       width: 256
       p: 0.5
+    zoom_out:
+      enabled: true
+      scale_limit: 0.2
+      p: 0.5
     normalize: 
       enabled: true
       mean: [0.485, 0.456, 0.406]

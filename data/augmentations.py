@@ -1,4 +1,4 @@
-from albumentations import Compose, HorizontalFlip, VerticalFlip, Rotate, ColorJitter, RandomCrop, Normalize, Resize
+from albumentations import Compose, HorizontalFlip, VerticalFlip, Rotate, ColorJitter, RandomCrop, Normalize, Resize, RandomScale
 from albumentations.pytorch import ToTensorV2
 import yaml
 import cv2
@@ -49,6 +49,11 @@ def get_augmentations(config_path='config/default.yaml', split='train'):
                 height=config['data']['augmentations']['random_crop']['height'],
                 width=config['data']['augmentations']['random_crop']['width'],
                 p=config['data']['augmentations']['random_crop']['p']
+            ))
+        if config['data']['augmentations']['zoom_out']['enabled']:
+            augmentations.append(RandomScale(
+                scale_limit=(-config['data']['augmentations']['zoom_out']['scale_limit'], 0),
+                p=config['data']['augmentations']['zoom_out']['p']
             ))
     
     augmentations.append(ToTensorV2())
