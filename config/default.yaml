@@ -36,7 +36,7 @@ data:
       p: 0.5
     rotate: 
       enabled: true
-      limit: 15
+      limit: 45
       p: 0.5
     color_jitter: 
       enabled: true
