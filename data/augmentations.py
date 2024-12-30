@@ -1,4 +1,4 @@
-from albumentations import Compose, HorizontalFlip, VerticalFlip, Rotate, ColorJitter, RandomCrop, Normalize, Resize, RandomScale
+from albumentations import Compose, HorizontalFlip, VerticalFlip, Rotate, ColorJitter, RandomCrop, Normalize, Resize, RandomScale, PadIfNeeded
 from albumentations.pytorch import ToTensorV2
 import yaml
 import cv2
@@ -34,13 +34,11 @@ def get_augmentations(config_path='config/default.yaml', split='train'):
         if config['data']['augmentations']['zoom_out']['enabled']:
             scale_limit = config['data']['augmentations']['zoom_out']['scale_limit']
             probability = config['data']['augmentations']['zoom_out']['p']
-            original_height = config['data']['augmentations']['resize']['height'],
+            original_height = config['data']['augmentations']['resize']['height']
             original_width = config['data']['augmentations']['resize']['width']
 
-            augmentations.append(A.Compose([
-                A.RandomScale(scale_limit=(-scale_limit, 0), p=probability),
-                A.PadIfNeeded(min_height=original_height, min_width=original_width, border_mode=cv2.BORDER_CONSTANT, value=0)
-            ]))
+            augmentations.append(RandomScale(scale_limit=(-scale_limit, 0), p=probability))
+            augmentations.append(PadIfNeeded(min_height=original_height, min_width=original_width, border_mode=cv2.BORDER_CONSTANT, value=0))
 
         if config['data']['augmentations']['rotate']['enabled']:
             augmentations.append(Rotate(
