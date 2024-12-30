@@ -32,14 +32,14 @@ data:
       enabled: true
       p: 0.5
     vertical_flip: 
-      enabled: false
+      enabled: true
       p: 0.5
     rotate: 
       enabled: true
-      limit: 10
+      limit: 15
       p: 0.5
     color_jitter: 
-      enabled: false
+      enabled: true
       brightness: 0.1
       contrast: 0.1
       saturation: 0.1
@@ -52,8 +52,10 @@ data:
       p: 0.5
     normalize: 
       enabled: true
-      mean: [0.485, 0.456, 0.406]
-      std: [0.229, 0.224, 0.225]
+      #mean: [0.485, 0.456, 0.406]
+      #std: [0.229, 0.224, 0.225]
+      mean: [0.0, 0.0, 0.0]
+      std: [1.0, 1.0, 1.0]
       p: 1.0
     resize:
       enabled: true
