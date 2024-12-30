@@ -74,9 +74,10 @@ model:
 # Training settings
 training:
   epochs: 50
-  learning_rate: 0.001
+  learning_rate: 0.01
   weight_decay: 0.0001
   early_stopping_patience: 50
+  lr_scheduler_patience: 50
   batch_size: 32
   optimizer: "Adam"
   evaluation_metrics: ["accuracy", "f1_score"]
