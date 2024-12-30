@@ -2,6 +2,7 @@ import os
 import cv2
 import yaml
 import argparse
+from tqdm import tqdm
 
 def load_config(config_path):
     with open(config_path, 'r') as file:
@@ -12,7 +13,7 @@ def resize_and_save_images(image_list, dataset_location, output_folder, size=(64
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
     
-    for image_name in image_list:
+    for image_name in tqdm(image_list, desc="Processing images"):
         image_path = os.path.join(dataset_location, image_name)
         if os.path.exists(image_path):
             img = cv2.imread(image_path)
