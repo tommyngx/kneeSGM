@@ -26,7 +26,7 @@ data:
   num_workers: 2
   class_labels: [0, 1, 2, 3, 4]
   class_names: ["None", "Doubtful", "Mild", "Moderate", "Severe"]
-  augmentation: true
+  augmentation: false #true
   augmentations:
     horizontal_flip: 
       enabled: true
