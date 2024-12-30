@@ -2,6 +2,7 @@ from albumentations import Compose, HorizontalFlip, VerticalFlip, Rotate, ColorJ
 from albumentations.pytorch import ToTensorV2
 import yaml
 import cv2
+import albumentations as A
 
 def load_config(config_path):
     with open(config_path, 'r') as file:
@@ -29,6 +30,18 @@ def get_augmentations(config_path='config/default.yaml', split='train'):
             augmentations.append(HorizontalFlip(p=config['data']['augmentations']['horizontal_flip']['p']))
         if config['data']['augmentations']['vertical_flip']['enabled']:
             augmentations.append(VerticalFlip(p=config['data']['augmentations']['vertical_flip']['p']))
+
+        if config['data']['augmentations']['zoom_out']['enabled']:
+            scale_limit = config['data']['augmentations']['zoom_out']['scale_limit']
+            probability = config['data']['augmentations']['zoom_out']['p']
+            original_height = config['data']['augmentations']['resize']['height'],
+            original_width = config['data']['augmentations']['resize']['width']
+
+            augmentations.append(A.Compose([
+                A.RandomScale(scale_limit=(-scale_limit, 0), p=probability),
+                A.PadIfNeeded(min_height=original_height, min_width=original_width, border_mode=cv2.BORDER_CONSTANT, value=0)
+            ]))
+
         if config['data']['augmentations']['rotate']['enabled']:
             augmentations.append(Rotate(
                 limit=config['data']['augmentations']['rotate']['limit'], 
@@ -50,11 +63,6 @@ def get_augmentations(config_path='config/default.yaml', split='train'):
                 width=config['data']['augmentations']['random_crop']['width'],
                 p=config['data']['augmentations']['random_crop']['p']
             ))
-        #if config['data']['augmentations']['zoom_out']['enabled']:
-        #    augmentations.append(RandomScale(
-        #        scale_limit=(-config['data']['augmentations']['zoom_out']['scale_limit'], 0),
-        #        p=config['data']['augmentations']['zoom_out']['p']
-        #    ))
     
     augmentations.append(ToTensorV2())
     return Compose(augmentations)
