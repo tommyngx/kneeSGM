@@ -16,7 +16,7 @@ def train_yolo(dataset_location, model):
     command = [
         "yolo", "task=detect", "mode=train", f"model={model}",
         f"data={dataset_location}/data.yaml", "epochs=4000", "imgsz=640", "plots=True",
-        f"project={output_folder}", "patience=1000"
+        f"project={output_folder}", "patience=1000", "fliplr= 0.0"
     ]
     subprocess.run(command, check=True)
 
