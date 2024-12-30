@@ -35,14 +35,14 @@ data:
       p: 0.5
     rotate: 
       enabled: true
-      limit: 10
+      limit: 15
       p: 0.5
     color_jitter: 
       enabled: true
-      brightness: 0.2
-      contrast: 0.2
-      saturation: 0.2
-      hue: 0.2
+      brightness: 0.1
+      contrast: 0.1
+      saturation: 0.1
+      hue: 0.1
       p: 0.5
     random_crop: 
       enabled: false

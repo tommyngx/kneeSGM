@@ -1,6 +1,7 @@
 from albumentations import Compose, HorizontalFlip, VerticalFlip, Rotate, ColorJitter, RandomCrop, Normalize, Resize
 from albumentations.pytorch import ToTensorV2
 import yaml
+import cv2
 
 def load_config(config_path):
     with open(config_path, 'r') as file:
@@ -17,7 +18,13 @@ def get_augmentations(config_path='config/default.yaml', split='train'):
         if config['data']['augmentations']['vertical_flip']['enabled']:
             augmentations.append(VerticalFlip(p=config['data']['augmentations']['vertical_flip']['p']))
         if config['data']['augmentations']['rotate']['enabled']:
-            augmentations.append(Rotate(limit=config['data']['augmentations']['rotate']['limit'], p=config['data']['augmentations']['rotate']['p']))
+            augmentations.append(Rotate(
+                limit=config['data']['augmentations']['rotate']['limit'], 
+                p=config['data']['augmentations']['rotate']['p'],
+                border_mode=cv2.BORDER_CONSTANT,
+                value=0,
+                fit_output=True
+            ))
         if config['data']['augmentations']['color_jitter']['enabled']:
             augmentations.append(ColorJitter(
                 brightness=config['data']['augmentations']['color_jitter']['brightness'],
