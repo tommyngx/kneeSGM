@@ -101,6 +101,16 @@ def save_roc_curve(labels, positive_risk, class_names, output_dir, epoch=None, a
     labels = np.array(labels)
     labels = np.where(labels > 1, 1, 0)
 
+    # Handle NaN values in labels and positive_risk
+    mask = ~np.isnan(positive_risk) & ~np.isnan(labels)
+    labels = labels[mask]
+    positive_risk = positive_risk[mask]
+
+    # Compute ROC curve safely
+    if len(np.unique(labels)) < 2:
+        print("Insufficient unique labels to compute ROC curve.")
+        return
+
     # Plot ROC curve
     fpr, tpr, _ = roc_curve(labels, positive_risk, pos_label=1)
     roc_auc = auc(fpr, tpr)
