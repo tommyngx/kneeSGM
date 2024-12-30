@@ -39,7 +39,7 @@ def save_confusion_matrix(labels, preds, class_names, output_dir, epoch=None, ac
             annot[i, j] = f'{percent:.1f}%\n({count})'
     
     # Plot the heatmap
-    plt.figure(figsize=(10, 8))
+    plt.figure(figsize=(8, 7))
     ax = sns.heatmap(
         cm_normalized, 
         annot=annot, 
@@ -118,7 +118,7 @@ def save_roc_curve(labels, positive_risk, class_names, output_dir, epoch=None, a
     confidence_lower = sorted_scores[int(0.025 * len(sorted_scores))]
     confidence_upper = sorted_scores[int(0.975 * len(sorted_scores))]
 
-    plt.figure(figsize=(8, 8))
+    plt.figure(figsize=(8, 7))
     plt.plot(fpr, tpr, color='darkred', lw=2, label=f'AUC: {roc_auc*100:.0f}% ({confidence_lower*100:.0f}% - {confidence_upper*100:.0f}%)')
     plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
     plt.xlim([-0.05, 1.05])
