@@ -5,7 +5,7 @@ import random
 import cv2
 
 def detect_yolo(dataset_location, model, conf):
-    test_images_dir = os.path.join(dataset_location, 'test/images')
+    test_images_dir = os.path.join(dataset_location, '')
     if not os.path.exists(test_images_dir):
         raise FileNotFoundError(f"Test images directory '{test_images_dir}' not found.")
     
