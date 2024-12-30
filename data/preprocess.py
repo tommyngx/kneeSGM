@@ -13,8 +13,8 @@ def get_transforms(image_size, config_path='config/default.yaml'):
     train_transform = get_augmentations(config_path, split='train')
     val_transform = get_augmentations(config_path, split='val')
 
-    mean = config['augmentations']['normalize']['mean']
-    std = config['augmentations']['normalize']['std']
+    mean = config['data']['augmentations']['normalize']['mean']
+    std = config['data']['augmentations']['normalize']['std']
 
     train_transform = transforms.Compose([
         transforms.Resize((image_size, image_size)),
