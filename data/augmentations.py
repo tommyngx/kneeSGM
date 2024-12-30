@@ -50,11 +50,11 @@ def get_augmentations(config_path='config/default.yaml', split='train'):
                 width=config['data']['augmentations']['random_crop']['width'],
                 p=config['data']['augmentations']['random_crop']['p']
             ))
-        if config['data']['augmentations']['zoom_out']['enabled']:
-            augmentations.append(RandomScale(
-                scale_limit=(-config['data']['augmentations']['zoom_out']['scale_limit'], 0),
-                p=config['data']['augmentations']['zoom_out']['p']
-            ))
+        #if config['data']['augmentations']['zoom_out']['enabled']:
+        #    augmentations.append(RandomScale(
+        #        scale_limit=(-config['data']['augmentations']['zoom_out']['scale_limit'], 0),
+        #        p=config['data']['augmentations']['zoom_out']['p']
+        #    ))
     
     augmentations.append(ToTensorV2())
     return Compose(augmentations)
