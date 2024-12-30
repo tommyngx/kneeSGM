@@ -8,30 +8,21 @@ from matplotlib import font_manager
 from scipy import interp
 from sklearn.utils import resample
 
-def save_confusion_matrix_ori(labels, preds, class_names, output_dir, epoch=None, acc=None):
-    cm = confusion_matrix(labels, preds)
-    cm_normalized = cm.astype("float") / cm.sum(axis=1)[:, np.newaxis]
-    
-    plt.figure(figsize=(10, 8))
-    sns.heatmap(cm_normalized, annot=True, fmt=".0f", cmap="Purples", xticklabels=class_names, yticklabels=class_names, cbar=False)
-    
-    plt.xlabel("Predicted")
-    plt.ylabel("Actual")
-    title = "Confusion Matrix"
-    if epoch is not None:
-        title += f" - Epoch {epoch}"
-    plt.title(title)
-    
-    filename = "confusion_matrix.png" if epoch is None else f"confusion_matrix_epoch_{epoch}_acc_{acc:.4f}.png"
-    plt.savefig(os.path.join(output_dir, filename))
-    plt.close()
-    
-    # Keep only the best top 3 confusion matrices based on accuracy
-    saved_files = sorted([f for f in os.listdir(output_dir) if f.startswith("confusion_matrix_epoch_")], key=lambda x: float(x.split('_acc_')[-1].split('.png')[0]), reverse=True)
-    for file in saved_files[3:]:
-        os.remove(os.path.join(output_dir, file))
-
 def save_confusion_matrix(labels, preds, class_names, output_dir, epoch=None, acc=None):
+    plt.style.use('default')
+    
+    # Download the font file if it does not exist
+    font_url = 'https://github.com/tommyngx/style/blob/main/Poppins.ttf?raw=true'
+    font_path = 'Poppins.ttf'
+    if not os.path.exists(font_path):
+        response = requests.get(font_url)
+        with open(font_path, 'wb') as f:
+            f.write(response.content)
+
+    # Load the font
+    font_manager.fontManager.addfont(font_path)
+    prop = font_manager.FontProperties(fname=font_path)
+
     # Compute confusion matrix
     cm = confusion_matrix(labels, preds)
     
@@ -65,12 +56,12 @@ def save_confusion_matrix(labels, preds, class_names, output_dir, epoch=None, ac
     cbar.set_ticks(ticks)  # Set specific ticks
     cbar.ax.set_yticklabels([f'{int(t * 100)}%' for t in ticks])    
     
-    plt.xlabel("Predicted")
-    plt.ylabel("Actual")
+    plt.xlabel("Predicted", fontproperties=prop, fontsize=16)
+    plt.ylabel("Actual", fontproperties=prop, fontsize=16)
     title = "Confusion Matrix"
     if epoch is not None:
         title += f" - Epoch {epoch}"
-    plt.title(title)
+    plt.title(title, fontproperties=prop, fontsize=18)
     
     # Adjust layout to leave some space around the plot
     #plt.subplots_adjust(left=0.10, right=0.90, top=0.90, bottom=0.10)
@@ -93,12 +84,13 @@ def save_roc_curve(labels, positive_risk, class_names, output_dir, epoch=None, a
     # Apply ggplot style
     plt.style.use('ggplot')
 
-    # Download the font file
+    # Download the font file if it does not exist
     font_url = 'https://github.com/tommyngx/style/blob/main/Poppins.ttf?raw=true'
     font_path = 'Poppins.ttf'
-    response = requests.get(font_url)
-    with open(font_path, 'wb') as f:
-        f.write(response.content)
+    if not os.path.exists(font_path):
+        response = requests.get(font_url)
+        with open(font_path, 'wb') as f:
+            f.write(response.content)
 
     # Load the font
     font_manager.fontManager.addfont(font_path)

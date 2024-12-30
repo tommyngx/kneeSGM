@@ -6,6 +6,8 @@ import cv2
 import matplotlib.pyplot as plt
 from PIL import Image
 from .utils import blue_to_gray_np, red_to_gray_np, red_to_0_np
+from matplotlib import font_manager
+import requests
 
 def register_hooks(model, image, target_layer):
     model.eval()
@@ -197,9 +199,22 @@ def show_cam_on_image(img, mask, use_rgb=False):
     return cam
 
 def save_random_predictions(model, dataloader, device, output_dir, epoch, class_names, use_gradcam_plus_plus=False, target_layer=None, acc=None, model_name=None):
+    plt.style.use('default')
     if model_name is None:
         raise ValueError("model_name must be provided")
     
+    # Download the font file if it does not exist
+    font_url = 'https://github.com/tommyngx/style/blob/main/Poppins.ttf?raw=true'
+    font_path = 'Poppins.ttf'
+    if not os.path.exists(font_path):
+        response = requests.get(font_url)
+        with open(font_path, 'wb') as f:
+            f.write(response.content)
+
+    # Load the font
+    font_manager.fontManager.addfont(font_path)
+    prop = font_manager.FontProperties(fname=font_path)
+
     model.eval()
     images, labels = next(iter(dataloader))
     images, labels = images.to(device), labels.to(device)
@@ -220,11 +235,11 @@ def save_random_predictions(model, dataloader, device, output_dir, epoch, class_
         cam_image = show_cam_on_image(img, heatmap, use_rgb=True)
         
         axes[i, 0].imshow(img)
-        axes[i, 0].set_title(f"Image {i+1}\nLabel: {class_names[label]}\nPred: {class_names[pred]}")
+        axes[i, 0].set_title(f"Image {i+1}\nLabel: {class_names[label]}\nPred: {class_names[pred]}", fontproperties=prop, fontsize=18)
         axes[i, 0].axis('off')
         
         axes[i, 1].imshow(cam_image)
-        axes[i, 1].set_title(f"Grad-CAM {i+1}\nLabel: {class_names[label]}\nPred: {class_names[pred]}")
+        axes[i, 1].set_title(f"Grad-CAM {i+1}\nLabel: {class_names[label]}\nPred: {class_names[pred]}", fontproperties=prop, fontsize=18)
         axes[i, 1].axis('off')
         
         if i + 4 < len(images):
@@ -239,11 +254,11 @@ def save_random_predictions(model, dataloader, device, output_dir, epoch, class_
             cam_image = show_cam_on_image(img, heatmap, use_rgb=True)
             
             axes[i, 2].imshow(img)
-            axes[i, 2].set_title(f"Image {i+5}\nLabel: {class_names[label]}\nPred: {class_names[pred]}")
+            axes[i, 2].set_title(f"Image {i+5}\nLabel: {class_names[label]}\nPred: {class_names[pred]}", fontproperties=prop, fontsize=18)
             axes[i, 2].axis('off')
             
             axes[i, 3].imshow(cam_image)
-            axes[i, 3].set_title(f"Grad-CAM {i+5}\nLabel: {class_names[label]}\nPred: {class_names[pred]}")
+            axes[i, 3].set_title(f"Grad-CAM {i+5}\nLabel: {class_names[label]}\nPred: {class_names[pred]}", fontproperties=prop, fontsize=18)
             axes[i, 3].axis('off')
     
     plt.tight_layout()
