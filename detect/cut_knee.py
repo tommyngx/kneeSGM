@@ -4,6 +4,7 @@ import random
 import cv2
 from ultralytics import YOLO
 import yaml
+from tqdm import tqdm
 
 def load_config(config_path):
     with open(config_path, 'r') as file:
@@ -19,6 +20,16 @@ def load_random_image(dataset_location):
     image_path = os.path.join(dataset_location, random_image)
     img = cv2.imread(image_path)
     return img, image_path
+
+def load_all_images(dataset_location):
+    images = [img for img in os.listdir(dataset_location) if img.endswith(('.jpg', '.jpeg', '.png'))]
+    if not images:
+        raise FileNotFoundError("No images found in the dataset location.")
+    
+    for image_name in images:
+        image_path = os.path.join(dataset_location, image_name)
+        img = cv2.imread(image_path)
+        yield img, image_path
 
 def adjust_bounding_box(x1, y1, x2, y2, img_width, img_height):
     box_width = x2 - x1
@@ -44,44 +55,59 @@ def save_cropped_images(img, boxes, names, image_path, output_dir):
     for i, box in enumerate(boxes):
         class_id = int(box.cls.item())
         name = names[class_id]
+        if base_name == "58P2F2036KNEE01" and name == "Deformity":
+            continue
         x1, y1, x2, y2 = map(int, box.xyxy[0])
         x1, y1, x2, y2 = adjust_bounding_box(x1, y1, x2, y2, img_width, img_height)
         cropped_img = img[y1:y2, x1:x2]
         output_path = os.path.join(output_dir, f"{base_name}_{name[0]}.png")
         cv2.imwrite(output_path, cropped_img)
 
-def main(dataset_location, model_path, config_path='config/default.yaml'):
+def process_images(dataset_location, model, output_dir, source_type):
+    ignore_images = [
+        "76P2F2152KNEE02.png", "76P2F2152KNEE01.png", "73P2F0268KNEE01.png", 
+        "66P2M4404KNEE01.png", "59P2M4280KNEE01.png", "58P2F2036KNEE01.png", 
+        "47P2F0352KNEE02.png"
+    ]
+    
+    if source_type == 'random':
+        img, image_path = load_random_image(dataset_location)
+        results = model(img, verbose=False)
+        boxes = results[0].boxes
+        names = results[0].names
+        save_cropped_images(img, boxes, names, image_path, output_dir)
+        
+        # Print output
+        print(f"Image path: {image_path}")
+        print("Bounding boxes and names:")
+        for box in boxes:
+            class_id = int(box.cls.item())
+            print(f"Box: {box.xyxy}, Name: {names[class_id]}")
+    else:
+        for img, image_path in tqdm(load_all_images(dataset_location), desc="Processing images"):
+            if os.path.basename(image_path) in ignore_images:
+                continue
+            results = model(img, verbose=False)
+            boxes = results[0].boxes
+            names = results[0].names
+            save_cropped_images(img, boxes, names, image_path, output_dir)
+
+def main(dataset_location, model_path, source_type, config_path='config/default.yaml'):
     config = load_config(config_path)
     output_dir = os.path.join(config['output_dir'], 'yolo', 'runs', 'processed')
     
     # Load model
     model = YOLO(model_path)
     
-    # Load random image
-    img, image_path = load_random_image(dataset_location)
-    
-    # Predict
-    results = model(img, verbose=False)
-    
-    # Extract bounding boxes and names
-    boxes = results[0].boxes
-    names = results[0].names
-    
-    # Save cropped images
-    save_cropped_images(img, boxes, names, image_path, output_dir)
-    
-    # Print output
-    print(f"Image path: {image_path}")
-    print("Bounding boxes and names:")
-    for box in boxes:
-        class_id = int(box.cls.item())
-        print(f"Box: {box.xyxy}, Name: {names[class_id]}")
+    # Process images
+    process_images(dataset_location, model, output_dir, source_type)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Predict using a YOLO model on a random image from the dataset and save cropped bounding boxes")
+    parser = argparse.ArgumentParser(description="Predict using a YOLO model on images from the dataset and save cropped bounding boxes")
     parser.add_argument('--dataset_location', type=str, required=True, help='Path to the dataset location')
     parser.add_argument('--model', type=str, required=True, help='Path to the YOLO model file')
+    parser.add_argument('--source_type', type=str, choices=['random', 'folder'], default='random', help='Source type: random image or whole folder')
     parser.add_argument('--config', type=str, default='config/default.yaml', help='Path to the configuration file')
     args = parser.parse_args()
     
-    main(args.dataset_location, args.model, args.config)
+    main(args.dataset_location, args.model, args.source_type, args.config)
