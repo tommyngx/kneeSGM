@@ -3,9 +3,17 @@ import subprocess
 import argparse
 import random
 import cv2
-import sys
+import yaml
 
-def detect_yolo(dataset_location, model, conf, source_type, log_file, save=True):
+def load_config(config_path):
+    with open(config_path, 'r') as file:
+        config = yaml.safe_load(file)
+    return config
+
+def detect_yolo(dataset_location, model, conf, source_type, log_file, save=True, config_path='config/default.yaml'):
+    config = load_config(config_path)
+    project = config['output_dir']
+    
     test_images_dir = os.path.join(dataset_location, '')
     if not os.path.exists(test_images_dir):
         raise FileNotFoundError(f"Test images directory '{test_images_dir}' not found.")
@@ -22,7 +30,7 @@ def detect_yolo(dataset_location, model, conf, source_type, log_file, save=True)
     
     command = [
         "yolo", "task=detect", "mode=predict", f"model={model}",
-        f"conf={conf}", f"source={source}", f"save={save}"
+        f"conf={conf}", f"source={source}", f"save={save}", f"project={project}"
     ]
     
     output_dir = os.path.join(os.getcwd(), 'runs/detect/predict')
@@ -54,6 +62,7 @@ if __name__ == "__main__":
     parser.add_argument('--source_type', type=str, choices=['random', 'folder'], default='random', help='Source type: random image or whole folder')
     parser.add_argument('--log_file', type=str, default='detect_yolo_log.txt', help='Name of the log file')
     parser.add_argument('--save', type=bool, default=True, help='Whether to save the output images')
+    parser.add_argument('--config', type=str, default='config/default.yaml', help='Path to the configuration file')
     args = parser.parse_args()
     
-    detect_yolo(args.dataset_location, args.model, args.conf, args.source_type, args.log_file, args.save)
+    detect_yolo(args.dataset_location, args.model, args.conf, args.source_type, args.log_file, args.save, args.config)
