@@ -16,7 +16,7 @@ def concatenate_metadata(folder_base, output_name):
     if all_metadata:
         concatenated_metadata = pd.concat(all_metadata, ignore_index=True)
         output_path = os.path.join(folder_base, output_name)
-        concatenated_metadata.to_csv(output_path, index=False)
+        concatenated_metadata.to_csv(f"{output_path}.csv", index=False)
         print(f"Concatenated metadata saved to {output_path}")
     else:
         print("No metadata files found.")
