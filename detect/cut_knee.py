@@ -84,7 +84,8 @@ def process_images(dataset_location, model, output_dir, source_type):
             class_id = int(box.cls.item())
             print(f"Box: {box.xyxy}, Name: {names[class_id]}")
     else:
-        for img, image_path in tqdm(load_all_images(dataset_location), desc="Processing images"):
+        images = list(load_all_images(dataset_location))
+        for img, image_path in tqdm(images, desc="Processing images", total=len(images)):
             if os.path.basename(image_path) in ignore_images:
                 continue
             results = model(img, verbose=False)
