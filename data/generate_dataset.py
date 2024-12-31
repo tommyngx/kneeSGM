@@ -41,6 +41,7 @@ def generate_dataset(input_folder, metadata_csv, output_dir, data_name, seed):
     for kl in range(5):
         os.makedirs(os.path.join(train_dir, str(kl)), exist_ok=True)
         os.makedirs(os.path.join(test_dir, str(kl)), exist_ok=True)
+        os.makedirs(os.path.join(output_dir, str(kl)), exist_ok=True)
     
     metaraw_data = []
     id_split = {}
@@ -67,6 +68,9 @@ def generate_dataset(input_folder, metadata_csv, output_dir, data_name, seed):
                     split = id_split[id_value]
                     kl_output_dir = os.path.join(output_dir, split, str(kl_value))
                     cv2.imwrite(os.path.join(kl_output_dir, new_name), img)
+                    
+                    # Save a copy in the KL folder outside of TRAIN and TEST
+                    cv2.imwrite(os.path.join(output_dir, str(kl_value), new_name), img)
                     
                     metaraw_data.append({
                         'data': data_name,
