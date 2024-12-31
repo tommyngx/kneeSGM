@@ -28,18 +28,23 @@ def detect_yolo(dataset_location, model, conf, source_type, log_file, save=True,
     else:
         source = test_images_dir
     
+    project2 = os.path.join(project, 'yolo', 'runs')
     command = [
         "yolo", "task=detect", "mode=predict", f"model={model}",
         f"conf={conf}", f"source={source}", f"save={save}", f"project={project}"
     ]
     
-    output_dir = os.path.join(project, 'yolo/test/runs')
+    output_dir = os.path.join(project, 'yolo')
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     log_file_path = os.path.join(output_dir, log_file)
     
     with open(log_file_path, 'w') as f:
-        subprocess.run(command, check=True, stdout=f, stderr=subprocess.STDOUT)
+        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
+        for line in process.stdout:
+            print(line, end='')
+            f.write(line)
+        process.wait()
     
     if not os.path.exists(output_dir):
         raise FileNotFoundError(f"Output directory '{output_dir}' not found.")
