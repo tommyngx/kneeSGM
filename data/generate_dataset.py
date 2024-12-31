@@ -43,7 +43,9 @@ def generate_dataset(input_folder, metadata_csv, output_dir, data_name):
             id_value = sex_id[1:]
             sex = sex_id[0]
             
-            row = metadata[(metadata['ID'] == int(id_value)) & (metadata['Sex'] == sex)]
+            id_value2 = int(id_value) if id_value.isdigit() else 'NoID'
+            
+            row = metadata[(metadata['ID'] == id_value2) & (metadata['Sex'] == sex)]
             if not row.empty:
                 kl_value = get_kl_value(row.iloc[0], knee_side)
                 if kl_value is not None:
