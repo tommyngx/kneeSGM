@@ -12,6 +12,8 @@ def concatenate_metadata(folder_base, output_name, save_link=None):
             if os.path.exists(metadata_path):
                 metadata = pd.read_csv(metadata_path)
                 metadata['split'] = metadata['split'].replace('VAL', 'TEST')
+                if subfolder == 'VOSP2':
+                    metadata['path_relative'] = 'VOSP2/' + metadata['path_relative']
                 all_metadata.append(metadata)
     
     if all_metadata:
@@ -22,8 +24,6 @@ def concatenate_metadata(folder_base, output_name, save_link=None):
         print(f"Concatenated metadata saved to {output_path}")
         
         if save_link:
-            #with open(save_link, 'w') as f:
-            #   f.write(f"{output_path}.csv")
             concatenated_metadata.to_csv(f"{save_link}/{output_name}.csv", index=False)
             print(f"Link to metadata saved to {save_link}")
     else:
