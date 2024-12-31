@@ -82,7 +82,7 @@ def generate_dataset(input_folder, metadata_csv, output_dir, data_name, seed):
                     })
     
     metaraw_df = pd.DataFrame(metaraw_data)
-    metaraw_df.to_csv(os.path.join(output_dir, 'metaraw.csv'), index=False)
+    metaraw_df.to_csv(os.path.join(output_dir, 'metadata.csv'), index=False)
 
 def main(input_folder, metadata_csv, data_name, config_path='config/default.yaml', seed=2024):
     config = load_config(config_path)
