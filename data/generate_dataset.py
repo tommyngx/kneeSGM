@@ -58,11 +58,11 @@ def generate_dataset(input_folder, metadata_csv, output_dir, data_name):
                         'data': data_name,
                         'ID': new_name,
                         'KL': kl_value,
-                        'path': f"{data_name}/{kl_value}/{new_name}"
+                        'path': f"{data_name}/{kl_value}/{new_name}",
+                        'split': 'TRAIN' if random.random() < 0.8 else 'TEST'
                     })
     
     metaraw_df = pd.DataFrame(metaraw_data)
-    metaraw_df['split'] = metaraw_df['ID'].apply(lambda x: 'TRAIN' if random.random() < 0.8 else 'TEST')
     metaraw_df.to_csv(os.path.join(output_dir, 'metaraw.csv'), index=False)
 
 def main(input_folder, metadata_csv, data_name, config_path='config/default.yaml'):
