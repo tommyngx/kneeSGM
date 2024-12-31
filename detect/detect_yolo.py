@@ -34,7 +34,7 @@ def detect_yolo(dataset_location, model, conf, source_type, log_file, save=True,
         f"conf={conf}", f"source={source}", f"save={save}", f"project={project2}"
     ]
     
-    output_dir = os.path.join(project, 'yolo')
+    output_dir = os.path.join(project, 'yolo', 'runs')
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     log_file_path = os.path.join(output_dir, log_file)
