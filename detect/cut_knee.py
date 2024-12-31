@@ -22,7 +22,7 @@ def main(dataset_location, model_path):
     img, image_path = load_random_image(dataset_location)
     
     # Predict
-    results = model(img)
+    results = model(img, verbose=False)
     
     # Extract bounding boxes and names
     boxes = results[0].boxes
