@@ -30,7 +30,8 @@ def get_kl_value(row, knee_side):
     else:
         return None
 
-def generate_dataset(input_folder, metadata_csv, output_dir, data_name):
+def generate_dataset(input_folder, metadata_csv, output_dir, data_name, seed):
+    random.seed(seed)
     metadata = load_metadata(metadata_csv)
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
@@ -79,11 +80,11 @@ def generate_dataset(input_folder, metadata_csv, output_dir, data_name):
     metaraw_df = pd.DataFrame(metaraw_data)
     metaraw_df.to_csv(os.path.join(output_dir, 'metaraw.csv'), index=False)
 
-def main(input_folder, metadata_csv, data_name, config_path='config/default.yaml'):
+def main(input_folder, metadata_csv, data_name, config_path='config/default.yaml', seed=2024):
     config = load_config(config_path)
     output_dir = os.path.join(config['output_dir'], 'yolo', 'runs', data_name)
     
-    generate_dataset(input_folder, metadata_csv, output_dir, data_name)
+    generate_dataset(input_folder, metadata_csv, output_dir, data_name, seed)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate dataset based on metadata and image files")
@@ -91,6 +92,7 @@ if __name__ == "__main__":
     parser.add_argument('--metadata_csv', type=str, required=True, help='Path to the metadata CSV file')
     parser.add_argument('--data_name', type=str, required=True, help='Name of the dataset')
     parser.add_argument('--config', type=str, default='config/default.yaml', help='Path to the configuration file')
+    parser.add_argument('--seed', type=int, default=2024, help='Random seed for splitting the dataset')
     args = parser.parse_args()
     
-    main(args.input_folder, args.metadata_csv, args.data_name, args.config)
+    main(args.input_folder, args.metadata_csv, args.data_name, args.config, args.seed)
