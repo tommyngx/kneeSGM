@@ -42,7 +42,8 @@ def detect_yolo(dataset_location, model, conf, source_type, log_file, save=True,
     with open(log_file_path, 'w') as f:
         process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
         for line in process.stdout:
-            print(line, end='')
+            line2 = line.replace("/projects/OsteoLab/Tommy/KneeOA/VOS_Phase2", '" "')
+            print(line2, end='')
             f.write(line)
         process.wait()
     
