@@ -36,7 +36,8 @@ def generate_dataset(input_folder, metadata_csv, output_dir, data_name):
         os.makedirs(output_dir)
     
     metaraw_data = []
-    
+    id_split = {}
+
     for image_name in tqdm(os.listdir(input_folder), desc="Processing images"):
         if image_name.endswith(('.jpg', '.jpeg', '.png')):
             age, sex_id, knee_side = parse_filename(image_name)
@@ -52,7 +53,12 @@ def generate_dataset(input_folder, metadata_csv, output_dir, data_name):
                 if kl_value is not None:
                     img = cv2.imread(os.path.join(input_folder, image_name))
                     new_name = f"{age}P2{sex}{id_value}{knee_side}{kl_value}.png"
-                    kl_output_dir = os.path.join(output_dir, str(kl_value))
+                    
+                    if id_value not in id_split:
+                        id_split[id_value] = 'TRAIN' if random.random() < 0.8 else 'TEST'
+                    
+                    split = id_split[id_value]
+                    kl_output_dir = os.path.join(output_dir, split, str(kl_value))
                     if not os.path.exists(kl_output_dir):
                         os.makedirs(kl_output_dir)
                     cv2.imwrite(os.path.join(kl_output_dir, new_name), img)
@@ -62,7 +68,8 @@ def generate_dataset(input_folder, metadata_csv, output_dir, data_name):
                         'ID': new_name,
                         'KL': kl_value,
                         'path': f"{data_name}/{kl_value}/{new_name}",
-                        'split': 'TRAIN' if random.random() < 0.8 else 'TEST'
+                        'split': split,
+                        'path_relative': f"{data_name}/{split}/{kl_value}/{new_name}"
                     })
     
     metaraw_df = pd.DataFrame(metaraw_data)
