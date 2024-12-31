@@ -48,9 +48,17 @@ def save_cropped_images(img, boxes, names, image_path, output_dir):
     
     base_name = os.path.basename(image_path).split('.')[0]
     img_height, img_width = img.shape[:2]
+    
+    # Keep only the bounding box with the highest confidence for each name
+    unique_boxes = {}
     for i, box in enumerate(boxes):
         class_id = int(box.cls.item())
         name = names[class_id]
+        conf = box.conf.item()
+        if name not in unique_boxes or conf > unique_boxes[name][1]:
+            unique_boxes[name] = (box, conf)
+    
+    for name, (box, _) in unique_boxes.items():
         if base_name == "58P2F2036KNEE01" and name == "Deformity":
             continue
         x1, y1, x2, y2 = map(int, box.xyxy[0])
