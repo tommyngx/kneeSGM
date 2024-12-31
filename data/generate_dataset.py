@@ -35,6 +35,12 @@ def generate_dataset(input_folder, metadata_csv, output_dir, data_name):
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     
+    train_dir = os.path.join(output_dir, 'TRAIN')
+    test_dir = os.path.join(output_dir, 'TEST')
+    for kl in range(5):
+        os.makedirs(os.path.join(train_dir, str(kl)), exist_ok=True)
+        os.makedirs(os.path.join(test_dir, str(kl)), exist_ok=True)
+    
     metaraw_data = []
     id_split = {}
 
@@ -59,8 +65,6 @@ def generate_dataset(input_folder, metadata_csv, output_dir, data_name):
                     
                     split = id_split[id_value]
                     kl_output_dir = os.path.join(output_dir, split, str(kl_value))
-                    if not os.path.exists(kl_output_dir):
-                        os.makedirs(kl_output_dir)
                     cv2.imwrite(os.path.join(kl_output_dir, new_name), img)
                     
                     metaraw_data.append({
