@@ -31,9 +31,11 @@ def parse_filename(filename, data_name):
 
 def get_kl_value(row, knee_side):
     if knee_side == 'L':
-        return row['KL_Left']
-    elif knee_side == 'R':
+        #return row['KL_Left']
         return row['KL_Right']
+    elif knee_side == 'R':
+        #return row['KL_Right']
+        return row['KL_Left']
     else:
         return None
 

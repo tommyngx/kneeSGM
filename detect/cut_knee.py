@@ -80,7 +80,8 @@ def process_images(dataset_location, model, output_dir, source_type, dataX):
     ignore_images = [
         "76P2F2152KNEE02.png", "76P2F2152KNEE01.png", "73P2F0268KNEE01.png", 
         "66P2M4404KNEE01.png", "59P2M4280KNEE01.png", "58P2F2036KNEE01.png", 
-        "47P2F0352KNEE02.png"
+        "47P2F0352KNEE02.png", "45P2M4396KNEE01.png", "45P2M4396KNEE02.png",
+        "45P2M4396KNEE04.png",
     ]
     
     if source_type == 'random':
