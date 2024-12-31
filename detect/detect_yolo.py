@@ -31,7 +31,7 @@ def detect_yolo(dataset_location, model, conf, source_type, log_file, save=True,
     project2 = os.path.join(project, 'yolo', 'runs')
     command = [
         "yolo", "task=detect", "mode=predict", f"model={model}",
-        f"conf={conf}", f"source={source}", f"save={save}", f"project={project}"
+        f"conf={conf}", f"source={source}", f"save={save}", f"project={project2}"
     ]
     
     output_dir = os.path.join(project, 'yolo')
