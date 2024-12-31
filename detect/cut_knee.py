@@ -11,18 +11,27 @@ def load_config(config_path):
         config = yaml.safe_load(file)
     return config
 
-def load_random_image(dataset_location):
-    images = [img for img in os.listdir(dataset_location) if img.endswith(('.jpg', '.jpeg', '.png'))]
+def load_random_image(dataset_location, dataX):
+    if dataX == 'CGMH':
+        subfolders = [os.path.join(dataset_location, str(i)) for i in range(5)]
+        images = [os.path.join(subfolder, img) for subfolder in subfolders for img in os.listdir(subfolder) if img.endswith(('.jpg', '.jpeg', '.png'))]
+    else:
+        images = [os.path.join(dataset_location, img) for img in os.listdir(dataset_location) if img.endswith(('.jpg', '.jpeg', '.png'))]
+    
     if not images:
         raise FileNotFoundError("No images found in the dataset location.")
     
     random_image = random.choice(images)
-    image_path = os.path.join(dataset_location, random_image)
-    img = cv2.imread(image_path)
-    return img, image_path
+    img = cv2.imread(random_image)
+    return img, random_image
 
-def load_image_paths(dataset_location):
-    images = [os.path.join(dataset_location, img) for img in os.listdir(dataset_location) if img.endswith(('.jpg', '.jpeg', '.png'))]
+def load_image_paths(dataset_location, dataX):
+    if dataX == 'CGMH':
+        subfolders = [os.path.join(dataset_location, str(i)) for i in range(5)]
+        images = [os.path.join(subfolder, img) for subfolder in subfolders for img in os.listdir(subfolder) if img.endswith(('.jpg', '.jpeg', '.png'))]
+    else:
+        images = [os.path.join(dataset_location, img) for img in os.listdir(dataset_location) if img.endswith(('.jpg', '.jpeg', '.png'))]
+    
     if not images:
         raise FileNotFoundError("No images found in the dataset location.")
     return images
@@ -67,7 +76,7 @@ def save_cropped_images(img, boxes, names, image_path, output_dir):
         output_path = os.path.join(output_dir, f"{base_name}_{name[0]}.png")
         cv2.imwrite(output_path, cropped_img)
 
-def process_images(dataset_location, model, output_dir, source_type):
+def process_images(dataset_location, model, output_dir, source_type, dataX):
     ignore_images = [
         "76P2F2152KNEE02.png", "76P2F2152KNEE01.png", "73P2F0268KNEE01.png", 
         "66P2M4404KNEE01.png", "59P2M4280KNEE01.png", "58P2F2036KNEE01.png", 
@@ -75,7 +84,7 @@ def process_images(dataset_location, model, output_dir, source_type):
     ]
     
     if source_type == 'random':
-        img, image_path = load_random_image(dataset_location)
+        img, image_path = load_random_image(dataset_location, dataX)
         results = model(img, verbose=False)
         boxes = results[0].boxes
         names = results[0].names
@@ -88,7 +97,7 @@ def process_images(dataset_location, model, output_dir, source_type):
             class_id = int(box.cls.item())
             print(f"Box: {box.xyxy}, Name: {names[class_id]}")
     else:
-        image_paths = load_image_paths(dataset_location)
+        image_paths = load_image_paths(dataset_location, dataX)
         for image_path in tqdm(image_paths, desc="Processing images", total=len(image_paths)):
             if os.path.basename(image_path) in ignore_images:
                 continue
@@ -98,22 +107,23 @@ def process_images(dataset_location, model, output_dir, source_type):
             names = results[0].names
             save_cropped_images(img, boxes, names, image_path, output_dir)
 
-def main(dataset_location, model_path, source_type, config_path='config/default.yaml'):
+def main(dataset_location, model_path, source_type, dataX='VOS', config_path='config/default.yaml'):
     config = load_config(config_path)
-    output_dir = os.path.join(config['output_dir'], 'yolo', 'runs', 'processed')
+    output_dir = os.path.join(config['output_dir'], 'yolo', 'runs', dataX.lower())
     
     # Load model
     model = YOLO(model_path)
     
     # Process images
-    process_images(dataset_location, model, output_dir, source_type)
+    process_images(dataset_location, model, output_dir, source_type, dataX)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Predict using a YOLO model on images from the dataset and save cropped bounding boxes")
     parser.add_argument('--dataset_location', type=str, required=True, help='Path to the dataset location')
     parser.add_argument('--model', type=str, required=True, help='Path to the YOLO model file')
     parser.add_argument('--source_type', type=str, choices=['random', 'folder'], default='random', help='Source type: random image or whole folder')
+    parser.add_argument('--dataX', type=str, default='VOS', help='Data source identifier')
     parser.add_argument('--config', type=str, default='config/default.yaml', help='Path to the configuration file')
     args = parser.parse_args()
     
-    main(args.dataset_location, args.model, args.source_type, args.config)
+    main(args.dataset_location, args.model, args.source_type, args.dataX, args.config)
