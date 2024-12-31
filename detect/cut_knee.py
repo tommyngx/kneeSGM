@@ -21,15 +21,11 @@ def load_random_image(dataset_location):
     img = cv2.imread(image_path)
     return img, image_path
 
-def load_all_images(dataset_location):
-    images = [img for img in os.listdir(dataset_location) if img.endswith(('.jpg', '.jpeg', '.png'))]
+def load_image_paths(dataset_location):
+    images = [os.path.join(dataset_location, img) for img in os.listdir(dataset_location) if img.endswith(('.jpg', '.jpeg', '.png'))]
     if not images:
         raise FileNotFoundError("No images found in the dataset location.")
-    
-    for image_name in images:
-        image_path = os.path.join(dataset_location, image_name)
-        img = cv2.imread(image_path)
-        yield img, image_path
+    return images
 
 def adjust_bounding_box(x1, y1, x2, y2, img_width, img_height):
     box_width = x2 - x1
@@ -84,10 +80,11 @@ def process_images(dataset_location, model, output_dir, source_type):
             class_id = int(box.cls.item())
             print(f"Box: {box.xyxy}, Name: {names[class_id]}")
     else:
-        images = list(load_all_images(dataset_location))
-        for img, image_path in tqdm(images, desc="Processing images", total=len(images)):
+        image_paths = load_image_paths(dataset_location)
+        for image_path in tqdm(image_paths, desc="Processing images", total=len(image_paths)):
             if os.path.basename(image_path) in ignore_images:
                 continue
+            img = cv2.imread(image_path)
             results = model(img, verbose=False)
             boxes = results[0].boxes
             names = results[0].names
