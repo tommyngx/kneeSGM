@@ -11,6 +11,7 @@ def concatenate_metadata(folder_base, output_name):
             metadata_path = os.path.join(subfolder_path, 'metadata.csv')
             if os.path.exists(metadata_path):
                 metadata = pd.read_csv(metadata_path)
+                metadata['split'] = metadata['split'].replace('VAL', 'TEST')
                 all_metadata.append(metadata)
     
     if all_metadata:
