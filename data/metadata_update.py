@@ -22,8 +22,9 @@ def concatenate_metadata(folder_base, output_name, save_link=None):
         print(f"Concatenated metadata saved to {output_path}")
         
         if save_link:
-            with open(save_link, 'w') as f:
-                f.write(f"{output_path}.csv")
+            #with open(save_link, 'w') as f:
+            #   f.write(f"{output_path}.csv")
+            concatenated_metadata.to_csv(f"{save_link}/{output_path}.csv", index=False)
             print(f"Link to metadata saved to {save_link}")
     else:
         print("No metadata files found.")
