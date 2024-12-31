@@ -14,13 +14,20 @@ def load_config(config_path):
 def load_metadata(metadata_csv):
     return pd.read_csv(metadata_csv)
 
-def parse_filename(filename):
-    parts = filename.split('P2')
-    age = parts[0]
-    rest = parts[1].split('KNEE')
-    sex_id = rest[0]
-    knee_side = rest[1].split('_')[1][0]
-    return age, sex_id, knee_side
+def parse_filename(filename, data_name):
+    if data_name == 'CGMH':
+        parts = filename.split('_')
+        age = parts[0]
+        kl_value = parts[1]
+        knee_side = parts[2][0]
+        return age, kl_value, knee_side
+    else:
+        parts = filename.split('P2')
+        age = parts[0]
+        rest = parts[1].split('KNEE')
+        sex_id = rest[0]
+        knee_side = rest[1].split('_')[1][0]
+        return age, sex_id, knee_side
 
 def get_kl_value(row, knee_side):
     if knee_side == 'L':
@@ -48,38 +55,65 @@ def generate_dataset(input_folder, metadata_csv, output_dir, data_name, seed):
 
     for image_name in tqdm(os.listdir(input_folder), desc="Processing images"):
         if image_name.endswith(('.jpg', '.jpeg', '.png')):
-            age, sex_id, knee_side = parse_filename(image_name)
-            id_value = sex_id[1:]
-            sex = sex_id[0]
-            
-            if id_value == 'NoID':
-                continue
-            
-            row = metadata[(metadata['ID'] == int(id_value)) & (metadata['Sex'] == sex)]
-            if not row.empty:
-                kl_value = get_kl_value(row.iloc[0], knee_side)
-                if kl_value is not None:
-                    img = cv2.imread(os.path.join(input_folder, image_name))
-                    new_name = f"{age}P2{sex}{id_value}{knee_side}{kl_value}.png"
-                    
-                    if id_value not in id_split:
-                        id_split[id_value] = 'TRAIN' if random.random() < 0.8 else 'TEST'
-                    
-                    split = id_split[id_value]
-                    kl_output_dir = os.path.join(output_dir, split, str(kl_value))
-                    cv2.imwrite(os.path.join(kl_output_dir, new_name), img)
-                    
-                    # Save a copy in the KL folder outside of TRAIN and TEST
-                    cv2.imwrite(os.path.join(output_dir, str(kl_value), new_name), img)
-                    
-                    metaraw_data.append({
-                        'data': data_name,
-                        'ID': new_name,
-                        'KL': kl_value,
-                        'path': f"{data_name}/{kl_value}/{new_name}",
-                        'split': split,
-                        'path_relative': f"{data_name}/{split}/{kl_value}/{new_name}"
-                    })
+            if data_name == 'CGMH':
+                age, kl_value, knee_side = parse_filename(image_name, data_name)
+                new_name = f"{age}_{kl_value}_{knee_side}.png"
+                kl_output_dir = os.path.join(output_dir, str(kl_value))
+                cv2.imwrite(os.path.join(kl_output_dir, new_name), cv2.imread(os.path.join(input_folder, image_name)))
+                
+                # Save in TRAIN and TEST folders
+                cv2.imwrite(os.path.join(train_dir, str(kl_value), new_name), cv2.imread(os.path.join(input_folder, image_name)))
+                cv2.imwrite(os.path.join(test_dir, str(kl_value), new_name), cv2.imread(os.path.join(input_folder, image_name)))
+                
+                metaraw_data.append({
+                    'data': data_name,
+                    'ID': new_name,
+                    'KL': kl_value,
+                    'path': f"{data_name}/{kl_value}/{new_name}",
+                    'split': 'TRAIN',
+                    'path_relative': f"{data_name}/TRAIN/{kl_value}/{new_name}"
+                })
+                metaraw_data.append({
+                    'data': data_name,
+                    'ID': new_name,
+                    'KL': kl_value,
+                    'path': f"{data_name}/{kl_value}/{new_name}",
+                    'split': 'TEST',
+                    'path_relative': f"{data_name}/TEST/{kl_value}/{new_name}"
+                })
+            else:
+                age, sex_id, knee_side = parse_filename(image_name, data_name)
+                id_value = sex_id[1:]
+                sex = sex_id[0]
+                
+                if id_value == 'NoID':
+                    continue
+                
+                row = metadata[(metadata['ID'] == int(id_value)) & (metadata['Sex'] == sex)]
+                if not row.empty:
+                    kl_value = get_kl_value(row.iloc[0], knee_side)
+                    if kl_value is not None:
+                        img = cv2.imread(os.path.join(input_folder, image_name))
+                        new_name = f"{age}P2{sex}{id_value}{knee_side}{kl_value}.png"
+                        
+                        if id_value not in id_split:
+                            id_split[id_value] = 'TRAIN' if random.random() < 0.8 else 'TEST'
+                        
+                        split = id_split[id_value]
+                        kl_output_dir = os.path.join(output_dir, split, str(kl_value))
+                        cv2.imwrite(os.path.join(kl_output_dir, new_name), img)
+                        
+                        # Save a copy in the KL folder outside of TRAIN and TEST
+                        cv2.imwrite(os.path.join(output_dir, str(kl_value), new_name), img)
+                        
+                        metaraw_data.append({
+                            'data': data_name,
+                            'ID': new_name,
+                            'KL': kl_value,
+                            'path': f"{data_name}/{kl_value}/{new_name}",
+                            'split': split,
+                            'path_relative': f"{data_name}/{split}/{kl_value}/{new_name}"
+                        })
     
     metaraw_df = pd.DataFrame(metaraw_data)
     metaraw_df.to_csv(os.path.join(output_dir, 'metadata.csv'), index=False)
