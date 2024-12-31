@@ -20,15 +20,32 @@ def load_random_image(dataset_location):
     img = cv2.imread(image_path)
     return img, image_path
 
+def adjust_bounding_box(x1, y1, x2, y2, img_width, img_height):
+    box_width = x2 - x1
+    box_height = y2 - y1
+    max_dim = max(box_width, box_height)
+    
+    center_x = x1 + box_width // 2
+    center_y = y1 + box_height // 2
+    
+    new_x1 = max(center_x - max_dim // 2, 0)
+    new_y1 = max(center_y - max_dim // 2, 0)
+    new_x2 = min(center_x + max_dim // 2, img_width)
+    new_y2 = min(center_y + max_dim // 2, img_height)
+    
+    return new_x1, new_y1, new_x2, new_y2
+
 def save_cropped_images(img, boxes, names, image_path, output_dir):
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     
     base_name = os.path.basename(image_path).split('.')[0]
+    img_height, img_width = img.shape[:2]
     for i, box in enumerate(boxes):
         class_id = int(box.cls.item())
         name = names[class_id]
         x1, y1, x2, y2 = map(int, box.xyxy[0])
+        x1, y1, x2, y2 = adjust_bounding_box(x1, y1, x2, y2, img_width, img_height)
         cropped_img = img[y1:y2, x1:x2]
         output_path = os.path.join(output_dir, f"{base_name}_{name[0]}.png")
         cv2.imwrite(output_path, cropped_img)
