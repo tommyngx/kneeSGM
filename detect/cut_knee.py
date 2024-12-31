@@ -32,7 +32,8 @@ def main(dataset_location, model_path):
     print(f"Image path: {image_path}")
     print("Bounding boxes and names:")
     for box in boxes:
-        print(f"Box: {box.xyxy}, Name: {names[box.cls]}")
+        class_id = int(box.cls.item())
+        print(f"Box: {box.xyxy}, Name: {names[class_id]}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Predict using a YOLO model on a random image from the dataset")
