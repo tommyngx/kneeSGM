@@ -3,8 +3,9 @@ import subprocess
 import argparse
 import random
 import cv2
+import sys
 
-def detect_yolo(dataset_location, model, conf, source_type):
+def detect_yolo(dataset_location, model, conf, source_type, log_file):
     test_images_dir = os.path.join(dataset_location, '')
     if not os.path.exists(test_images_dir):
         raise FileNotFoundError(f"Test images directory '{test_images_dir}' not found.")
@@ -23,7 +24,9 @@ def detect_yolo(dataset_location, model, conf, source_type):
         "yolo", "task=detect", "mode=predict", f"model={model}",
         f"conf={conf}", f"source={source}", "save=True"
     ]
-    subprocess.run(command, check=True)
+    
+    with open(log_file, 'w') as f:
+        subprocess.run(command, check=True, stdout=f, stderr=subprocess.STDOUT)
     
     output_dir = os.path.join(os.getcwd(), 'runs/detect/predict')
     if not os.path.exists(output_dir):
@@ -47,6 +50,7 @@ if __name__ == "__main__":
     parser.add_argument('--model', type=str, required=True, help='Model file to be used for detection')
     parser.add_argument('--conf', type=float, default=0.25, help='Confidence threshold for detection')
     parser.add_argument('--source_type', type=str, choices=['random', 'folder'], default='random', help='Source type: random image or whole folder')
+    parser.add_argument('--log_file', type=str, default='detect_yolo_log.txt', help='Path to the log file')
     args = parser.parse_args()
     
-    detect_yolo(args.dataset_location, args.model, args.conf, args.source_type)
+    detect_yolo(args.dataset_location, args.model, args.conf, args.source_type, args.log_file)
