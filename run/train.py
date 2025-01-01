@@ -105,7 +105,8 @@ def main(config_path='config/default.yaml', model_name=None, epochs=None, resume
     print(f"Number of training images: {len(train_loader.dataset)}")
     print(f"Number of validation images: {len(val_loader.dataset)}")
     
-    criterion = nn.CrossEntropyLoss(weight=class_weights)
+    #criterion = nn.CrossEntropyLoss(weight=class_weights)
+    criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=config['training']['learning_rate'], weight_decay=config['training']['weight_decay'])
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=config['training'].get('lr_scheduler_patience', 50))
     
