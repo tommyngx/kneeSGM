@@ -47,7 +47,7 @@ def get_dataloader(split, batch_size, num_workers, transform=None, config_path='
     dataset_name = config['data']['dataset_name']
     external_datasets = config['data'].get('external_datasets', None)
     split = config['data'][split.lower() + '_split']
-    #split = split.lower()
+    split = split.lower()
     print( "here is split:  " ,split)
     image_path_column = config['data']['image_path_column']
     label_column = config['data']['label_column']
