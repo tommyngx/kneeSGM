@@ -54,7 +54,12 @@ def clean_dataset(input_folder, metadata_csv, output_folder, config_path='config
         parts = image_name.split('KNEE')[0].split('P2')
         age = int(parts[0][:2])
         sex_id = parts[1]
-        id_value = int(sex_id[1:])
+        id_value = sex_id[1:]
+        
+        if id_value == 'NoID':
+            continue
+        
+        id_value = int(id_value)
         
         if sex_id in latest_images:
             if image_name > latest_images[sex_id]:
