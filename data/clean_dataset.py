@@ -46,6 +46,7 @@ def clean_dataset(input_folder, metadata_csv, output_folder, config_path='config
     latest_images = {}
     age_match_count = 0
     id_age_match_count = 0
+    id_age_sex_match_count = 0
     
     for image_name in all_images:
         if image_name in image_list:
@@ -54,6 +55,7 @@ def clean_dataset(input_folder, metadata_csv, output_folder, config_path='config
         parts = image_name.split('KNEE')[0].split('P2')
         age = int(parts[0][:2])
         sex_id = parts[1]
+        sex = sex_id[0]
         id_value = sex_id[1:]
         
         if id_value == 'NoID':
@@ -72,17 +74,21 @@ def clean_dataset(input_folder, metadata_csv, output_folder, config_path='config
         
         if id_value in metadata['ID'].values and age in metadata['Age'].values:
             id_age_match_count += 1
-            
+        
+        if id_value in metadata['ID'].values and age in metadata['Age'].values and sex in metadata['Sex'].values:
+            id_age_sex_match_count += 1
+    
     print(f"Total images copied to the clean folder: {len(latest_images)}")
     print(f"Total IDs with matching age: {age_match_count}")
     print(f"Total IDs with matching ID and age: {id_age_match_count}")
+    print(f"Total IDs with matching ID, age, and sex: {id_age_sex_match_count}")
+
 
     for image_name in tqdm(latest_images.values(), desc="Copying images"):
         src_path = os.path.join(input_folder, image_name)
         dst_path = os.path.join(output_folder, image_name)
         shutil.copy(src_path, dst_path)
     
-
 
 def main(input_folder, metadata_csv, config_path='config/default.yaml'):
     config = load_config(config_path)
