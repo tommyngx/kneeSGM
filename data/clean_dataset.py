@@ -44,6 +44,7 @@ def clean_dataset(input_folder, metadata_csv, output_folder, config_path='config
     
     # Create a dictionary to keep track of the latest image for each ID
     latest_images = {}
+    id_age_match_count = 0
     id_age_sex_match_count = 0
     
     for image_name in all_images:
@@ -67,9 +68,16 @@ def clean_dataset(input_folder, metadata_csv, output_folder, config_path='config
         else:
             latest_images[sex_id] = image_name
         
+        if id_value in metadata['ID'].values and age in metadata['Age'].values:
+            id_age_match_count += 1
+        
         if id_value in metadata['ID'].values and age in metadata['Age'].values and sex in metadata['Sex'].values:
             id_age_sex_match_count += 1
     
+    # Remove entries with 'NoID' from latest_images
+    latest_images = {k: v for k, v in latest_images.items() if 'NoID' not in k}
+    
+    print(f"Total IDs with matching ID and age: {id_age_match_count}")
     print(f"Total IDs with matching ID, age, and sex: {id_age_sex_match_count}")
 
     for image_name in tqdm(latest_images.values(), desc="Copying images"):
