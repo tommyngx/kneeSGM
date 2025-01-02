@@ -5,6 +5,7 @@ import cv2
 import yaml
 from tqdm import tqdm
 import random
+import shutil
 
 def load_config(config_path):
     with open(config_path, 'r') as file:
@@ -32,18 +33,18 @@ def parse_filename(filename, data_name):
 def get_kl_value(row, knee_side):
     if knee_side == 'L':
         return row['KL_Left']
-        #return row['KL_Right']
     elif knee_side == 'R':
         return row['KL_Right']
-        #return row['KL_Left']
     else:
         return None
 
 def generate_dataset(input_folder, metadata_csv, output_dir, data_name, seed):
     random.seed(seed)
     metadata = load_metadata(metadata_csv)
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
+    
+    if os.path.exists(output_dir):
+        shutil.rmtree(output_dir)
+    os.makedirs(output_dir)
     
     train_dir = os.path.join(output_dir, 'TRAIN')
     test_dir = os.path.join(output_dir, 'TEST')
