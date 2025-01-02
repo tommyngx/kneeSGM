@@ -18,8 +18,9 @@ def clean_dataset(input_folder, metadata_csv, output_folder, config_path='config
     config = load_config(config_path)
     metadata = load_metadata(metadata_csv)
     
-    if not os.path.exists(output_folder):
-        os.makedirs(output_folder)
+    if os.path.exists(output_folder):
+        shutil.rmtree(output_folder)
+    os.makedirs(output_folder)
     
     image_list = [
         "38P2F4088KNEE01.png", "42P2F2889KNEE01.png", "42P2FNoIDKNEE01.png", "44P2F3901KNEE01.png",
@@ -43,17 +44,28 @@ def clean_dataset(input_folder, metadata_csv, output_folder, config_path='config
     
     # Create a dictionary to keep track of the latest image for each ID
     latest_images = {}
+    age_match_count = 0
+    id_age_match_count = 0
     
     for image_name in all_images:
         if image_name in image_list:
             continue
         
         id_prefix = image_name.split('KNEE')[0]
+        age = int(id_prefix[:2])
+        id_value = int(id_prefix[3:])
+        
         if id_prefix in latest_images:
             if image_name > latest_images[id_prefix]:
                 latest_images[id_prefix] = image_name
         else:
             latest_images[id_prefix] = image_name
+        
+        if age in metadata['Age'].values:
+            age_match_count += 1
+        
+        if id_value in metadata['ID'].values and age in metadata['Age'].values:
+            id_age_match_count += 1
     
     for image_name in tqdm(latest_images.values(), desc="Copying images"):
         src_path = os.path.join(input_folder, image_name)
@@ -61,6 +73,8 @@ def clean_dataset(input_folder, metadata_csv, output_folder, config_path='config
         shutil.copy(src_path, dst_path)
     
     print(f"Total images copied to the clean folder: {len(latest_images)}")
+    print(f"Total IDs with matching age: {age_match_count}")
+    print(f"Total IDs with matching ID and age: {id_age_match_count}")
 
 def main(input_folder, metadata_csv, config_path='config/default.yaml'):
     config = load_config(config_path)
