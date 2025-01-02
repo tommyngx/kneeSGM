@@ -51,15 +51,16 @@ def clean_dataset(input_folder, metadata_csv, output_folder, config_path='config
         if image_name in image_list:
             continue
         
-        id_prefix = image_name.split('KNEE')[0]
-        age = int(id_prefix[:2])
-        id_value = int(id_prefix[3:])
+        parts = image_name.split('KNEE')[0].split('P2')
+        age = int(parts[0][:2])
+        sex_id = parts[1]
+        id_value = int(sex_id[1:])
         
-        if id_prefix in latest_images:
-            if image_name > latest_images[id_prefix]:
-                latest_images[id_prefix] = image_name
+        if sex_id in latest_images:
+            if image_name > latest_images[sex_id]:
+                latest_images[sex_id] = image_name
         else:
-            latest_images[id_prefix] = image_name
+            latest_images[sex_id] = image_name
         
         if age in metadata['Age'].values:
             age_match_count += 1
