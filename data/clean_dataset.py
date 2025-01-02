@@ -22,7 +22,7 @@ def clean_dataset(input_folder, metadata_csv, output_folder, config_path='config
         shutil.rmtree(output_folder)
     os.makedirs(output_folder)
     
-    image_list = [
+    image_list = list(set([
         "38P2F4088KNEE01.png", "42P2F2889KNEE01.png", "42P2FNoIDKNEE01.png", "44P2F3901KNEE01.png",
         "46P2F0864KNEE01.png", "47P2F0352KNEE02.png", "49P2M1328KNEE01.png", "50P2F0084KNEE01.png",
         "50P2F0406KNEE01.png", "50P2M4434KNEE01.png", "53P2F3320KNEE01.png", "53P2M1001KNEE01.png",
@@ -35,8 +35,11 @@ def clean_dataset(input_folder, metadata_csv, output_folder, config_path='config
         "70P2F1209KNEE01.png", "70P2F1578KNEE01.png", "70P2F3791KNEE01.png", "73P2F0289KNEE01.png",
         "77P2F2379KNEE01.png", "79P2F1778KNEE01.png", "86P2F4044KNEE01.png", "87P2F0841KNEE01.png",
         "88P2F0362KNEE01.png", "88P2F2657KNEE01.png", '69P2M2730KNEE09.png', "63P2F0971KNEE01.png",
-        "58P2F2963KNEE01.png", "58P2F2294KNEE01.png", "40P2M2777KNEE01.png"
-    ]
+        "58P2F2963KNEE01.png", "58P2F2294KNEE01.png", "40P2M2777KNEE01.png",  "76P2F2152KNEE02.png", "76P2F2152KNEE01.png", "73P2F0268KNEE01.png", 
+        "66P2M4404KNEE01.png", "59P2M4280KNEE01.png", "58P2F2036KNEE01.png", 
+        "47P2F0352KNEE02.png", "45P2M4396KNEE01.png", "45P2M4396KNEE02.png",
+        "45P2M4396KNEE04.png",
+    ]))
     
     all_images = os.listdir(input_folder)
     print(f"Total images in the input folder: {len(all_images)}")
