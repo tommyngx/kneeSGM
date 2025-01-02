@@ -80,6 +80,7 @@ def clean_dataset(input_folder, metadata_csv, output_folder, config_path='config
     print(f"Total IDs with matching ID and age: {id_age_match_count}")
     print(f"Total IDs with matching ID, age, and sex: {id_age_sex_match_count}")
 
+    copied_images = 0
     for image_name in tqdm(latest_images.values(), desc="Copying images"):
         parts = image_name.split('KNEE')[0].split('P2')
         age = int(parts[0][:2])
@@ -95,9 +96,13 @@ def clean_dataset(input_folder, metadata_csv, output_folder, config_path='config
         if id_value in metadata['ID'].values and age in metadata['Age'].values and sex in metadata['Sex'].values:
             src_path = os.path.join(input_folder, image_name)
             dst_path = os.path.join(output_folder, image_name)
-            shutil.copy(src_path, dst_path)
+            try:
+                shutil.copy(src_path, dst_path)
+                copied_images += 1
+            except Exception as e:
+                print(f"Error copying {image_name}: {e}")
     
-    print(f"Total images copied to the clean folder: {len(latest_images)}")
+    print(f"Total images copied to the clean folder: {copied_images}")
 
 def main(input_folder, metadata_csv, config_path='config/default.yaml'):
     config = load_config(config_path)
