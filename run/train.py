@@ -180,10 +180,11 @@ def main(config='default.yaml', model_name=None, epochs=None, resume_from=None, 
             early_stopping_counter += 1
         
         # Remove models beyond the top 3
-        for val_acc, model_path in best_models[3:]:
-            if os.path.exists(model_path):
-                os.remove(model_path)
-        best_models = best_models[:3]  # Ensure best_models list only contains top 3
+        model_dir = os.path.join(output_dir, "models")
+        model_files = [f for f in os.listdir(model_dir) if f.endswith('.pth')]
+        model_files = sorted(model_files, key=lambda x: float(x.split('_acc_')[1].split('.pth')[0]), reverse=True)
+        for model_file in model_files[3:]:
+            os.remove(os.path.join(model_dir, model_file))
         
         # Early stopping
         if early_stopping_counter >= early_stopping_patience:
