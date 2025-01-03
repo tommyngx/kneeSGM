@@ -58,6 +58,11 @@ data:
       enabled: true
       scale_limit: 0.2
       p: 0.5
+    clahe:
+      enabled: true
+      clip_limit: 2.0
+      tile_grid_size: 8
+      p: 1.0
     normalize: 
       enabled: true
       mean: [0.485, 0.456, 0.406]
