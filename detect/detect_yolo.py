@@ -10,7 +10,8 @@ def load_config(config_path):
         config = yaml.safe_load(file)
     return config
 
-def detect_yolo(dataset_location, model, conf, source_type, log_file, save=True, config_path='config/default.yaml'):
+def detect_yolo(dataset_location, model, conf, source_type, log_file, save=True, config='default.yaml'):
+    config_path = os.path.join('config', config)
     config = load_config(config_path)
     project = config['output_dir']
     
@@ -70,7 +71,7 @@ if __name__ == "__main__":
     parser.add_argument('--source_type', type=str, choices=['random', 'folder'], default='random', help='Source type: random image or whole folder')
     parser.add_argument('--log_file', type=str, default='detect_yolo_log.txt', help='Name of the log file')
     parser.add_argument('--save', type=bool, default=True, help='Whether to save the output images')
-    parser.add_argument('--config', type=str, default='config/default.yaml', help='Path to the configuration file')
+    parser.add_argument('--config', type=str, default='default.yaml', help='Name of the configuration file')
     args = parser.parse_args()
     
     detect_yolo(args.dataset_location, args.model, args.conf, args.source_type, args.log_file, args.save, args.config)

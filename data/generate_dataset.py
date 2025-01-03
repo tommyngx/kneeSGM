@@ -121,7 +121,8 @@ def generate_dataset(input_folder, metadata_csv, output_dir, data_name, seed):
     metaraw_df = pd.DataFrame(metaraw_data)
     metaraw_df.to_csv(os.path.join(output_dir, 'metadata.csv'), index=False)
 
-def main(input_folder, metadata_csv, data_name, config_path='config/default.yaml', seed=2024):
+def main(input_folder, metadata_csv, data_name, config='default.yaml', seed=2024):
+    config_path = os.path.join('config', config)
     config = load_config(config_path)
     output_dir = os.path.join(config['output_dir'], 'yolo', 'runs', data_name)
     
@@ -132,7 +133,7 @@ if __name__ == "__main__":
     parser.add_argument('--input_folder', type=str, required=True, help='Path to the input folder containing images')
     parser.add_argument('--metadata_csv', type=str, required=True, help='Path to the metadata CSV file')
     parser.add_argument('--data_name', type=str, required=True, help='Name of the dataset')
-    parser.add_argument('--config', type=str, default='config/default.yaml', help='Path to the configuration file')
+    parser.add_argument('--config', type=str, default='default.yaml', help='Name of the configuration file')
     parser.add_argument('--seed', type=int, default=2024, help='Random seed for splitting the dataset')
     args = parser.parse_args()
     

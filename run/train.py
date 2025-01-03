@@ -76,7 +76,8 @@ def validate(model, dataloader, criterion, device):
             all_outputs.extend(outputs.cpu().numpy())
     return running_loss / len(dataloader), running_acc / len(dataloader), all_preds, all_labels, all_outputs
 
-def main(config_path='config/default.yaml', model_name=None, epochs=None, resume_from=None, use_gradcam_plus_plus=False):
+def main(config='default.yaml', model_name=None, epochs=None, resume_from=None, use_gradcam_plus_plus=False):
+    config_path = os.path.join('config', config)
     config = load_config(config_path)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
@@ -191,11 +192,11 @@ def main(config_path='config/default.yaml', model_name=None, epochs=None, resume
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Train a model for knee osteoarthritis classification.')
-    parser.add_argument('--config', type=str, default='config/default.yaml', help='Path to the configuration file.')
+    parser.add_argument('--config', type=str, default='default.yaml', help='Name of the configuration file.')
     parser.add_argument('--model', type=str, help='Model name to use for training.')
     parser.add_argument('--epochs', type=int, help='Number of epochs to train.')
     parser.add_argument('--resume_from', type=str, help='Path to the checkpoint to resume training from.')
     parser.add_argument('--use_gradcam_plus_plus', action='store_true', help='Use Grad-CAM++ instead of Grad-CAM.')
     args = parser.parse_args()
     
-    main(config_path=args.config, model_name=args.model, epochs=args.epochs, resume_from=args.resume_from, use_gradcam_plus_plus=args.use_gradcam_plus_plus)
+    main(config=args.config, model_name=args.model, epochs=args.epochs, resume_from=args.resume_from, use_gradcam_plus_plus=args.use_gradcam_plus_plus)

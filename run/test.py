@@ -45,7 +45,8 @@ def test(model, dataloader, device):
             all_outputs.extend(outputs.cpu().numpy())
     return running_acc / len(dataloader), running_f1 / len(dataloader), running_precision / len(dataloader), running_recall / len(dataloader), all_preds, all_labels, all_outputs
 
-def main(config_path='config/default.yaml', model_name=None, model_path=None, use_gradcam_plus_plus=False):
+def main(config='default.yaml', model_name=None, model_path=None, use_gradcam_plus_plus=False):
+    config_path = os.path.join('config', config)
     config = load_config(config_path)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
@@ -101,9 +102,9 @@ def main(config_path='config/default.yaml', model_name=None, model_path=None, us
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Test a model for knee osteoarthritis classification.')
-    parser.add_argument('--config', type=str, default='config/default.yaml', help='Path to the configuration file.')
+    parser.add_argument('--config', type=str, default='default.yaml', help='Name of the configuration file.')
     parser.add_argument('--model', type=str, help='Model name to use for testing.')
     parser.add_argument('--model_path', type=str, required=True, help='Path to the model checkpoint to load.')
     args = parser.parse_args()
     
-    main(config_path=args.config, model_name=args.model, model_path=args.model_path)
+    main(config=args.config, model_name=args.model, model_path=args.model_path)
