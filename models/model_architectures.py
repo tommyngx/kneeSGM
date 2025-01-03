@@ -18,7 +18,13 @@ class MOEModel(nn.Module):
         self.output_layer = nn.Linear(64, num_classes)
     
     def forward(self, x):
-        expert_outputs = [self.dense_layer(expert(x).view(x.size(0), -1)) for expert in self.experts]
+        expert_outputs = []
+        for expert in self.experts:
+            expert_output = expert(x)
+            if len(expert_output.shape) > 2:
+                expert_output = torch.flatten(expert_output, start_dim=1)
+            expert_output = self.dense_layer(expert_output)
+            expert_outputs.append(expert_output)
         expert_outputs = torch.stack(expert_outputs, dim=1)
         gating_weights = self.gating_model(x)
         gating_weights = gating_weights.unsqueeze(-1)
