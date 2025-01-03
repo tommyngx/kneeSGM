@@ -79,6 +79,9 @@ data:
 model:
   name: "resnet50"
   pretrained: true
+  architecture:
+    MOE: true
+    expert_models: ["resnet50", "efficientnet_b0"]
 
 # Training settings
 training:
