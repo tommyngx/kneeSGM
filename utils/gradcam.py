@@ -234,12 +234,20 @@ def save_random_predictions(model, dataloader, device, output_dir, epoch, class_
             heatmap = generate_gradcam(model, images[i].unsqueeze(0), target_layer, model_name)
         cam_image = show_cam_on_image(img, heatmap, use_rgb=True)
         
+        if label == pred:
+            title_color = 'green'
+        else:
+            title_color = 'red'
         axes[i, 0].imshow(img)
-        axes[i, 0].set_title(f"Image {i+1}\nLabel: {class_names[label]}\nPred: {class_names[pred]}", fontproperties=prop, fontsize=18)
+        axes[i, 0].set_title(f"Image {i+1}\nLabel: {class_names[label]}\nPred: {class_names[pred]}", fontproperties=prop, fontsize=18, color=title_color)
         axes[i, 0].axis('off')
         
+        if label == pred:
+            title_color = 'green'
+        else:
+            title_color = 'red'
         axes[i, 1].imshow(cam_image)
-        axes[i, 1].set_title(f"Grad-CAM {i+1}\nLabel: {class_names[label]}\nPred: {class_names[pred]}", fontproperties=prop, fontsize=18)
+        axes[i, 1].set_title(f"Grad-CAM {i+1}\nLabel: {class_names[label]}\nPred: {class_names[pred]}", fontproperties=prop, fontsize=18, color=title_color)
         axes[i, 1].axis('off')
         
         if i + 4 < len(images):
@@ -253,12 +261,22 @@ def save_random_predictions(model, dataloader, device, output_dir, epoch, class_
                 heatmap = generate_gradcam(model, images[i + 4].unsqueeze(0), target_layer, model_name)
             cam_image = show_cam_on_image(img, heatmap, use_rgb=True)
             
+            if label == pred:
+                title_color = 'green'
+            else:
+                title_color = 'red'
             axes[i, 2].imshow(img)
             axes[i, 2].set_title(f"Image {i+5}\nLabel: {class_names[label]}\nPred: {class_names[pred]}", fontproperties=prop, fontsize=18)
+            axes[i, 2].title.set_color(title_color)
             axes[i, 2].axis('off')
             
+            if label == pred:
+                title_color = 'green'
+            else:
+                title_color = 'red'
             axes[i, 3].imshow(cam_image)
             axes[i, 3].set_title(f"Grad-CAM {i+5}\nLabel: {class_names[label]}\nPred: {class_names[pred]}", fontproperties=prop, fontsize=18)
+            axes[i, 3].title.set_color(title_color)
             axes[i, 3].axis('off')
     
     plt.tight_layout()
