@@ -2,35 +2,32 @@ import timm
 import torch
 import torch.nn as nn
 import yaml
+import torch.nn.functional as F
 
 def load_config(config_path):
     with open(config_path, 'r') as file:
         config = yaml.safe_load(file)
     return config
 
-class MOEModel(nn.Module):
-    def __init__(self, experts, gating_model, num_classes):
-        super(MOEModel, self).__init__()
-        self.experts = nn.ModuleList(experts)
-        self.gating_model = gating_model
-        self.num_classes = num_classes
-        self.dense_layer = nn.Linear(experts[0].num_features, 64)
-        self.output_layer = nn.Linear(64, num_classes)
+class GatingNetwork(nn.Module):
+    def __init__(self, input_dim, num_experts):
+        super(GatingNetwork, self).__init__()
+        self.fc = nn.Linear(input_dim, num_experts)
     
     def forward(self, x):
-        expert_outputs = []
-        for expert in self.experts:
-            expert_output = expert(x)
-            if len(expert_output.shape) > 2:
-                expert_output = torch.flatten(expert_output, start_dim=1)
-            expert_output = self.dense_layer(expert_output)
-            expert_outputs.append(expert_output)
-        expert_outputs = torch.stack(expert_outputs, dim=1)
-        gating_input = torch.flatten(x, start_dim=1)
-        gating_weights = self.gating_model(gating_input)
-        gating_weights = gating_weights.unsqueeze(-1)
-        mixture_output = torch.sum(expert_outputs * gating_weights, dim=1)
-        output = self.output_layer(mixture_output)
+        gate_outputs = self.fc(x)
+        return F.softmax(gate_outputs, dim=1)
+
+class MOEModel(nn.Module):
+    def __init__(self, experts, gating_network):
+        super(MOEModel, self).__init__()
+        self.experts = nn.ModuleList(experts)
+        self.gating_network = gating_network
+    
+    def forward(self, x):
+        gate_weights = self.gating_network(x)
+        expert_outputs = torch.stack([expert(x) for expert in self.experts], dim=1)
+        output = torch.sum(gate_weights.unsqueeze(2) * expert_outputs, dim=1)
         return output
 
 def get_model(model_name, config_path='config/default.yaml', pretrained=True):
@@ -38,13 +35,11 @@ def get_model(model_name, config_path='config/default.yaml', pretrained=True):
     num_classes = len(config['data']['class_labels'])
     
     if config['model']['architecture'].get('MOE', False):
-        expert_names = config['model']['architecture']['expert_models']
-        experts = [timm.create_model(name, pretrained=pretrained, num_classes=num_classes) for name in expert_names]
-        gating_model = nn.Sequential(
-            nn.Linear(experts[0].num_features * config['data']['image_size'] * config['data']['image_size'], len(experts)),
-            nn.Softmax(dim=-1)
-        )
-        return MOEModel(experts, gating_model, num_classes)
+        num_experts = config['model']['architecture']['num_experts']
+        experts = [timm.create_model(model_name, pretrained=pretrained, num_classes=num_classes) for _ in range(num_experts)]
+        input_dim = experts[0].num_features
+        gating_network = GatingNetwork(input_dim, num_experts)
+        return MOEModel(experts, gating_network)
     
     if 'fastvit' in model_name:
         model_name = "fastvit_sa12.apple_in1k"
