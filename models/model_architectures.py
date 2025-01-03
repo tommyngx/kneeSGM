@@ -26,8 +26,8 @@ class MOEModel(nn.Module):
     
     def forward(self, x):
         expert_outputs = [expert(x) for expert in self.experts]
-        expert_outputs_flattened = [torch.flatten(expert_output, start_dim=1) for expert_output in expert_outputs]
-        gate_weights = self.gating_network(expert_outputs_flattened[0])
+        expert_outputs_flattened = torch.flatten(expert_outputs[0], start_dim=1)
+        gate_weights = self.gating_network(expert_outputs_flattened)
         expert_outputs = torch.stack(expert_outputs, dim=1)
         output = torch.sum(gate_weights.unsqueeze(2) * expert_outputs, dim=1)
         return output
