@@ -141,17 +141,6 @@ def main(config='default.yaml', model_name=None, epochs=None, resume_from=None, 
         if (epoch + 1) % 2 == 0:
             print("Classification Report:")
             print(classification_report(val_labels, val_preds, target_names=config['data']['class_names'], zero_division=0))
-            save_confusion_matrix(val_labels, val_preds, config['data']['class_names'], os.path.join(output_dir, "logs"), epoch, acc=val_acc)
-            
-            # Calculate risk percentages for ROC curve
-            val_outputs = np.array(val_outputs)
-            positive_risk = val_outputs[:, 2:].sum(axis=1)  # Sum of class 2, 3, 4
-            negative_risk = val_outputs[:, :2].sum(axis=1)  # Sum of class 0, 1
-            save_roc_curve(val_labels, positive_risk, config['data']['class_names'], os.path.join(output_dir, "logs"), epoch, acc=val_acc)
-            
-            target_layer = get_target_layer(model, model_name)
-            
-            save_random_predictions(model, val_loader, device, os.path.join(output_dir, "logs"), epoch, config['data']['class_names'], use_gradcam_plus_plus, target_layer, acc=val_acc, model_name=model_name)
         
         tr_plot(training_history, start_epoch, output_dir)
         
@@ -188,6 +177,17 @@ def main(config='default.yaml', model_name=None, epochs=None, resume_from=None, 
             best_models = sorted(best_models, key=lambda x: x[0], reverse=True)[:3]
             print("Best model saved!")
             early_stopping_counter = 0  # Reset early_stopping_counter if model is saved
+
+            # Calculate risk percentages for ROC curve
+            val_outputs = np.array(val_outputs)
+            positive_risk = val_outputs[:, 2:].sum(axis=1)  # Sum of class 2, 3, 4
+            negative_risk = val_outputs[:, :2].sum(axis=1)  # Sum of class 0, 1
+
+            # Save confusion matrix, ROC curve, and random predictions
+            save_confusion_matrix(val_labels, val_preds, config['data']['class_names'], os.path.join(output_dir, "logs"), epoch, acc=val_acc)
+            save_roc_curve(val_labels, positive_risk, config['data']['class_names'], os.path.join(output_dir, "logs"), epoch, acc=val_acc)
+            target_layer = get_target_layer(model, model_name)
+            save_random_predictions(model, val_loader, device, os.path.join(output_dir, "logs"), epoch, config['data']['class_names'], use_gradcam_plus_plus, target_layer, acc=val_acc, model_name=model_name)
         else:
             early_stopping_counter += 1
 
