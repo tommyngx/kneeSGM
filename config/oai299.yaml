@@ -60,7 +60,7 @@ data:
       p: 0.5
     clahe:
       enabled: true
-      clip_limit: 2.0
+      clip_limit: 2
       tile_grid_size: 8
       p: 1
     normalize: 
