@@ -136,9 +136,9 @@ def main(config='default.yaml', model_name=None, epochs=None, resume_from=None, 
         training_history['val_accuracy'].append(val_acc)
         training_history['val_loss'].append(val_loss)
         
-        print(f"Epoch {epoch+1}/{epochs}, Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f}, Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}")
+        print(f"Epoch {epoch}/{epochs}, Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f}, Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}")
         
-        if (epoch + 1) % 2 == 0:
+        if (epoch) % 2 == 0:
             print("Classification Report:")
             print(classification_report(val_labels, val_preds, target_names=config['data']['class_names'], zero_division=0))
         
