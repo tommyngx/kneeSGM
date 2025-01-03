@@ -27,7 +27,7 @@ def get_model(model_name, config_path='config/default.yaml', pretrained=True):
     config = load_config(config_path)
     num_classes = len(config['data']['class_labels'])
     
-    if config['architecture'].get('MOE', False):
+    if config['model']['architecture'].get('MOE', False):
         expert_names = config['architecture']['expert_models']
         experts = [timm.create_model(name, pretrained=pretrained, num_classes=num_classes) for name in expert_names]
         gating_model = nn.Sequential(
