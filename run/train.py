@@ -111,7 +111,7 @@ def main(config='default.yaml', model_name=None, epochs=None, resume_from=None, 
     optimizer = optim.Adam(model.parameters(), lr=config['training']['learning_rate'], weight_decay=config['training']['weight_decay'])
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=config['training'].get('lr_scheduler_patience', 50))
     
-    start_epoch = 0
+    start_epoch = 1
     best_val_acc = 0.0
     training_history = {'accuracy': [], 'loss': [], 'val_accuracy': [], 'val_loss': []}
     best_models = []
@@ -170,7 +170,7 @@ def main(config='default.yaml', model_name=None, epochs=None, resume_from=None, 
                 'best_val_acc': best_val_acc,
                 'training_history': training_history
             }
-            model_filename = f"{model_name}_epoch_{epoch+1}_acc_{val_acc:.4f}.pth"
+            model_filename = f"{model_name}_epoch_{epoch}_acc_{val_acc:.4f}.pth"
             model_path = os.path.join(output_dir, "models", model_filename)
             torch.save(checkpoint, model_path)
             best_models.append((val_acc, model_path))
