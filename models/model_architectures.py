@@ -14,14 +14,17 @@ class MOEModel(nn.Module):
         self.experts = nn.ModuleList(experts)
         self.gating_model = gating_model
         self.num_classes = num_classes
+        self.dense_layer = nn.Linear(experts[0].num_features, 64)
+        self.output_layer = nn.Linear(64, num_classes)
     
     def forward(self, x):
-        expert_outputs = [expert(x) for expert in self.experts]
+        expert_outputs = [self.dense_layer(expert(x)) for expert in self.experts]
         expert_outputs = torch.stack(expert_outputs, dim=1)
         gating_weights = self.gating_model(x)
         gating_weights = gating_weights.unsqueeze(-1)
         mixture_output = torch.sum(expert_outputs * gating_weights, dim=1)
-        return mixture_output
+        output = self.output_layer(mixture_output)
+        return output
 
 def get_model(model_name, config_path='config/default.yaml', pretrained=True):
     config = load_config(config_path)
