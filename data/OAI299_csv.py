@@ -31,6 +31,7 @@ def generate_metadata(folder_path):
     
     df = pd.DataFrame(data)
     output_csv = os.path.join(folder_path, 'metadata.csv')
+    os.makedirs(folder_path, exist_ok=True)
     df.to_csv(output_csv, index=False)
     print(f"Metadata saved to {output_csv}")
 
