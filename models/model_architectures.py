@@ -25,9 +25,9 @@ class MOEModel(nn.Module):
         self.gating_network = gating_network
     
     def forward(self, x):
-        flattened_x = torch.flatten(x, start_dim=1)
-        gate_weights = self.gating_network(flattened_x)
         expert_outputs = torch.stack([expert(x) for expert in self.experts], dim=1)
+        flattened_x = torch.flatten(expert_outputs, start_dim=1)
+        gate_weights = self.gating_network(flattened_x)
         output = torch.sum(gate_weights.unsqueeze(2) * expert_outputs, dim=1)
         return output
 
@@ -38,7 +38,7 @@ def get_model(model_name, config_path='config/default.yaml', pretrained=True):
     if config['model']['architecture'].get('MOE', False):
         num_experts = config['model']['architecture']['num_experts']
         experts = [timm.create_model(model_name, pretrained=pretrained, num_classes=num_classes) for _ in range(num_experts)]
-        input_dim = experts[0].num_features * config['data']['image_size'] * config['data']['image_size']
+        input_dim = experts[0].num_features
         gating_network = GatingNetwork(input_dim, num_experts)
         return MOEModel(experts, gating_network)
     
