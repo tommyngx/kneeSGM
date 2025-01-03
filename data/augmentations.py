@@ -1,4 +1,4 @@
-from albumentations import Compose, HorizontalFlip, VerticalFlip, Rotate, ColorJitter, RandomCrop, Normalize, Resize, RandomScale, PadIfNeeded
+from albumentations import Compose, HorizontalFlip, VerticalFlip, Rotate, ColorJitter, RandomCrop, Normalize, Resize, RandomScale, PadIfNeeded, CLAHE
 from albumentations.pytorch import ToTensorV2
 import yaml
 import cv2
@@ -60,6 +60,12 @@ def get_augmentations(config_path='config/default.yaml', split='train'):
                 height=config['data']['augmentations']['random_crop']['height'],
                 width=config['data']['augmentations']['random_crop']['width'],
                 p=config['data']['augmentations']['random_crop']['p']
+            ))
+        if config['data']['augmentations']['clahe']['enabled']:
+            augmentations.append(CLAHE(
+                clip_limit=config['data']['augmentations']['clahe']['clip_limit'],
+                tile_grid_size=(config['data']['augmentations']['clahe']['tile_grid_size'], config['data']['augmentations']['clahe']['tile_grid_size']),
+                p=config['data']['augmentations']['clahe']['p']
             ))
     
     augmentations.append(ToTensorV2())
