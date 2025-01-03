@@ -15,6 +15,7 @@ class GatingNetwork(nn.Module):
         self.fc = nn.Linear(input_dim, num_experts)
     
     def forward(self, x):
+        x = torch.flatten(x, start_dim=1)
         gate_outputs = self.fc(x)
         return F.softmax(gate_outputs, dim=1)
 
