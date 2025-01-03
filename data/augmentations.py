@@ -13,6 +13,13 @@ def get_augmentations(config_path='config/default.yaml', split='train'):
     config = load_config(config_path)
     augmentations = []
     
+    if config['data']['augmentations']['clahe']['enabled']:
+        augmentations.append(CLAHE(
+            clip_limit=config['data']['augmentations']['clahe']['clip_limit'],
+            tile_grid_size=(config['data']['augmentations']['clahe']['tile_grid_size'], config['data']['augmentations']['clahe']['tile_grid_size']),
+            p=config['data']['augmentations']['clahe']['p']
+        ))
+    
     # Always apply resize and normalize
     augmentations.append(Resize(
         height=config['data']['augmentations']['resize']['height'],
@@ -24,13 +31,7 @@ def get_augmentations(config_path='config/default.yaml', split='train'):
         std=config['data']['augmentations']['normalize']['std'],
         p=config['data']['augmentations']['normalize']['p']
     ))
-    
-    if config['data']['augmentations']['clahe']['enabled']:
-        augmentations.append(CLAHE(
-            clip_limit=config['data']['augmentations']['clahe']['clip_limit'],
-            tile_grid_size=(config['data']['augmentations']['clahe']['tile_grid_size'], config['data']['augmentations']['clahe']['tile_grid_size']),
-            p=config['data']['augmentations']['clahe']['p']
-        ))
+
 
     if split == 'train':
         if config['data']['augmentations']['horizontal_flip']['enabled']:
