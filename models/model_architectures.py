@@ -26,7 +26,8 @@ class MOEModel(nn.Module):
             expert_output = self.dense_layer(expert_output)
             expert_outputs.append(expert_output)
         expert_outputs = torch.stack(expert_outputs, dim=1)
-        gating_weights = self.gating_model(x)
+        gating_input = torch.flatten(x, start_dim=1)
+        gating_weights = self.gating_model(gating_input)
         gating_weights = gating_weights.unsqueeze(-1)
         mixture_output = torch.sum(expert_outputs * gating_weights, dim=1)
         output = self.output_layer(mixture_output)
@@ -40,7 +41,7 @@ def get_model(model_name, config_path='config/default.yaml', pretrained=True):
         expert_names = config['model']['architecture']['expert_models']
         experts = [timm.create_model(name, pretrained=pretrained, num_classes=num_classes) for name in expert_names]
         gating_model = nn.Sequential(
-            nn.Linear(experts[0].num_features, len(experts)),
+            nn.Linear(experts[0].num_features * config['data']['image_size'] * config['data']['image_size'], len(experts)),
             nn.Softmax(dim=-1)
         )
         return MOEModel(experts, gating_model, num_classes)
