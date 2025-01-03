@@ -161,6 +161,7 @@ def main(config='default.yaml', model_name=None, epochs=None, resume_from=None, 
         scheduler.step(val_loss)
         
         if val_acc > best_val_acc:
+            best_val_acc = val_acc  # Update best_val_acc before saving the checkpoint
             checkpoint = {
                 'epoch': epoch,
                 'model_state_dict': model.state_dict(),
@@ -168,7 +169,6 @@ def main(config='default.yaml', model_name=None, epochs=None, resume_from=None, 
                 'best_val_acc': best_val_acc,
                 'training_history': training_history
             }
-            best_val_acc = val_acc
             model_filename = f"{model_name}_epoch_{epoch+1}_acc_{val_acc:.4f}.pth"
             model_path = os.path.join(output_dir, "models", model_filename)
             torch.save(checkpoint, model_path)
@@ -180,7 +180,7 @@ def main(config='default.yaml', model_name=None, epochs=None, resume_from=None, 
             early_stopping_counter += 1
         
         # Remove models beyond the top 3
-        for _, model_path in best_models[3:]:
+        for val_acc, model_path in best_models[3:]:
             if os.path.exists(model_path):
                 os.remove(model_path)
         best_models = best_models[:3]  # Ensure best_models list only contains top 3
