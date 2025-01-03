@@ -162,6 +162,9 @@ def main(config='default.yaml', model_name=None, epochs=None, resume_from=None, 
         
         if val_acc > best_val_acc:
             best_val_acc = val_acc  # Update best_val_acc before saving the checkpoint
+
+        # Check if current val_acc is in the top 3
+        if len(best_models) < 3 or val_acc > min(best_models, key=lambda x: x[0])[0]:
             checkpoint = {
                 'epoch': epoch,
                 'model_state_dict': model.state_dict(),
@@ -175,11 +178,11 @@ def main(config='default.yaml', model_name=None, epochs=None, resume_from=None, 
             best_models.append((val_acc, model_path))
             best_models = sorted(best_models, key=lambda x: x[0], reverse=True)[:3]
             print("Best model saved!")
-            early_stopping_counter = 0  # Reset early stopping counter
+            early_stopping_counter = 0  # Reset early_stopping_counter if model is saved
         else:
             early_stopping_counter += 1
-        
-        # Remove models beyond the top 3
+
+        # Ensure only top 3 models are saved
         model_dir = os.path.join(output_dir, "models")
         model_files = [f for f in os.listdir(model_dir) if f.endswith('.pth')]
         model_files = sorted(model_files, key=lambda x: float(x.split('_acc_')[1].split('.pth')[0]), reverse=True)
