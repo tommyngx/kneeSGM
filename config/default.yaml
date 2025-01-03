@@ -79,9 +79,6 @@ data:
 model:
   name: "resnet50"
   pretrained: true
-  architecture:
-    MOE: true
-    num_experts: 3
 
 # Training settings
 training:

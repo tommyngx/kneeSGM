@@ -2,50 +2,17 @@ import timm
 import torch
 import torch.nn as nn
 import yaml
-import torch.nn.functional as F
 
 def load_config(config_path):
     with open(config_path, 'r') as file:
         config = yaml.safe_load(file)
     return config
 
-class GatingNetwork(nn.Module):
-    def __init__(self, input_dim, num_experts):
-        super(GatingNetwork, self).__init__()
-        self.fc = nn.Linear(input_dim, num_experts)
-    
-    def forward(self, x):
-        gate_outputs = self.fc(x)
-        return F.softmax(gate_outputs, dim=1)
-
-class MOEModel(nn.Module):
-    def __init__(self, experts, gating_network):
-        super(MOEModel, self).__init__()
-        self.experts = nn.ModuleList(experts)
-        self.gating_network = gating_network
-    
-    def forward(self, x):
-        expert_outputs = [expert(x) for expert in self.experts]
-        expert_outputs_flattened = torch.flatten(expert_outputs[0], start_dim=1)
-        gate_weights = self.gating_network(expert_outputs_flattened)
-        expert_outputs = torch.stack(expert_outputs, dim=1)
-        gate_weights = gate_weights.unsqueeze(2).expand_as(expert_outputs)
-        output = torch.sum(gate_weights * expert_outputs, dim=1)
-        return output
-
 def get_model(model_name, config_path='config/default.yaml', pretrained=True):
-    config = load_config(config_path)
-    num_classes = len(config['data']['class_labels'])
-    
-    if config['model']['architecture'].get('MOE', False):
-        num_experts = config['model']['architecture']['num_experts']
-        experts = [timm.create_model(model_name, pretrained=pretrained, num_classes=num_classes) for _ in range(num_experts)]
-        input_dim = experts[0].num_features
-        gating_network = GatingNetwork(input_dim, num_experts)
-        return MOEModel(experts, gating_network)
-    
     if 'fastvit' in model_name:
         model_name = "fastvit_sa12.apple_in1k"
+    config = load_config(config_path)
+    num_classes = len(config['data']['class_labels'])
     model = timm.create_model(model_name, pretrained=pretrained)
     
     if 'convnext_base' in model_name:
