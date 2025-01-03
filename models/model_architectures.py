@@ -29,7 +29,8 @@ class MOEModel(nn.Module):
         expert_outputs_flattened = torch.flatten(expert_outputs[0], start_dim=1)
         gate_weights = self.gating_network(expert_outputs_flattened)
         expert_outputs = torch.stack(expert_outputs, dim=1)
-        output = torch.sum(gate_weights.unsqueeze(2) * expert_outputs, dim=1)
+        gate_weights = gate_weights.unsqueeze(2).expand_as(expert_outputs)
+        output = torch.sum(gate_weights * expert_outputs, dim=1)
         return output
 
 def get_model(model_name, config_path='config/default.yaml', pretrained=True):
