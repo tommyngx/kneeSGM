@@ -39,8 +39,8 @@ def download_font(font_url, font_path):
 
 def draw_text_on_image(image, text):
     draw = ImageDraw.Draw(image)
-    font_url = 'https://github.com/tommyngx/style/blob/main/Poppins.ttf?raw=true'
-    font_path = 'Poppins.ttf'
+    font_url = 'https://github.com/tommyngx/style/blob/main/arial.ttf?raw=true'
+    font_path = 'arial.ttf'
     download_font(font_url, font_path)
     font = ImageFont.truetype(font_path, 16)
     text_position = (10, 10)
@@ -67,7 +67,7 @@ def main():
     args = parse_arguments()
     csv_data = load_csv_data(args.csv_file)
     config = load_config(args.config_file)
-    output_folder = os.path.join(os.path.dirname(args.image_folder), os.path.basename(args.image_folder) + '_labels')
+    output_folder = os.path.join(config['output_dir'], os.path.basename(args.image_folder) + '_labels')
     
     if os.path.exists(output_folder):
         shutil.rmtree(output_folder)
