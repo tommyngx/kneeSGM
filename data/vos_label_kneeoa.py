@@ -5,6 +5,7 @@ from PIL import Image, ImageDraw, ImageFont
 from tqdm import tqdm
 import yaml
 import shutil
+import requests
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Label knee osteoarthritis images based on CSV data.")
@@ -30,9 +31,18 @@ def get_image_info(image_name):
     kl_score = image_name[10]
     return age, code_id, sex, id_, location, kl_score
 
+def download_font(font_url, font_path):
+    if not os.path.exists(font_path):
+        response = requests.get(font_url)
+        with open(font_path, 'wb') as f:
+            f.write(response.content)
+
 def draw_text_on_image(image, text):
     draw = ImageDraw.Draw(image)
-    font = ImageFont.load_default()
+    font_url = 'https://github.com/tommyngx/style/blob/main/Poppins.ttf?raw=true'
+    font_path = 'Poppins.ttf'
+    download_font(font_url, font_path)
+    font = ImageFont.truetype(font_path, 16)
     text_position = (10, 10)
     draw.text(text_position, text, font=font, fill="white")
     return image
