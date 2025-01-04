@@ -3,11 +3,6 @@ import random
 import pydicom
 import argparse
 
-def parse_arguments():
-    parser = argparse.ArgumentParser(description="Get a random DICOM file and print its information.")
-    parser.add_argument('--folder', type=str, required=True, help='Path to the folder containing DICOM files.')
-    return parser.parse_args()
-
 def get_random_dcm_file(folder_path):
     print(f"Searching for DICOM files in folder: {folder_path}")
     dcm_files = [os.path.join(root, file) for root, _, files in os.walk(folder_path) for file in files if file.endswith('.dcm')]
@@ -22,10 +17,13 @@ def print_dcm_info(dcm_file):
     for elem in ds:
         print(f"{elem.tag} {elem.name}: {elem.value}")
 
-def main():
-    args = parse_arguments()
-    dcm_file = get_random_dcm_file(args.folder)
+def main(folder):
+    dcm_file = get_random_dcm_file(folder)
     print_dcm_info(dcm_file)
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Get a random DICOM file and print its information.")
+    parser.add_argument('--folder', type=str, required=True, help='Path to the folder containing DICOM files')
+    args = parser.parse_args()
+    
+    main(args.folder)
