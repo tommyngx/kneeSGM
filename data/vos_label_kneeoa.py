@@ -52,6 +52,7 @@ def draw_text_on_image(image, text):
 
 def label_image(image_path, info, output_folder):
     image = Image.open(image_path)
+    image = image.resize((600, 600))  # Resize image to 600x600
     sex_label = "Male" if info['Sex'] else "Female"
     label = f"ID: {info['ID']}\nSex: {sex_label}\nAge: {info['Age']}\n"
     if info['Location'] == 'L':
