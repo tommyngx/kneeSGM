@@ -97,7 +97,7 @@ def label_image(image_path, info, output_folder):
         label += f"KL Phải: {info['KL Phải']}\n"
     
     image = draw_text_on_image(image, label)
-    output_path = os.path.join(output_folder, os.path.basename(image_path).replace('.png', '_labels.png'))
+    output_path = os.path.join(output_folder, os.path.basename(image_path).replace('.png', '.png'))
     image.save(output_path)
 
 def main():
