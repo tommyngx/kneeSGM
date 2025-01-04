@@ -24,7 +24,18 @@ def print_dcm_info(ds):
 
 def deidentify_dcm_file(dcm_file, output_folder):
     ds = pydicom.dcmread(dcm_file)
+    print(f"Original Patient's Name: {ds.PatientName}")
+    print(f"Original Patient ID: {ds.PatientID}")
+    print(f"Original Patient's Birth Date: {ds.PatientBirthDate}")
+    print(f"Original Patient's Sex: {ds.PatientSex}")
+    print(f"Original Patient's Age: {ds.PatientAge}")
+    
     ds.PatientName = "Deidentified"
+    #ds.PatientID = "Deidentified"
+    ds.PatientBirthDate = "Deidentified"
+    ds.PatientSex = "Deidentified"
+    ds.PatientAge = "Deidentified"
+    
     output_path = os.path.join(output_folder, os.path.basename(dcm_file))
     ds.save_as(output_path)
     return ds, output_path
