@@ -4,6 +4,7 @@ import pydicom
 import argparse
 
 def get_random_dcm_file(folder_path):
+    print(f"Searching for DICOM files in folder: {folder_path}")
     dcm_files = [os.path.join(root, file) for root, _, files in os.walk(folder_path) for file in files if file.endswith('.dcm')]
     if not dcm_files:
         raise FileNotFoundError("No DICOM files found in the specified folder.")
