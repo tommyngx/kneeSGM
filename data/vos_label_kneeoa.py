@@ -2,6 +2,7 @@ import os
 import pandas as pd
 import argparse
 from PIL import Image
+from tqdm import tqdm
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Label knee osteoarthritis images based on CSV data.")
@@ -14,11 +15,11 @@ def load_csv_data(csv_file):
 
 def get_image_info(image_name):
     age = image_name[:2]
-    code_id = image_name[2:6]
-    sex = image_name[6]
-    id_ = image_name[7:11]
-    location = image_name[11]
-    kl_score = image_name[12]
+    code_id = image_name[2:4]
+    sex = image_name[4]
+    id_ = int(image_name[5:9])
+    location = image_name[9]
+    kl_score = image_name[10]
     return age, code_id, sex, id_, location, kl_score
 
 def label_image(image_path, info):
@@ -43,11 +44,11 @@ def main():
     csv_data = load_csv_data(args.csv_file)
     
     for root, _, files in os.walk(args.image_folder):
-        for file in files:
+        for file in tqdm(files):
             if file.endswith('.png'):
                 image_path = os.path.join(root, file)
                 age, code_id, sex, id_, location, kl_score = get_image_info(file)
-                info = csv_data[csv_data['ID'] == int(id_)].iloc[0].to_dict()
+                info = csv_data[csv_data['ID'] == id_].iloc[0].to_dict()
                 info['Location'] = location
                 label_image(image_path, info)
 
