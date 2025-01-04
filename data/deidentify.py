@@ -35,10 +35,10 @@ def deidentify_dcm_file(dcm_file, output_folder, print_info=True):
         print(f"Original Patient's Age: {ds.PatientAge}")
     
     ds.PatientName = "Deidentified"
-    ds.PatientID = "Deidentified"
-    ds.PatientBirthDate = "Deidentified"
-    ds.PatientSex = "Deidentified"
-    ds.PatientAge = "Deidentified"
+    #ds.PatientID = "Deidentified"
+    ds.PatientBirthDate = ""  # Set to empty string to avoid warnings
+    ds.PatientSex = ""  # Set to empty string to avoid warnings
+    ds.PatientAge = ""  # Set to empty string to avoid warnings
     
     output_path = os.path.join(output_folder, os.path.basename(dcm_file))
     ds.save_as(output_path)
