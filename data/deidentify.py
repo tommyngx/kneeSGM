@@ -6,6 +6,7 @@ import argparse
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Get a random DICOM file, deidentify it, and print its information.")
     parser.add_argument('--folder', type=str, required=True, help='Path to the folder containing DICOM files.')
+    parser.add_argument('--test', type=bool, default=False, help='If true, only print information of a random DICOM file without saving.')
     return parser.parse_args()
 
 def get_random_dcm_file(folder_path):
@@ -28,18 +29,23 @@ def deidentify_dcm_file(dcm_file, output_folder):
     ds.save_as(output_path)
     return ds, output_path
 
-def main(folder):
+def main(folder, test):
     dcm_file = get_random_dcm_file(folder)
-    output_folder = os.path.join(os.path.dirname(folder), os.path.basename(folder) + "_deidentified")
-    if not os.path.exists(output_folder):
-        os.makedirs(output_folder)
-    ds, output_path = deidentify_dcm_file(dcm_file, output_folder)
-    print(f"Deidentified DICOM file saved to: {output_path}")
-    print_dcm_info(ds)
+    if test:
+        ds = pydicom.dcmread(dcm_file)
+        print_dcm_info(ds)
+    else:
+        output_folder = os.path.join(os.path.dirname(folder), os.path.basename(folder) + "_deidentified")
+        if not os.path.exists(output_folder):
+            os.makedirs(output_folder)
+        ds, output_path = deidentify_dcm_file(dcm_file, output_folder)
+        print(f"Deidentified DICOM file saved to: {output_path}")
+        print_dcm_info(ds)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Get a random DICOM file, deidentify it, and print its information.")
     parser.add_argument('--folder', type=str, required=True, help='Path to the folder containing DICOM files')
+    parser.add_argument('--test', type=bool, default=False, help='If true, only print information of a random DICOM file without saving.')
     args = parser.parse_args()
     
-    main(args.folder)
+    main(args.folder, args.test)
