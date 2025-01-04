@@ -42,7 +42,7 @@ def draw_text_on_image(image, text):
     font_url = 'https://github.com/tommyngx/style/blob/main/arial.ttf?raw=true'
     font_path = 'arial.ttf'
     download_font(font_url, font_path)
-    font = ImageFont.truetype(font_path, 20)  # Increase font size
+    font = ImageFont.truetype(font_path, 17)  # Increase font size
     text_position = (10, 10)
     text_bbox = draw.textbbox(text_position, text, font=font)
     background_position = (text_bbox[0] - 5, text_bbox[1] - 5, text_bbox[2] + 5, text_bbox[3] + 5)
