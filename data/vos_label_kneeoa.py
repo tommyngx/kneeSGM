@@ -55,7 +55,7 @@ def label_image(image_path, info, output_folder):
     image = image.resize((600, 600))  # Resize image to 600x600
     sex_label = "Male" if info['Sex'] else "Female"
     label = f"ID: {info['ID']}\nSex: {sex_label}\nAge: {info['Age']}\n"
-    if info['Location'] == 'L':
+    if info['Location'] == 'R':
         if info['Gai Trái'] != 0 and info['Gai Trái'] != "N/A":
             label += f"Gai Trái: {info['Gai Trái']}\n"
         if info['Số Gai Lớn Trái'] != 0 and info['Số Gai Lớn Trái'] != "N/A":
