@@ -49,19 +49,17 @@ def check_variables(folder):
         "PatientSex": [],
         "PatientAge": []
     }
-    for root, _, files in tqdm(os.walk(folder), desc="Checking variables"):
-        for file in files:
-            if file.endswith('.dcm'):
-                dcm_file = os.path.join(root, file)
-                ds = pydicom.dcmread(dcm_file)
-                if not hasattr(ds, 'PatientName'):
-                    missing_variables["PatientName"].append(dcm_file)
-                if not hasattr(ds, 'PatientBirthDate'):
-                    missing_variables["PatientBirthDate"].append(dcm_file)
-                if not hasattr(ds, 'PatientSex'):
-                    missing_variables["PatientSex"].append(dcm_file)
-                if not hasattr(ds, 'PatientAge'):
-                    missing_variables["PatientAge"].append(dcm_file)
+    dcm_files = [os.path.join(root, file) for root, _, files in os.walk(folder) for file in files if file.endswith('.dcm')]
+    for dcm_file in tqdm(dcm_files, desc="Checking variables"):
+        ds = pydicom.dcmread(dcm_file)
+        if not hasattr(ds, 'PatientName'):
+            missing_variables["PatientName"].append(dcm_file)
+        if not hasattr(ds, 'PatientBirthDate'):
+            missing_variables["PatientBirthDate"].append(dcm_file)
+        if not hasattr(ds, 'PatientSex'):
+            missing_variables["PatientSex"].append(dcm_file)
+        if not hasattr(ds, 'PatientAge'):
+            missing_variables["PatientAge"].append(dcm_file)
     for var, files in missing_variables.items():
         if files:
             print(f"Missing {var} in the following files:")
