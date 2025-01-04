@@ -16,10 +16,10 @@ data:
   #dataset_based_link: "/content/dataset/dataset"
   #dataset_based_link: "/projects/OsteoLab/Tommy/KneeOA/VOS_Phase2/VOS_P2_KNEE_CROP/dataset" # gpu settings
   dataset_based_link: "/projects/OsteoLab/Tommy/KneeOA/Data" # gpu settings
-  #dataset_name: "VOSP2v2"
-  dataset_name: "VOSP2"
-  #external_datasets: "OAI16, CGMH" # "None"
-  external_datasets:  "None"
+  dataset_name: "VOSP2v2"
+  #dataset_name: "VOSP2"
+  external_datasets: "OAI299, CGMH" # "None"
+  #external_datasets:  "None"
   train_split: "TRAIN"
   val_split: "TEST"
   test_split: "TEST"
@@ -50,7 +50,7 @@ data:
       hue: 0.2
       p: 0.5
     random_crop: 
-      enabled: false
+      enabled: true
       height: 256
       width: 256
       p: 0.5
@@ -59,7 +59,7 @@ data:
       scale_limit: 0.2
       p: 0.5
     clahe:
-      enabled: false
+      enabled: true
       clip_limit: 2.0
       tile_grid_size: 8
       p: 1
