@@ -15,7 +15,8 @@ def print_dcm_info(dcm_file):
     ds = pydicom.dcmread(dcm_file)
     print(f"Information for DICOM file: {dcm_file}")
     for elem in ds:
-        print(f"{elem.tag} {elem.name}: {elem.value}")
+        if elem.tag != (0x7fe0, 0x0010):  # Exclude Pixel Data
+            print(f"{elem.tag} {elem.name}: {elem.value}")
 
 def main(folder):
     dcm_file = get_random_dcm_file(folder)
