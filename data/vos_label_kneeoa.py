@@ -42,7 +42,7 @@ def draw_text_on_image(image, text):
     font_url = 'https://github.com/tommyngx/style/blob/main/arial.ttf?raw=true'
     font_path = 'arial.ttf'
     download_font(font_url, font_path)
-    font = ImageFont.truetype(font_path, 16)
+    font = ImageFont.truetype(font_path, 20)  # Increase font size
     text_position = (10, 10)
     text_bbox = draw.textbbox(text_position, text, font=font)
     background_position = (text_bbox[0] - 5, text_bbox[1] - 5, text_bbox[2] + 5, text_bbox[3] + 5)
@@ -55,13 +55,45 @@ def label_image(image_path, info, output_folder):
     sex_label = "Male" if info['Sex'] else "Female"
     label = f"ID: {info['ID']}\nSex: {sex_label}\nAge: {info['Age']}\n"
     if info['Location'] == 'L':
-        label += f"Gai Trái: {info['Gai Trái']}\nSố Gai Lớn Trái: {info['Số Gai Lớn Trái']}\nVị Trí Gai Lớn Trái: {info['Vị Trí Gai Lớn Trái']}\n"
-        label += f"Số Gai Nhỏ Trái: {info['Số Gai Nhỏ Trái']}\nVị Trí Gai Nhỏ Trái: {info['Vị Trí Gai Nhỏ Trái']}\nHẹp Khớp Trái: {info['Hẹp Khớp Trái']}\n"
-        label += f"Vị Trí Khớp Trái: {info['Vị Trí Khớp Trái']}\nXơ Sụn Trái: {info['Xơ Sụn Trái']}\nVị Trí Xơ Sụn Trái: {info['Vị Trí Xơ Sụn Trái']}\nKL Trái: {info['KL Trái']}\n"
+        if info['Gai Trái'] != 0 and info['Gai Trái'] != "N/A":
+            label += f"Gai Trái: {info['Gai Trái']}\n"
+        if info['Số Gai Lớn Trái'] != 0 and info['Số Gai Lớn Trái'] != "N/A":
+            label += f"Số Gai Lớn Trái: {info['Số Gai Lớn Trái']}\n"
+        if info['Vị Trí Gai Lớn Trái'] != 0 and info['Vị Trí Gai Lớn Trái'] != "N/A":
+            label += f"Vị Trí Gai Lớn Trái: {info['Vị Trí Gai Lớn Trái']}\n"
+        if info['Số Gai Nhỏ Trái'] != 0 and info['Số Gai Nhỏ Trái'] != "N/A":
+            label += f"Số Gai Nhỏ Trái: {info['Số Gai Nhỏ Trái']}\n"
+        if info['Vị Trí Gai Nhỏ Trái'] != 0 and info['Vị Trí Gai Nhỏ Trái'] != "N/A":
+            label += f"Vị Trí Gai Nhỏ Trái: {info['Vị Trí Gai Nhỏ Trái']}\n"
+        if info['Hẹp Khớp Trái'] != 0 and info['Hẹp Khớp Trái'] != "N/A":
+            label += f"Hẹp Khớp Trái: {info['Hẹp Khớp Trái']}\n"
+        if info['Vị Trí Khớp Trái'] != 0 and info['Vị Trí Khớp Trái'] != "N/A":
+            label += f"Vị Trí Khớp Trái: {info['Vị Trí Khớp Trái']}\n"
+        if info['Xơ Sụn Trái'] != 0 and info['Xơ Sụn Trái'] != "N/A":
+            label += f"Xơ Sụn Trái: {info['Xơ Sụn Trái']}\n"
+        if info['Vị Trí Xơ Sụn Trái'] != 0 and info['Vị Trí Xơ Sụn Trái'] != "N/A":
+            label += f"Vị Trí Xơ Sụn Trái: {info['Vị Trí Xơ Sụn Trái']}\n"
+        label += f"KL Trái: {info['KL Trái']}\n"
     else:
-        label += f"Gai Phải: {info['Gai Phải']}\nGai Lớn Phải: {info['Gai Lớn Phải']}\nVị Trí Gai Lớn Phải: {info['Vị Trí Gai Lớn Phải']}\n"
-        label += f"Gai Nhỏ Phải: {info['Gai Nhỏ Phải']}\nVị Trí Gai Nhỏ Phải: {info['Vị Trí Gai Nhỏ Phải']}\nHẹp Khớp Phải: {info['Hẹp Khớp Phải']}\n"
-        label += f"Vị Trí Khớp Phải: {info['Vị Trí Khớp Phải']}\nXơ Sụn Phải: {info['Xơ Sụn Phải']}\nVị Trí Xơ Sụn Phải: {info['Vị Trí Xơ Sụn Phải']}\nKL Phải: {info['KL Phải']}\n"
+        if info['Gai Phải'] != 0 and info['Gai Phải'] != "N/A":
+            label += f"Gai Phải: {info['Gai Phải']}\n"
+        if info['Gai Lớn Phải'] != 0 and info['Gai Lớn Phải'] != "N/A":
+            label += f"Gai Lớn Phải: {info['Gai Lớn Phải']}\n"
+        if info['Vị Trí Gai Lớn Phải'] != 0 and info['Vị Trí Gai Lớn Phải'] != "N/A":
+            label += f"Vị Trí Gai Lớn Phải: {info['Vị Trí Gai Lớn Phải']}\n"
+        if info['Gai Nhỏ Phải'] != 0 and info['Gai Nhỏ Phải'] != "N/A":
+            label += f"Gai Nhỏ Phải: {info['Gai Nhỏ Phải']}\n"
+        if info['Vị Trí Gai Nhỏ Phải'] != 0 and info['Vị Trí Gai Nhỏ Phải'] != "N/A":
+            label += f"Vị Trí Gai Nhỏ Phải: {info['Vị Trí Gai Nhỏ Phải']}\n"
+        if info['Hẹp Khớp Phải'] != 0 and info['Hẹp Khớp Phải'] != "N/A":
+            label += f"Hẹp Khớp Phải: {info['Hẹp Khớp Phải']}\n"
+        if info['Vị Trí Khớp Phải'] != 0 and info['Vị Trí Khớp Phải'] != "N/A":
+            label += f"Vị Trí Khớp Phải: {info['Vị Trí Khớp Phải']}\n"
+        if info['Xơ Sụn Phải'] != 0 and info['Xơ Sụn Phải'] != "N/A":
+            label += f"Xơ Sụn Phải: {info['Xơ Sụn Phải']}\n"
+        if info['Vị Trí Xơ Sụn Phải'] != 0 and info['Vị Trí Xơ Sụn Phải'] != "N/A":
+            label += f"Vị Trí Xơ Sụn Phải: {info['Vị Trí Xơ Sụn Phải']}\n"
+        label += f"KL Phải: {info['KL Phải']}\n"
     
     image = draw_text_on_image(image, label)
     output_path = os.path.join(output_folder, os.path.basename(image_path).replace('.png', '_labels.png'))
