@@ -51,8 +51,8 @@ data:
       p: 0.5
     random_crop: 
       enabled: true
-      height: 256
-      width: 256
+      height: 224
+      width: 224
       p: 0.5
     zoom_out:
       enabled: true
