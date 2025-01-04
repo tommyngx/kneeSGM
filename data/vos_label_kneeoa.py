@@ -10,7 +10,7 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description="Label knee osteoarthritis images based on CSV data.")
     parser.add_argument('--csv_file', type=str, required=True, help='Path to the CSV file containing knee OA data.')
     parser.add_argument('--image_folder', type=str, required=True, help='Path to the folder containing cropped knee images.')
-    parser.add_argument('--config_file', type=str, required=True, help='Path to the YAML configuration file.')
+    parser.add_argument('--config_file', type=str, default='config/default.yaml', help='Path to the YAML configuration file.')
     return parser.parse_args()
 
 def load_csv_data(csv_file):
