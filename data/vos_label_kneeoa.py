@@ -44,8 +44,8 @@ def draw_text_on_image(image, text):
     download_font(font_url, font_path)
     font = ImageFont.truetype(font_path, 16)
     text_position = (10, 10)
-    text_size = draw.textsize(text, font=font)
-    background_position = (text_position[0] - 5, text_position[1] - 5, text_position[0] + text_size[0] + 5, text_position[1] + text_size[1] + 5)
+    text_bbox = draw.textbbox(text_position, text, font=font)
+    background_position = (text_bbox[0] - 5, text_bbox[1] - 5, text_bbox[2] + 5, text_bbox[3] + 5)
     draw.rectangle(background_position, fill=(0, 0, 0, int(255 * 0.2)))
     draw.text(text_position, text, font=font, fill="white")
     return image
