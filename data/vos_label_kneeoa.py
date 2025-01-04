@@ -15,7 +15,7 @@ def parse_arguments():
     return parser.parse_args()
 
 def load_csv_data(csv_file):
-    return pd.read_csv(csv_file)
+    return pd.read_csv(csv_file).fillna("N/A")
 
 def load_config(config_file):
     with open(config_file, 'r') as file:
@@ -38,18 +38,22 @@ def download_font(font_url, font_path):
             f.write(response.content)
 
 def draw_text_on_image(image, text):
-    draw = ImageDraw.Draw(image)
+    draw = ImageDraw.Draw(image, "RGBA")
     font_url = 'https://github.com/tommyngx/style/blob/main/arial.ttf?raw=true'
     font_path = 'arial.ttf'
     download_font(font_url, font_path)
     font = ImageFont.truetype(font_path, 16)
     text_position = (10, 10)
+    text_size = draw.textsize(text, font=font)
+    background_position = (text_position[0] - 5, text_position[1] - 5, text_position[0] + text_size[0] + 5, text_position[1] + text_size[1] + 5)
+    draw.rectangle(background_position, fill=(0, 0, 0, int(255 * 0.2)))
     draw.text(text_position, text, font=font, fill="white")
     return image
 
 def label_image(image_path, info, output_folder):
     image = Image.open(image_path)
-    label = f"ID: {info['ID']}\nSex: {info['Sex']}\nAge: {info['Age']}\n"
+    sex_label = "Male" if info['Sex'] else "Female"
+    label = f"ID: {info['ID']}\nSex: {sex_label}\nAge: {info['Age']}\n"
     if info['Location'] == 'L':
         label += f"Gai Trái: {info['Gai Trái']}\nSố Gai Lớn Trái: {info['Số Gai Lớn Trái']}\nVị Trí Gai Lớn Trái: {info['Vị Trí Gai Lớn Trái']}\n"
         label += f"Số Gai Nhỏ Trái: {info['Số Gai Nhỏ Trái']}\nVị Trí Gai Nhỏ Trái: {info['Vị Trí Gai Nhỏ Trái']}\nHẹp Khớp Trái: {info['Hẹp Khớp Trái']}\n"
@@ -73,14 +77,16 @@ def main():
         shutil.rmtree(output_folder)
     os.makedirs(output_folder)
     
-    for root, _, files in os.walk(args.image_folder):
+    for root, dirs, files in os.walk(args.image_folder):
+        for dir_name in dirs:
+            os.makedirs(os.path.join(output_folder, dir_name), exist_ok=True)
         for file in tqdm(files):
             if file.endswith('.png'):
                 image_path = os.path.join(root, file)
                 age, code_id, sex, id_, location, kl_score = get_image_info(file)
                 info = csv_data[csv_data['ID'] == id_].iloc[0].to_dict()
                 info['Location'] = location
-                label_image(image_path, info, output_folder)
+                label_image(image_path, info, os.path.join(output_folder, os.path.relpath(root, args.image_folder)))
 
 if __name__ == "__main__":
     main()
