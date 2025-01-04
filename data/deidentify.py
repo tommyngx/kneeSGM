@@ -7,6 +7,7 @@ def get_random_dcm_file(folder_path):
     dcm_files = [os.path.join(root, file) for root, _, files in os.walk(folder_path) for file in files if file.endswith('.dcm')]
     if not dcm_files:
         raise FileNotFoundError("No DICOM files found in the specified folder.")
+    print(f"Total DICOM files found: {len(dcm_files)}")
     return random.choice(dcm_files)
 
 def print_dcm_info(dcm_file):
