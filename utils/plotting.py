@@ -5,7 +5,8 @@ import seaborn as sns
 from sklearn.metrics import confusion_matrix, roc_curve, auc
 import requests
 from matplotlib import font_manager
-from scipy import interp
+#from scipy import interp
+from numpy import interp
 from sklearn.utils import resample
 
 def save_confusion_matrix(labels, preds, class_names, output_dir, epoch=None, acc=None):
