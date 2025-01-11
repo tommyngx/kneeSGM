@@ -46,14 +46,13 @@ def get_augmentations(config_path='config/default.yaml', split='train'):
             original_width = config['data']['augmentations']['resize']['width']
 
             augmentations.append(RandomScale(scale_limit=(-scale_limit, 0), p=probability))
-            augmentations.append(PadIfNeeded(min_height=original_height, min_width=original_width, border_mode=cv2.BORDER_CONSTANT, value=0))
+            augmentations.append(PadIfNeeded(min_height=original_height, min_width=original_width, border_mode=cv2.BORDER_CONSTANT))
 
         if config['data']['augmentations']['rotate']['enabled']:
             augmentations.append(Rotate(
                 limit=config['data']['augmentations']['rotate']['limit'], 
                 p=config['data']['augmentations']['rotate']['p'],
-                border_mode=cv2.BORDER_CONSTANT,
-                value=0
+                border_mode=cv2.BORDER_CONSTANT
             ))
         if config['data']['augmentations']['color_jitter']['enabled']:
             augmentations.append(ColorJitter(
