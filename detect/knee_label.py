@@ -5,11 +5,26 @@ from ultralytics import YOLO
 import yaml
 from tqdm import tqdm
 from datetime import datetime
+import random
 
 def load_config(config_path):
     with open(config_path, 'r') as file:
         config = yaml.safe_load(file)
     return config
+
+def load_random_image(dataset_location, dataX):
+    if dataX == 'CGMH':
+        subfolders = [os.path.join(dataset_location, str(i)) for i in range(5)]
+        images = [os.path.join(subfolder, img) for subfolder in subfolders for img in os.listdir(subfolder) if img.endswith(('.jpg', '.jpeg', '.png'))]
+    else:
+        images = [os.path.join(dataset_location, img) for img in os.listdir(dataset_location) if img.endswith(('.jpg', '.jpeg', '.png'))]
+    
+    if not images:
+        raise FileNotFoundError("No images found in the dataset location.")
+    
+    random_image = random.choice(images)
+    img = cv2.imread(random_image)
+    return img, random_image
 
 def load_image_paths(dataset_location, dataX):
     if dataX == 'CGMH':
@@ -42,16 +57,30 @@ def save_labels(img, boxes, names, image_path, output_dir):
             height = (y2 - y1) / img_height
             label_file.write(f"{class_id} {x_center} {y_center} {width} {height}\n")
 
-def process_images(dataset_location, model, output_dir, dataX):
-    image_paths = load_image_paths(dataset_location, dataX)
-    for image_path in tqdm(image_paths, desc="Processing images", total=len(image_paths)):
-        img = cv2.imread(image_path)
+def process_images(dataset_location, model, output_dir, source_type, dataX):
+    if source_type == 'random':
+        img, image_path = load_random_image(dataset_location, dataX)
         results = model(img, verbose=False)
         boxes = results[0].boxes
         names = results[0].names
         save_labels(img, boxes, names, image_path, output_dir)
+        
+        # Print output
+        print(f"Image path: {image_path}")
+        print("Bounding boxes and names:")
+        for box in boxes:
+            class_id = int(box.cls.item())
+            print(f"Box: {box.xyxy}, Name: {names[class_id]}")
+    else:
+        image_paths = load_image_paths(dataset_location, dataX)
+        for image_path in tqdm(image_paths, desc="Processing images", total=len(image_paths)):
+            img = cv2.imread(image_path)
+            results = model(img, verbose=False)
+            boxes = results[0].boxes
+            names = results[0].names
+            save_labels(img, boxes, names, image_path, output_dir)
 
-def main(dataset_location, model_path, dataX='VOS', config_path='config/default.yaml'):
+def main(dataset_location, model_path, source_type, dataX='VOS', config_path='config/default.yaml'):
     config = load_config(config_path)
     folder_name = os.path.basename(dataset_location) + "_" + datetime.now().strftime("%Y%m%d")
     output_dir = os.path.join(config['output_dir'], 'yolo', 'runs', 'labels', folder_name)
@@ -60,14 +89,15 @@ def main(dataset_location, model_path, dataX='VOS', config_path='config/default.
     model = YOLO(model_path)
     
     # Process images
-    process_images(dataset_location, model, output_dir, dataX)
+    process_images(dataset_location, model, output_dir, source_type, dataX)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Predict using a YOLO model on images from the dataset and save YOLO format labels")
     parser.add_argument('--dataset_location', type=str, required=True, help='Path to the dataset location')
     parser.add_argument('--model', type=str, required=True, help='Path to the YOLO model file')
+    parser.add_argument('--source_type', type=str, choices=['random', 'folder'], default='random', help='Source type: random image or whole folder')
     parser.add_argument('--dataX', type=str, default='VOS', help='Data source identifier')
     parser.add_argument('--config', type=str, default='config/default.yaml', help='Path to the configuration file')
     args = parser.parse_args()
     
-    main(args.dataset_location, args.model, args.dataX, args.config)
+    main(args.dataset_location, args.model, args.source_type, args.dataX, args.config)
