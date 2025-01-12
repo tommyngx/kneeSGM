@@ -55,7 +55,7 @@ def save_labels(img, boxes, names, image_path, output_dir):
             y_center = (y1 + y2) / 2 / img_height
             width = (x2 - x1) / img_width
             height = (y2 - y1) / img_height
-            label_file.write(f"{class_id} {x_center} {y_center} {width} {height}\n")
+            label_file.write(f"{class_id} {x_center:.6f} {y_center:.6f} {width:.6f} {height:.6f}\n")
 
 def process_images(dataset_location, model, output_dir, source_type, dataX):
     if source_type == 'random':
