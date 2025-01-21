@@ -64,8 +64,8 @@ def process_images(dataset_location, model, output_dir, source_type, dataX, clas
             save_labels(img, boxes[0], names[0], image_path, output_dir, class_id)
         
         # Print output
-        #print(f"Image path: {image_path}")
-        #print("Bounding box and name:")
+        print(f"Image path: {image_path}")
+        print("Bounding box and name:")
         if boxes:
             print(f"Box: {boxes[0].xyxy}, Name: {names[0]}")
     else:
