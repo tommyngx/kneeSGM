@@ -96,7 +96,7 @@ if __name__ == "__main__":
     parser.add_argument('--source_type', type=str, choices=['random', 'folder'], default='random', help='Source type: random image or whole folder')
     parser.add_argument('--dataX', type=str, default='VOS', help='Data source identifier')
     parser.add_argument('--config', type=str, default='config/default.yaml', help='Path to the configuration file')
-    parser.add_argument('--class_id', type=int, default=4, help='Class ID for the bounding box')
+    parser.add_argument('--class_id', type=int, default=3, help='Class ID for the bounding box')
     args = parser.parse_args()
     
     main(args.dataset_location, args.model, args.source_type, args.dataX, args.config, args.class_id)
