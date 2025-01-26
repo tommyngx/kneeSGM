@@ -16,8 +16,8 @@ def train_yolo(dataset_location, model, pretrained, config='default.yaml'):
     
     command = [
         "yolo", "task=detect", "mode=train", f"model={model}",
-        f"data={dataset_location}/data.yaml", "epochs=2000", "imgsz=640", "plots=True",
-        f"project={output_folder}", "patience=100", f"pretrained={pretrained}"
+        f"data={dataset_location}/data.yaml", "epochs=500", "imgsz=640", "plots=True",
+        f"project={output_folder}", "patience=50", f"pretrained={pretrained}"
     ]
     subprocess.run(command, check=True)
 
