@@ -8,7 +8,7 @@ def load_config(config_path):
         config = yaml.safe_load(file)
     return config
 
-def train_yolo(dataset_location, model, config='default.yaml'):
+def train_yolo(dataset_location, model, pretrained, config='default.yaml'):
     config_path = os.path.join('config', config)
     config = load_config(config_path)
     output_folder = config['output_dir'] + "/yolo"
@@ -17,7 +17,7 @@ def train_yolo(dataset_location, model, config='default.yaml'):
     command = [
         "yolo", "task=detect", "mode=train", f"model={model}",
         f"data={dataset_location}/data.yaml", "epochs=2000", "imgsz=640", "plots=True",
-        f"project={output_folder}", "patience=100", #"fliplr= 0.0"
+        f"project={output_folder}", "patience=100", f"pretrained={pretrained}"
     ]
     subprocess.run(command, check=True)
 
@@ -25,7 +25,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train YOLO model")
     parser.add_argument('--dataset_location', type=str, required=True, help='Path to the dataset location')
     parser.add_argument('--model', type=str, required=True, help='Model file to be used for training')
+    parser.add_argument('--pretrained', type=str, required=True, help='Path to the weights file')
     parser.add_argument('--config', type=str, default='default.yaml', help='Name of the configuration file')
     args = parser.parse_args()
     
-    train_yolo(args.dataset_location, args.model, args.config)
+    train_yolo(args.dataset_location, args.model, args.pretrained, args.config)
