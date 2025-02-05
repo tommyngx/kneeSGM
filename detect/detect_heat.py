@@ -3,6 +3,7 @@ import argparse
 import cv2
 from ultralytics import YOLO
 from ultralytics.solutions import heatmap
+from ultralytics import solutions
 import yaml
 from tqdm import tqdm
 from datetime import datetime
@@ -40,7 +41,7 @@ def load_image_paths(dataset_location, dataX):
     return images
 
 def create_heatmap_image(model_path, img):
-    heatmap_obj = heatmap.Heatmap(
+    heatmap_obj = solutions.Heatmap(
         show=False,  # Do not display the output
         model=model_path,  # Path to the YOLO model file
         colormap=cv2.COLORMAP_JET,  # Choose a colormap
