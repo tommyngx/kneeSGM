@@ -57,7 +57,7 @@ def create_heatmap_image(model_path, img):
     # Iterate over the detection results and draw rectangles on the heatmap
     for result in results:
         for box in result.boxes:
-            x1, y1, x2, y2 = map(int, box.xyxy)
+            x1, y1, x2, y2 = box.xyxy[0].int().tolist()
             cv2.rectangle(heatmap_img, (x1, y1), (x2, y2), (0, 0, 255), -1)
     
     # Apply a colormap to the heatmap
