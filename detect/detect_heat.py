@@ -40,19 +40,32 @@ def load_image_paths(dataset_location, dataX):
     return images
 
 def create_heatmap_image(model, img):
+    # Initialize heatmap object with default settings
     heatmap_obj = heatmap.Heatmap()
+    
+    # Configure heatmap settings
     heatmap_obj.set_args(
-        colormap=cv2.COLORMAP_JET,  # Choose a colormap
-        imw=img.shape[1],  # Image width
-        imh=img.shape[0],  # Image height
-        view_img=False,    # Do not display the image with heatmap overlay
-        heatmap_alpha=0.6  # Adjust the transparency of the heatmap overlay
+        colormap=cv2.COLORMAP_JET,
+        imw=img.shape[1],
+        imh=img.shape[0],
+        view_img=False,
+        heatmap_alpha=0.6,
+        show=False
     )
-    results = model.track(img, persist=True)
-    heatmap_img = heatmap_obj.generate_heatmap(img, tracks=results)
-    return heatmap_img
+    
+    # Perform object detection with tracking
+    results = model.track(img, persist=True, verbose=False)
+    
+    # Generate and return heatmap
+    return heatmap_obj.generate_heatmap(img, tracks=results)
 
 def save_combined_image(input_img, detected_img, heatmap_img, output_path):
+    # Ensure all images are the same size
+    h, w = input_img.shape[:2]
+    detected_img = cv2.resize(detected_img, (w, h))
+    heatmap_img = cv2.resize(heatmap_img, (w, h))
+    
+    # Combine images horizontally
     combined_img = np.hstack((input_img, detected_img, heatmap_img))
     cv2.imwrite(output_path, combined_img)
 
@@ -61,21 +74,24 @@ def process_images(dataset_location, model, output_dir, source_type, dataX):
         img, image_path = load_random_image(dataset_location, dataX)
         results = model(img, verbose=False)
         detected_img = results[0].plot()
-        heatmap_img = create_heatmap_image(model, img)
+        heatmap_img = create_heatmap_image(model, img.copy())  # Use copy to prevent modifications
         
         output_path = os.path.join(output_dir, os.path.basename(image_path))
         save_combined_image(img, detected_img, heatmap_img, output_path)
         
-        # Print output
         print(f"Image path: {image_path}")
         print("Saved combined image to:", output_path)
     else:
         image_paths = load_image_paths(dataset_location, dataX)
-        for image_path in tqdm(image_paths, desc="Processing images", total=len(image_paths)):
+        for image_path in tqdm(image_paths, desc="Processing images"):
             img = cv2.imread(image_path)
+            if img is None:
+                print(f"Warning: Could not read image {image_path}")
+                continue
+            
             results = model(img, verbose=False)
             detected_img = results[0].plot()
-            heatmap_img = create_heatmap_image(model, img)
+            heatmap_img = create_heatmap_image(model, img.copy())
             
             output_path = os.path.join(output_dir, os.path.basename(image_path))
             save_combined_image(img, detected_img, heatmap_img, output_path)
