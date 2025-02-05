@@ -10,6 +10,9 @@ from tqdm import tqdm
 from datetime import datetime
 import random
 import numpy as np
+import torch
+from torchvision import models, transforms
+from torch.autograd import Function
 
 def load_config(config_path):
     with open(config_path, 'r') as file:
@@ -41,6 +44,40 @@ def load_image_paths(dataset_location, dataX):
         raise FileNotFoundError("No images found in the dataset location.")
     return images
 
+class GradCAM:
+    def __init__(self, model, target_layer):
+        self.model = model
+        self.target_layer = target_layer
+        self.gradients = None
+        self.activations = None
+        self.hook_layers()
+
+    def hook_layers(self):
+        def forward_hook(module, input, output):
+            self.activations = output
+
+        def backward_hook(module, grad_in, grad_out):
+            self.gradients = grad_out[0]
+
+        self.target_layer.register_forward_hook(forward_hook)
+        self.target_layer.register_backward_hook(backward_hook)
+
+    def generate_heatmap(self, input_image, class_idx):
+        self.model.zero_grad()
+        output = self.model(input_image)
+        target = output[0][class_idx]
+        target.backward()
+
+        gradients = self.gradients[0]
+        activations = self.activations[0]
+        weights = torch.mean(gradients, dim=(1, 2), keepdim=True)
+        heatmap = torch.sum(weights * activations, dim=0).cpu().detach().numpy()
+        heatmap = np.maximum(heatmap, 0)
+        heatmap = cv2.resize(heatmap, (input_image.shape[3], input_image.shape[2]))
+        heatmap = heatmap - np.min(heatmap)
+        heatmap = heatmap / np.max(heatmap)
+        return heatmap
+
 def create_heatmap_image(model_path, img):
     print("Loading YOLO model...")
     # Load the YOLO model
@@ -54,14 +91,28 @@ def create_heatmap_image(model_path, img):
     # Create an empty heatmap
     heatmap_img = np.zeros_like(img)
     
-    # Iterate over the detection results and draw rectangles on the heatmap
+    # Load a pre-trained model for Grad-CAM
+    gradcam_model = models.resnet50(pretrained=True)
+    gradcam = GradCAM(gradcam_model, gradcam_model.layer4[2])
+    
+    # Preprocess the image for Grad-CAM
+    preprocess = transforms.Compose([
+        transforms.ToPILImage(),
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    ])
+    input_tensor = preprocess(img).unsqueeze(0)
+    
+    # Iterate over the detection results and generate Grad-CAM heatmaps
     for result in results:
         for box in result.boxes:
             x1, y1, x2, y2 = box.xyxy[0].int().tolist()
-            cv2.rectangle(heatmap_img, (x1, y1), (x2, y2), (0, 0, 255), -1)
-    
-    # Apply a colormap to the heatmap
-    heatmap_img = cv2.applyColorMap(heatmap_img, cv2.COLORMAP_JET)
+            class_idx = int(box.cls)
+            heatmap = gradcam.generate_heatmap(input_tensor, class_idx)
+            heatmap = cv2.applyColorMap(np.uint8(255 * heatmap), cv2.COLORMAP_JET)
+            heatmap = cv2.resize(heatmap, (x2 - x1, y2 - y1))
+            heatmap_img[y1:y2, x1:x2] = heatmap
     
     print("Heatmap image created successfully.")
     return heatmap_img
