@@ -51,14 +51,14 @@ def create_heatmap_image(model_path, img):
     heatmap_obj = Heatmap()
     heatmap_obj.set_args(
         colormap=cv2.COLORMAP_JET,  # Choose a colormap
-        imw=im0.shape[1],  # Image width
-        imh=im0.shape[0],  # Image height
+        imw=img.shape[1],  # Image width
+        imh=img.shape[0],  # Image height
         view_img=True,     # Display the image with heatmap overlay
         heatmap_alpha=0.6  # Adjust the transparency of the heatmap overlay
     )
     model = YOLO(model_path)
     results = model.track(img, persist=True)
-    heatmap_img = heatmap_obj.generate_heatmap(im0, tracks=results)
+    heatmap_img = heatmap_obj.generate_heatmap(img, tracks=results)
     return heatmap_img
 
 def save_combined_image(input_img, detected_img, heatmap_img, output_path):
