@@ -42,12 +42,15 @@ def load_image_paths(dataset_location, dataX):
     return images
 
 def create_heatmap_image(model_path, img):
+    print("Loading YOLO model...")
     # Load the YOLO model
     model = YOLO(model_path)
     
+    print("Performing detection on the image...")
     # Perform detection on the image
     results = model(img, verbose=False)
     
+    print("Generating heatmap based on detection results...")
     # Generate a heatmap based on the detection results
     heatmap_obj = heatmap.Heatmap(
         show=False,  # Do not display the output
@@ -55,9 +58,11 @@ def create_heatmap_image(model_path, img):
         colormap=cv2.COLORMAP_JET,  # Choose a colormap
     )
     
+    print("Creating the heatmap image...")
     # Create the heatmap image
     heatmap_img = heatmap_obj.generate_heatmap(img, results=results)
     
+    print("Heatmap image created successfully.")
     return heatmap_img
 
 def save_combined_image(input_img, detected_img, heatmap_img, output_path):
