@@ -3,7 +3,6 @@ import argparse
 import cv2
 from ultralytics import YOLO
 from ultralytics.solutions import heatmap
-from ultralytics import solutions
 import yaml
 from tqdm import tqdm
 from datetime import datetime
@@ -40,26 +39,29 @@ def load_image_paths(dataset_location, dataX):
         raise FileNotFoundError("No images found in the dataset location.")
     return images
 
-def create_heatmap_image(model_path, img):
-    heatmap_obj = solutions.Heatmap(
-        show=False,  # Do not display the output
-        model=model_path,  # Path to the YOLO model file
+def create_heatmap_image(model, img):
+    heatmap_obj = heatmap.Heatmap()
+    heatmap_obj.set_args(
         colormap=cv2.COLORMAP_JET,  # Choose a colormap
+        imw=img.shape[1],  # Image width
+        imh=img.shape[0],  # Image height
+        view_img=False,    # Do not display the image with heatmap overlay
+        heatmap_alpha=0.6  # Adjust the transparency of the heatmap overlay
     )
-    heatmap_img = heatmap_obj.generate_heatmap(img)
+    results = model.track(img, persist=True)
+    heatmap_img = heatmap_obj.generate_heatmap(img, tracks=results)
     return heatmap_img
 
 def save_combined_image(input_img, detected_img, heatmap_img, output_path):
     combined_img = np.hstack((input_img, detected_img, heatmap_img))
     cv2.imwrite(output_path, combined_img)
 
-def process_images(dataset_location, model, model_path, output_dir, source_type, dataX):
+def process_images(dataset_location, model, output_dir, source_type, dataX):
     if source_type == 'random':
         img, image_path = load_random_image(dataset_location, dataX)
         results = model(img, verbose=False)
         detected_img = results[0].plot()
-        heatmap_img = create_heatmap_image(model_path, img)
-        #heatmap_img = results[0].plot()
+        heatmap_img = create_heatmap_image(model, img)
         
         output_path = os.path.join(output_dir, os.path.basename(image_path))
         save_combined_image(img, detected_img, heatmap_img, output_path)
@@ -73,7 +75,7 @@ def process_images(dataset_location, model, model_path, output_dir, source_type,
             img = cv2.imread(image_path)
             results = model(img, verbose=False)
             detected_img = results[0].plot()
-            heatmap_img = create_heatmap_image(model_path, img)
+            heatmap_img = create_heatmap_image(model, img)
             
             output_path = os.path.join(output_dir, os.path.basename(image_path))
             save_combined_image(img, detected_img, heatmap_img, output_path)
@@ -90,7 +92,7 @@ def main(dataset_location, model_path, source_type, dataX='VOS', config_path='co
     model = YOLO(model_path)
     
     # Process images
-    process_images(dataset_location, model, model_path, output_dir, source_type, dataX)
+    process_images(dataset_location, model, output_dir, source_type, dataX)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Predict using a YOLO model on images from the dataset and save combined images with input, detected, and heatmap")
