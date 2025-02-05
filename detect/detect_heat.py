@@ -57,7 +57,7 @@ def create_heatmap_image(model_path, img):
         heatmap_alpha=0.6  # Adjust the transparency of the heatmap overlay
     )
     model = YOLO(model_path)
-    results = model.track(im0, persist=True)
+    results = model.track(img, persist=True)
     heatmap_img = heatmap_obj.generate_heatmap(im0, tracks=results)
     return heatmap_img
 
