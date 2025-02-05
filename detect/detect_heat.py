@@ -4,6 +4,7 @@ import cv2
 from ultralytics import YOLO
 from ultralytics.solutions import heatmap
 from ultralytics import solutions
+from ultralytics.solutions.heatmap import Heatmap
 import yaml
 from tqdm import tqdm
 from datetime import datetime
@@ -41,13 +42,23 @@ def load_image_paths(dataset_location, dataX):
     return images
 
 def create_heatmap_image(model_path, img):
-    heatmap_obj = solutions.Heatmap(  # Changed: use heatmap.Heatmap instead of solutions.Heatmap
-        show=False,  # Do not display the output
+    #heatmap_obj = solutions.Heatmap(  # Changed: use heatmap.Heatmap instead of solutions.Heatmap
+     #   show=False,  # Do not display the output
         #model=model_path,  # Path to the YOLO model file
-        model="yolo11x.pt",
+     #   model="yolo11x.pt",
+     #   colormap=cv2.COLORMAP_JET,  # Choose a colormap
+    #)
+    heatmap_obj = Heatmap()
+    heatmap_obj.set_args(
         colormap=cv2.COLORMAP_JET,  # Choose a colormap
+        imw=im0.shape[1],  # Image width
+        imh=im0.shape[0],  # Image height
+        view_img=True,     # Display the image with heatmap overlay
+        heatmap_alpha=0.6  # Adjust the transparency of the heatmap overlay
     )
-    heatmap_img = heatmap_obj.generate_heatmap(img)
+    model = YOLO(model_path)
+    results = model.track(im0, persist=True)
+    heatmap_img = heatmap_obj.generate_heatmap(im0, tracks=results)
     return heatmap_img
 
 def save_combined_image(input_img, detected_img, heatmap_img, output_path):
