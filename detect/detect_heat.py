@@ -57,7 +57,8 @@ def process_images(dataset_location, model, model_path, output_dir, source_type,
         img, image_path = load_random_image(dataset_location, dataX)
         results = model(img, verbose=False)
         detected_img = results[0].plot()
-        heatmap_img = create_heatmap_image(model_path, img)
+        #heatmap_img = create_heatmap_image(model_path, img)
+        heatmap_img = results[0].plot()
         
         output_path = os.path.join(output_dir, os.path.basename(image_path))
         save_combined_image(img, detected_img, heatmap_img, output_path)
