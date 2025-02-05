@@ -42,23 +42,22 @@ def load_image_paths(dataset_location, dataX):
     return images
 
 def create_heatmap_image(model_path, img):
-    #heatmap_obj = solutions.Heatmap(  # Changed: use heatmap.Heatmap instead of solutions.Heatmap
-     #   show=False,  # Do not display the output
-        #model=model_path,  # Path to the YOLO model file
-     #   model="yolo11x.pt",
-     #   colormap=cv2.COLORMAP_JET,  # Choose a colormap
-    #)
-    heatmap_obj = Heatmap()
-    heatmap_obj.set_args(
-        colormap=cv2.COLORMAP_JET,  # Choose a colormap
-        imw=img.shape[1],  # Image width
-        imh=img.shape[0],  # Image height
-        view_img=True,     # Display the image with heatmap overlay
-        heatmap_alpha=0.6  # Adjust the transparency of the heatmap overlay
-    )
+    # Load the YOLO model
     model = YOLO(model_path)
-    results = model.track(img, persist=True)
-    heatmap_img = heatmap_obj.generate_heatmap(img, tracks=results)
+    
+    # Perform detection on the image
+    results = model(img, verbose=False)
+    
+    # Generate a heatmap based on the detection results
+    heatmap_obj = heatmap.Heatmap(
+        show=False,  # Do not display the output
+        model=model_path,  # Path to the YOLO model file
+        colormap=cv2.COLORMAP_JET,  # Choose a colormap
+    )
+    
+    # Create the heatmap image
+    heatmap_img = heatmap_obj.generate_heatmap(img, results=results)
+    
     return heatmap_img
 
 def save_combined_image(input_img, detected_img, heatmap_img, output_path):
