@@ -42,7 +42,7 @@ def load_image_paths(dataset_location, dataX):
 
 def create_heatmap_image(model_path, img):
     heatmap_obj = heatmap.Heatmap(  # Changed: use heatmap.Heatmap instead of solutions.Heatmap
-        show=False,  # Do not display the output
+        show=True,  # Do not display the output
         model=model_path,  # Path to the YOLO model file
         colormap=cv2.COLORMAP_JET,  # Choose a colormap
     )
