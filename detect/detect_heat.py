@@ -51,16 +51,17 @@ def create_heatmap_image(model_path, img):
     results = model(img, verbose=False)
     
     print("Generating heatmap based on detection results...")
-    # Generate a heatmap based on the detection results
-    heatmap_obj = heatmap.Heatmap(
-        show=False,  # Do not display the output
-        model=model_path,  # Path to the YOLO model file
-        colormap=cv2.COLORMAP_JET,  # Choose a colormap
-    )
+    # Create an empty heatmap
+    heatmap_img = np.zeros_like(img)
     
-    print("Creating the heatmap image...")
-    # Create the heatmap image
-    heatmap_img = heatmap_obj.generate_heatmap(img, results=results)
+    # Iterate over the detection results and draw rectangles on the heatmap
+    for result in results:
+        for box in result.boxes:
+            x1, y1, x2, y2 = map(int, box.xyxy)
+            cv2.rectangle(heatmap_img, (x1, y1), (x2, y2), (0, 0, 255), -1)
+    
+    # Apply a colormap to the heatmap
+    heatmap_img = cv2.applyColorMap(heatmap_img, cv2.COLORMAP_JET)
     
     print("Heatmap image created successfully.")
     return heatmap_img
