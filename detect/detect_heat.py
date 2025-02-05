@@ -40,18 +40,13 @@ def load_image_paths(dataset_location, dataX):
         raise FileNotFoundError("No images found in the dataset location.")
     return images
 
-def create_heatmap_image(model, img):
-    from ultralytics import solutions  # ensure solutions is imported
-    heatmap_obj = solutions.Heatmap()
-    heatmap_obj.set_args(
-        colormap=cv2.COLORMAP_JET,  # choose a colormap
-        imw=img.shape[1],           # image width
-        imh=img.shape[0],           # image height
-        view_img=False,             # do not display overlay
-        heatmap_alpha=0.6           # transparency of the heatmap overlay
+def create_heatmap_image(model_path, img):
+    heatmap_obj = heatmap.Heatmap(  # Changed: use heatmap.Heatmap instead of solutions.Heatmap
+        show=False,  # Do not display the output
+        model=model_path,  # Path to the YOLO model file
+        colormap=cv2.COLORMAP_JET,  # Choose a colormap
     )
-    results = model.track(img, persist=True, verbose=False)
-    heatmap_img = heatmap_obj.generate_heatmap(img, tracks=results)
+    heatmap_img = heatmap_obj.generate_heatmap(img)
     return heatmap_img
 
 def save_combined_image(input_img, detected_img, heatmap_img, output_path):
@@ -63,7 +58,8 @@ def process_images(dataset_location, model, model_path, output_dir, source_type,
         img, image_path = load_random_image(dataset_location, dataX)
         results = model(img, verbose=False)
         detected_img = results[0].plot()
-        heatmap_img = create_heatmap_image(model, img)
+        heatmap_img = create_heatmap_image(model_path, img)
+        #heatmap_img = results[0].plot()
         
         output_path = os.path.join(output_dir, os.path.basename(image_path))
         save_combined_image(img, detected_img, heatmap_img, output_path)
@@ -77,7 +73,7 @@ def process_images(dataset_location, model, model_path, output_dir, source_type,
             img = cv2.imread(image_path)
             results = model(img, verbose=False)
             detected_img = results[0].plot()
-            heatmap_img = create_heatmap_image(model, img)
+            heatmap_img = create_heatmap_image(model_path, img)
             
             output_path = os.path.join(output_dir, os.path.basename(image_path))
             save_combined_image(img, detected_img, heatmap_img, output_path)
