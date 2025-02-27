@@ -18,7 +18,7 @@ data:
   dataset_based_link: "/projects/OsteoLab/Tommy/KneeOA/Data" # gpu settings
   dataset_name: "VOSP2v3"
   #dataset_name: "VOSP2"
-  external_datasets: "OAI299" #"OAI299, CGMH" # "None"
+  external_datasets: "OAI299, CGMH" # "None"
   #external_datasets:  "None"
   train_split: "TRAIN"
   val_split: "TEST"
