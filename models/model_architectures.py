@@ -31,7 +31,7 @@ def get_model(model_name, config_path='config/default.yaml', pretrained=True):
         model.head.fc.fc2 = nn.Linear(model.head.fc.fc2.in_features, num_classes)
     elif 'fastvit' in model_name:
         model.head.fc = nn.Linear(model.head.fc.in_features, num_classes)
-    elif 'efficientnet_b0' in model_name:
+    elif 'efficientnet_b0' in model_name or 'efficientnet_b7' in model_name or 'efficientnet' in model_name:
         model.classifier = nn.Linear(model.classifier.in_features, num_classes)
     else:
         raise ValueError(f"Model {model_name} not supported.")

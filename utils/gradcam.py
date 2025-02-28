@@ -305,7 +305,7 @@ def get_target_layer(model, model_name):
         return model.stages[-1].blocks[-1].norm2
     elif 'fastvit' in model_name:
         return model.stages[-1].blocks[-1].norm
-    elif 'efficientnet_b0' in model_name:
+    elif 'efficientnet_b0' in model_name or 'efficientnet_b7' in model_name or 'efficientnet' in model_name:
         return model.conv_head
     elif 'xception' in model_name:
         # Using exit_flow or the last block (usually block12 in standard Xception)
