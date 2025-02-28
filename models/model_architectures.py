@@ -11,9 +11,16 @@ def load_config(config_path):
 def get_model(model_name, config_path='config/default.yaml', pretrained=True):
     if 'fastvit' in model_name:
         model_name = "fastvit_sa12.apple_in1k"
+    
+    # Set pretrained=False specifically for efficientnet_b7 which doesn't have pretrained weights
+    if 'efficientnet_b7' in model_name:
+        use_pretrained = False
+    else:
+        use_pretrained = pretrained
+        
     config = load_config(config_path)
     num_classes = len(config['data']['class_labels'])
-    model = timm.create_model(model_name, pretrained=pretrained)
+    model = timm.create_model(model_name, pretrained=use_pretrained)
     
     if 'convnext_base' in model_name:
         model.head.fc = nn.Linear(model.head.fc.in_features, num_classes)
