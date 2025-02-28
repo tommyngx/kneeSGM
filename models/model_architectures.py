@@ -25,6 +25,8 @@ def get_model(model_name, config_path='config/default.yaml', pretrained=True):
         model.head = nn.Linear(model.head.in_features, num_classes)
     elif 'densenet121' in model_name or 'densenet169' in model_name or 'densenet201' in model_name or 'densenet161' in model_name:
         model.classifier = nn.Linear(model.classifier.in_features, num_classes)
+    elif 'xception' in model_name:
+        model.fc = nn.Linear(model.fc.in_features, num_classes)
     elif 'caformer_s18' in model_name:
         model.head.fc.fc2 = nn.Linear(model.head.fc.fc2.in_features, num_classes)
     elif 'fastvit' in model_name:
