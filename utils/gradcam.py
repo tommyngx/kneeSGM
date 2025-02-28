@@ -308,6 +308,19 @@ def get_target_layer(model, model_name):
     elif 'efficientnet_b0' in model_name:
         return model.conv_head
     elif 'xception' in model_name:
-        return model.block14
+        # Using exit_flow or the last block (usually block12 in standard Xception)
+        if hasattr(model, 'exit_flow'):
+            return model.exit_flow
+        elif hasattr(model, 'block12'):
+            return model.block12
+        elif hasattr(model, 'bn4'):
+            return model.bn4
+        else:
+            # Fallback to the final convolutional layer
+            for i in range(12, 0, -1):
+                if hasattr(model, f'block{i}'):
+                    return getattr(model, f'block{i}')
+            # Last resort fallback
+            return model.act4 if hasattr(model, 'act4') else model.block1
     else:
         raise ValueError(f"Model {model_name} not supported for Grad-CAM.")
