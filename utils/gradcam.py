@@ -33,7 +33,7 @@ def register_hooks(model, image, target_layer):
 def generate_gradcam(model, image, target_layer, model_name):
     activations, gradients = register_hooks(model, image, target_layer)
     
-    if any(cnn_model in model_name for cnn_model in ['resnet', 'resnext', 'efficientnet', 'densenet', 'convnext', 'resnext50_32x4d']):
+    if any(cnn_model in model_name for cnn_model in ['resnet', 'resnext', 'efficientnet', 'densenet', 'convnext', 'resnext50_32x4d', 'xception']):
         return generate_gradcam_cnn(activations, gradients, image)
     elif 'fastvit' in model_name:
         return generate_gradcam_fastvit(activations, gradients, image)
@@ -150,7 +150,7 @@ def post_process_heatmap(heatmap, image):
 def generate_gradcam_plus_plus(model, image, target_layer, model_name):
     activations, gradients = register_hooks(model, image, target_layer)
 
-    if any(cnn_model in model_name for cnn_model in ['resnet', 'resnext', 'efficientnet', 'densenet', 'convnext', 'resnext50_32x4d']):
+    if any(cnn_model in model_name for cnn_model in ['resnet', 'resnext', 'efficientnet', 'densenet', 'convnext', 'resnext50_32x4d', 'xception']):
         return generate_gradcam_plus_plus_cnn(activations, gradients, image)
     elif 'fastvit' in model_name:
         return generate_gradcam_plus_plus_fastvit(activations, gradients, image)
@@ -307,5 +307,7 @@ def get_target_layer(model, model_name):
         return model.stages[-1].blocks[-1].norm
     elif 'efficientnet_b0' in model_name:
         return model.conv_head
+    elif 'xception' in model_name:
+        return model.block14
     else:
         raise ValueError(f"Model {model_name} not supported for Grad-CAM.")
