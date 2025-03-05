@@ -63,7 +63,7 @@ def run_yolo_on_image(image_path, model):
     if counter.get("osteophyte", 0) > 1:
         result_list.append("OsteophyteMore")
     # New rule: if any osteophyte area > 750, add "OsteophyteBig"
-    if any(area > 150 for area in osteophyte_areas):
+    if any(area > 250 for area in osteophyte_areas):
         if "OsteophyteBig" not in result_list:
             result_list.append("OsteophyteBig")
     
