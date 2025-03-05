@@ -46,13 +46,15 @@ def get_dataloader(split, batch_size, num_workers, transform=None, config_path='
     csv_file = config['data']['metadata_csv']
     dataset_name = config['data']['dataset_name']
     external_datasets = config['data'].get('external_datasets', None)
-    split = config['data'][split.lower() + '_split']
+    # Use the proper split value from yaml, e.g., 'TEST'
+    split_value = config['data'][split.lower() + '_split']
     image_path_column = config['data']['image_path_column']
     label_column = config['data']['label_column']
     dataset_based_link = config['data']['dataset_based_link']
     
-    dataset = KneeOsteoarthritisDataset(csv_file, split, image_path_column, label_column, dataset_based_link, dataset_name, external_datasets, transform=transform, config_path=config_path)
-    split = split.lower()
-    #dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=(split == 'train'), num_workers=num_workers)
-    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
+    dataset = KneeOsteoarthritisDataset(csv_file, split_value, image_path_column, label_column, dataset_based_link, dataset_name, external_datasets, transform=transform, config_path=config_path)
+    
+    # For test split, do not shuffle to preserve the ground truth order.
+    shuffle_val = False if split_value.lower() == 'test' else True
+    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle_val, num_workers=num_workers)
     return dataloader
