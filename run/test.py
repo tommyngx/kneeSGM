@@ -90,15 +90,16 @@ def calculate_per_class_metrics(y_true, y_pred, num_classes):
     return per_class_sensitivity, per_class_specificity
 
 def save_metrics_to_csv(metrics_dict, output_dir, model_name):
-    """Save metrics to a CSV file with metrics in the first column and model name in the second column."""
+    """Save metrics to a CSV file with metrics in the first column and model name as the second column header."""
     csv_path = os.path.join(output_dir, "metrics_results.csv")
     
     with open(csv_path, 'w', newline='') as csvfile:
         writer = csv.writer(csvfile)
-        writer.writerow(['Metric', 'Value', 'Model'])
+        # Use model_name as column header instead of 'Value' and remove the 'Model' column
+        writer.writerow(['Metric', model_name])
         
         for metric_name, metric_value in metrics_dict.items():
-            writer.writerow([metric_name, f"{metric_value:.4f}", model_name])
+            writer.writerow([metric_name, f"{metric_value:.4f}"])
     
     print(f"Metrics saved to {csv_path}")
 
