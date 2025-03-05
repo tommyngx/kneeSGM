@@ -8,6 +8,7 @@ import yaml
 import os
 import matplotlib.pyplot as plt
 import argparse
+import csv
 from sklearn.metrics import classification_report, cohen_kappa_score, roc_auc_score, brier_score_loss
 from models.model_architectures import get_model
 from data.data_loader import get_dataloader
@@ -88,6 +89,19 @@ def calculate_per_class_metrics(y_true, y_pred, num_classes):
     
     return per_class_sensitivity, per_class_specificity
 
+def save_metrics_to_csv(metrics_dict, output_dir, model_name):
+    """Save metrics to a CSV file with metrics in the first column and model name in the second column."""
+    csv_path = os.path.join(output_dir, "metrics_results.csv")
+    
+    with open(csv_path, 'w', newline='') as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(['Metric', 'Value', 'Model'])
+        
+        for metric_name, metric_value in metrics_dict.items():
+            writer.writerow([metric_name, f"{metric_value:.4f}", model_name])
+    
+    print(f"Metrics saved to {csv_path}")
+
 def main(config='default.yaml', model_name=None, model_path=None, use_gradcam_plus_plus=False):
     config_path = os.path.join('config', config)
     config = load_config(config_path)
@@ -160,6 +174,27 @@ def main(config='default.yaml', model_name=None, model_path=None, use_gradcam_pl
         for i, class_name in enumerate(config['data']['class_names']):
             f.write(f"Class {class_name} - Sensitivity: {per_class_sensitivity[i]:.4f}, Specificity: {per_class_specificity[i]:.4f}\n")
         
+    # Collect all metrics in a dictionary for CSV export
+    metrics_dict = {
+        'Accuracy': test_acc,
+        'F1_Score': test_f1,
+        'Precision': test_precision,
+        'Recall': test_recall,
+        'Sensitivity': sensitivity,
+        'Specificity': specificity,
+        'Kappa': kappa,
+        'AUC': auc,
+        'Brier_Score': brier,
+    }
+    
+    # Add class-specific metrics
+    for i, class_name in enumerate(config['data']['class_names']):
+        metrics_dict[f'Sensitivity_{class_name}'] = per_class_sensitivity[i]
+        metrics_dict[f'Specificity_{class_name}'] = per_class_specificity[i]
+    
+    # Save metrics to CSV
+    save_metrics_to_csv(metrics_dict, output_dir, model_name)
+    
     target_layer = get_target_layer(model, model_name)
     
     # Ensure the same parameters are used for save_confusion_matrix
