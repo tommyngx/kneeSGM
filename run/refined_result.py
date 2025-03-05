@@ -29,8 +29,8 @@ def refine_prediction(model_pred, yolo_text):
     text = yolo_text.lower() if isinstance(yolo_text, str) else ""
     
     # New rule 6
-    #if model_pred == 1 and "osteophytemore" in text:
-    #    return 2
+    if model_pred == 1 and "osteophytemore" in text:
+        return 2
 
     # New rule 7
     if model_pred in [3, 4]:
