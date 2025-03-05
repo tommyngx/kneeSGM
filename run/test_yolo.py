@@ -23,6 +23,9 @@ def run_yolo_on_image(image_path, model):
     if img is None:
         return "Error: cannot read image", []
     
+    # Resize image to 448x448 before YOLO processing
+    img = cv2.resize(img, (448, 448))
+    
     results = model(img, verbose=False)
     if not results:
         return "No detection", []
