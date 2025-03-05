@@ -143,6 +143,14 @@ def main(csv_path, model_name, config='default.yaml'):
         print("ROC AUC (binary): Not computed")
     print(f"Brier Score: {brier:.4f}")
     
+    for i, class_name in enumerate(config['data']['class_names']):
+        #metrics[f'Sensitivity_{class_name}'] = per_class_sensitivity[i]
+        print(f"Sensitivity _{class_name}: {per_class_sensitivity[i]:.4f}")
+    
+    for i, class_name in enumerate(config['data']['class_names']):
+        #metrics[f'Specificity_{class_name}'] = per_class_specificity[i]
+        print(f"Specificity _{class_name}: {per_class_specificity[i]:.4f}")
+
     # Optionally, save refined CSV with a new name
     output_csv = os.path.join(os.path.dirname(csv_path), f"refined_results_{model_name}.csv")
     df.to_csv(output_csv, index=False)
