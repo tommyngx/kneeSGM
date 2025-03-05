@@ -15,16 +15,13 @@ def load_config(config_path):
 def refine_prediction(model_pred, yolo_text):
     """
     Refine the predicted class (model_pred) based on YOLO_prediction string.
-    Existing rules:
-      1. If model_pred is 0 and YOLO contains "healthy", keep 0.
-      2. If model_pred is 0 and YOLO contains "osteophyte", change to 1.
-      3. If model_pred is 2 and YOLO contains "narrowing", change to 3.
-      4. If model_pred is 3 and YOLO contains "sclerosis", change to 4.
-      5. If model_pred is 4 but YOLO not contain "sclerosis", change to 3.
-    --- Additional rules for Doubtful (1) and Mild (2):
-      6. If model_pred is 1 (Doubtful) and YOLO contains "healthy", then change to 0.
-      7. If model_pred is 1 and YOLO contains "narrowing" or "osteophyte", change to 2.
-      8. If model_pred is 2 (Mild) and YOLO contains "healthy", change to 1.
+    Assumptions (all comparisons are case-insensitive):
+     1. If model_pred is 0 and YOLO_prediction contains "healthy", keep 0.
+     2. If model_pred is 0 and YOLO_prediction contains "osteophyte", change to 1.
+     3. If model_pred is 2 and YOLO_prediction contains "narrowing", change to 3.
+     4. If model_pred is 3 and YOLO_prediction contains "sclerosis", change to 4.
+     5. If model_pred is 4 but YOLO_prediction does NOT contain "sclerosis", change to 3.
+     Otherwise, leave the prediction unchanged.
     """
     text = yolo_text.lower() if isinstance(yolo_text, str) else ""
     refined = model_pred
@@ -33,26 +30,12 @@ def refine_prediction(model_pred, yolo_text):
             refined = 0
         elif "osteophyte" in text:
             refined = 1
-    elif model_pred == 1:
-        # New rules for Doubtful
-        if "healthy" in text:
-            refined = 0
-        elif "narrowing" in text or "osteophyte" in text:
-            refined = 2
-        else:
-            refined = 1
     elif model_pred == 2:
-        if "healthy" in text:
-            refined = 1
-        elif "narrowing" in text:
+        if "narrowing" in text:
             refined = 3
-        else:
-            refined = 2
     elif model_pred == 3:
         if "sclerosis" in text:
             refined = 4
-        else:
-            refined = 3
     elif model_pred == 4:
         if "sclerosis" not in text:
             refined = 3
