@@ -12,11 +12,11 @@ timezone: "Australia/Sydney"
 data:
   #metadata_csv: "/content/dataset/metadata.csv" 
   #metadata_csv: "/projects/OsteoLab/Tommy/KneeOA/Metadata/updated_metadata.csv" # gpu settings
-  metadata_csv: "/projects/OsteoLab/Tommy/KneeOA/Metadata/metadata_31dec24.csv" # gpu settings
+  metadata_csv: "/projects/OsteoLab/Tommy/KneeOA/Metadata/metadata_20jan25.csv" # gpu settings
   #dataset_based_link: "/content/dataset/dataset"
   #dataset_based_link: "/projects/OsteoLab/Tommy/KneeOA/VOS_Phase2/VOS_P2_KNEE_CROP/dataset" # gpu settings
   dataset_based_link: "/projects/OsteoLab/Tommy/KneeOA/Data" # gpu settings
-  dataset_name: "VOSP2v2"
+  dataset_name: "VOSP2v3"
   #dataset_name: "VOSP2"
   external_datasets: "OAI299, CGMH" # "None"
   #external_datasets:  "None"
