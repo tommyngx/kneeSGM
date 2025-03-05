@@ -9,7 +9,7 @@ from matplotlib import font_manager
 from numpy import interp
 from sklearn.utils import resample
 
-def save_confusion_matrix(labels, preds, class_names, output_dir, epoch=None, acc=None):
+def save_confusion_matrix(labels, preds, class_names, output_dir, epoch=None, acc=None, filename_prefix=""):
     plt.style.use('default')
     
     # Download the font file if it does not exist
@@ -68,7 +68,7 @@ def save_confusion_matrix(labels, preds, class_names, output_dir, epoch=None, ac
     #plt.subplots_adjust(left=0.10, right=0.90, top=0.90, bottom=0.10)
     
     # Save the figure
-    filename = "confusion_matrix.png" if epoch is None else f"confusion_matrix_epoch_{epoch}_acc_{acc:.4f}.png"
+    filename = f"{filename_prefix}confusion_matrix.png" if epoch is None else f"{filename_prefix}confusion_matrix_epoch_{epoch}_acc_{acc:.4f}.png"
     plt.savefig(os.path.join(output_dir, filename))
     plt.close()
     
@@ -81,7 +81,7 @@ def save_confusion_matrix(labels, preds, class_names, output_dir, epoch=None, ac
     for file in saved_files[3:]:
         os.remove(os.path.join(output_dir, file))
 
-def save_roc_curve(labels, positive_risk, class_names, output_dir, epoch=None, acc=None):
+def save_roc_curve(labels, positive_risk, class_names, output_dir, epoch=None, acc=None, filename_prefix=""):
     # Apply ggplot style
     #plt.style.use('ggplot')
     plt.style.use('default')
@@ -152,7 +152,7 @@ def save_roc_curve(labels, positive_risk, class_names, output_dir, epoch=None, a
     fig.patch.set_facecolor('white')  # Set the background color outside the plot area to white
     #plt.gca().set_facecolor('white')  # Set the background color inside the plot area to white
     plt.subplots_adjust(left=0.15, right=0.90, top=0.9, bottom=0.10)
-    filename = "roc_curve.png" if epoch is None else f"roc_curve_epoch_{epoch}_acc_{acc:.4f}.png"
+    filename = f"{filename_prefix}roc_curve.png" if epoch is None else f"{filename_prefix}roc_curve_epoch_{epoch}_acc_{acc:.4f}.png"
     plt.savefig(os.path.join(output_dir, filename))
     plt.close()
     
