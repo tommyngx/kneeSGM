@@ -54,7 +54,8 @@ def main(config='default.yaml', model_name=None, model_path=None, use_gradcam_pl
         model_name = config['model']['name']
     
     model = get_model(model_name, config_path=config_path, pretrained=config['model']['pretrained'])
-    checkpoint = torch.load(model_path, map_location=device)
+    # Use weights_only=True for better security when loading models
+    checkpoint = torch.load(model_path, map_location=device, weights_only=True)
     model.load_state_dict(checkpoint['model_state_dict'])
     model = model.to(device)
     
