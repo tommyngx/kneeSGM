@@ -21,8 +21,11 @@ from utils.plotting import save_confusion_matrix, save_roc_curve
 import numpy as np
 import re
 
-# Import functions from test.py
-from test import load_config, test, calculate_sensitivity_specificity, calculate_per_class_metrics
+# Fix for the import error: Use full module path instead of relative import
+import sys
+import os.path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from run.test import load_config, test, calculate_sensitivity_specificity, calculate_per_class_metrics
 
 def extract_model_name(filename):
     """Extract the model name from the filename (before _epoch)."""
