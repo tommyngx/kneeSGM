@@ -8,8 +8,6 @@ from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_sc
 from sklearn.preprocessing import LabelBinarizer
 from sklearn.utils import resample
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from run.test import load_config, test, calculate_sensitivity_specificity, calculate_per_class_metrics
-
 
 def load_config(config_path):
     with open(config_path, 'r') as f:
@@ -71,6 +69,23 @@ def calculate_sensitivity_specificity(y_true, y_pred):
     sensitivity = tp / (tp + fn) if (tp + fn) > 0 else 0
     specificity = tn / (tn + fp) if (tn + fp) > 0 else 0
     return sensitivity, specificity
+
+def calculate_per_class_metrics(y_true, y_pred, num_classes):
+    """Calculate per-class sensitivity and specificity using one-vs-rest."""
+    per_class_sensitivity = []
+    per_class_specificity = []
+    for cls in range(num_classes):
+        y_true_cls = np.array(y_true) == cls
+        y_pred_cls = np.array(y_pred) == cls
+        tp = np.sum(y_true_cls & y_pred_cls)
+        tn = np.sum(~(y_true_cls | y_pred_cls))
+        fp = np.sum(~y_true_cls & y_pred_cls)
+        fn = np.sum(y_true_cls & ~y_pred_cls)
+        sens = tp / (tp + fn) if (tp + fn) > 0 else 0
+        spec = tn / (tn + fp) if (tn + fp) > 0 else 0
+        per_class_sensitivity.append(sens)
+        per_class_specificity.append(spec)
+    return per_class_sensitivity, per_class_specificity
 
 def main(csv_path, model_name, config='default.yaml'):
     # Load config and CSV
@@ -145,17 +160,16 @@ def main(csv_path, model_name, config='default.yaml'):
     else:
         print("ROC AUC (binary): Not computed")
     print(f"Brier Score: {brier:.4f}")
-
-    per_class_sensitivity, per_class_specificity = calculate_per_class_metrics(test_labels, test_preds, len(config['data']['class_labels']))
-
-    for i, class_name in enumerate(config['data']['class_names']):
-        #metrics[f'Sensitivity_{class_name}'] = per_class_sensitivity[i]
-        print(f"Sensitivity _{class_name}: {per_class_sensitivity[i]:.4f}")
     
-    for i, class_name in enumerate(config['data']['class_names']):
-        #metrics[f'Specificity_{class_name}'] = per_class_specificity[i]
-        print(f"Specificity _{class_name}: {per_class_specificity[i]:.4f}")
-
+    # --- FIXED LINE: use ground_truth and refined_preds ---
+    per_class_sensitivity, per_class_specificity = calculate_per_class_metrics(ground_truth, refined_preds, num_classes)
+    
+    for i, class_name in enumerate(config_data['data']['class_names']):
+        print(f"Sensitivity {class_name}: {per_class_sensitivity[i]:.4f}")
+    
+    for i, class_name in enumerate(config_data['data']['class_names']):
+        print(f"Specificity {class_name}: {per_class_specificity[i]:.4f}")
+    
     # Optionally, save refined CSV with a new name
     output_csv = os.path.join(os.path.dirname(csv_path), f"refined_results_{model_name}.csv")
     df.to_csv(output_csv, index=False)
