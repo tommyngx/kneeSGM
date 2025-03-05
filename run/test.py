@@ -69,7 +69,7 @@ def main(config='default.yaml', model_name=None, model_path=None, use_gradcam_pl
     
     test_acc, test_f1, test_precision, test_recall, test_preds, test_labels, test_outputs = test(model, test_loader, device)
     
-    output_dir = os.path.join(config['output_dir'], "final_logs")
+    output_dir = os.path.join(config['output_dir'],model_name, "final_logs")
     os.makedirs(output_dir, exist_ok=True)
     
     print(f"Test Accuracy: {test_acc:.4f}, Test F1 Score: {test_f1:.4f}, Test Precision: {test_precision:.4f}, Test Recall: {test_recall:.4f}")
