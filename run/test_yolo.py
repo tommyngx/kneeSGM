@@ -14,13 +14,13 @@ def run_yolo_on_image(image_path, yolo_model, conf, save, project):
     Run YOLO detection on a single image and capture its prediction summary.
     The YOLO command is run as a subprocess.
     """
-    name_folder = "predict"
+    name_folder = "predict"  # desired folder name for output images
     command = [
         "yolo", "task=detect", "mode=predict",
         f"model={yolo_model}",
         f"conf={conf}",
         f"source={image_path}",
-        f"name= {name_folder}",        # Force outputs into a single folder named 'predict'
+        f"name={name_folder}",         # no extra spaces here
         f"save={str(save).lower()}",
         f"project={project}"
     ]
@@ -30,7 +30,6 @@ def run_yolo_on_image(image_path, yolo_model, conf, save, project):
         output_text = result.stdout.strip()
     except Exception as e:
         output_text = f"Error: {e}"
-    # Use the first nonempty line as a summary
     summary = next((line for line in output_text.splitlines() if line.strip()), "No detection")
     return summary
 
