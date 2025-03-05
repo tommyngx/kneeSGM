@@ -7,6 +7,9 @@ import numpy as np
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, cohen_kappa_score, roc_auc_score, brier_score_loss, classification_report
 from sklearn.preprocessing import LabelBinarizer
 from sklearn.utils import resample
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from run.test import load_config, test, calculate_sensitivity_specificity, calculate_per_class_metrics
+
 
 def load_config(config_path):
     with open(config_path, 'r') as f:
@@ -142,7 +145,9 @@ def main(csv_path, model_name, config='default.yaml'):
     else:
         print("ROC AUC (binary): Not computed")
     print(f"Brier Score: {brier:.4f}")
-    
+
+    per_class_sensitivity, per_class_specificity = calculate_per_class_metrics(test_labels, test_preds, len(config['data']['class_labels']))
+
     for i, class_name in enumerate(config['data']['class_names']):
         #metrics[f'Sensitivity_{class_name}'] = per_class_sensitivity[i]
         print(f"Sensitivity _{class_name}: {per_class_sensitivity[i]:.4f}")
