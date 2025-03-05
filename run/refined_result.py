@@ -4,10 +4,52 @@ import argparse
 import pandas as pd
 import yaml
 import numpy as np
-from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, cohen_kappa_score, roc_auc_score, brier_score_loss, classification_report
+from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, cohen_kappa_score, roc_auc_score, brier_score_loss, classification_report, confusion_matrix
+import matplotlib.pyplot as plt
+import seaborn as sns
 from sklearn.preprocessing import LabelBinarizer
 from sklearn.utils import resample
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Import the existing save_confusion_matrix if possible
+try:
+    from utils.plotting import save_confusion_matrix
+except ImportError:
+    # Define our own if import fails
+    def save_confusion_matrix(y_true, y_pred, class_names, output_dir, epoch=None, acc=None, filename_prefix=""):
+        # Compute confusion matrix
+        cm = confusion_matrix(y_true, y_pred)
+        
+        # Create normalized confusion matrix
+        cm_normalized = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+        
+        # Create figure and axes
+        plt.figure(figsize=(10, 8))
+        sns.heatmap(cm_normalized, annot=True, fmt=".2f", cmap='Blues',
+                    xticklabels=class_names, yticklabels=class_names)
+        plt.xlabel('Predicted')
+        plt.ylabel('True')
+        plt.title('Normalized Confusion Matrix')
+        
+        # Save figure
+        plt.tight_layout()
+        filename = f"{filename_prefix}confusion_matrix.png"
+        plt.savefig(os.path.join(output_dir, filename))
+        plt.close()
+        
+        # Also save with raw counts
+        plt.figure(figsize=(10, 8))
+        sns.heatmap(cm, annot=True, fmt="d", cmap='Blues',
+                    xticklabels=class_names, yticklabels=class_names)
+        plt.xlabel('Predicted')
+        plt.ylabel('True')
+        plt.title('Confusion Matrix (counts)')
+        
+        # Save figure
+        plt.tight_layout()
+        filename = f"{filename_prefix}confusion_matrix_counts.png"
+        plt.savefig(os.path.join(output_dir, filename))
+        plt.close()
 
 def load_config(config_path):
     with open(config_path, 'r') as f:
@@ -171,6 +213,24 @@ def main(csv_path, model_name, config='default.yaml'):
     
     for i, class_name in enumerate(config_data['data']['class_names']):
         print(f"Specificity {class_name}: {per_class_specificity[i]:.4f}")
+    
+    # Generate and save confusion matrix
+    output_dir = os.path.dirname(csv_path)
+    save_confusion_matrix(ground_truth, refined_preds, 
+                         config_data['data']['class_names'], 
+                         output_dir, 
+                         filename_prefix=f"{model_name}_refined_")
+    
+    # Print confusion matrix to console
+    cm = confusion_matrix(ground_truth, refined_preds)
+    print("\nConfusion Matrix (counts):")
+    print(cm)
+    
+    # Calculate and print normalized confusion matrix
+    cm_normalized = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+    np.set_printoptions(precision=2)
+    print("\nNormalized Confusion Matrix:")
+    print(cm_normalized)
     
     # Optionally, save refined CSV with a new name
     output_csv = os.path.join(os.path.dirname(csv_path), f"refined_results_{model_name}.csv")
