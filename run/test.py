@@ -190,8 +190,10 @@ def main(config='default.yaml', model_name=None, model_path=None, use_gradcam_pl
     # Add class-specific metrics
     for i, class_name in enumerate(config['data']['class_names']):
         metrics_dict[f'Sensitivity_{class_name}'] = per_class_sensitivity[i]
-        metrics_dict[f'Specificity_{class_name}'] = per_class_specificity[i]
     
+    for i, class_name in enumerate(config['data']['class_names']):
+        metrics_dict[f'Specificity_{class_name}'] = per_class_specificity[i]
+
     # Save metrics to CSV
     save_metrics_to_csv(metrics_dict, output_dir, model_name)
     
