@@ -8,7 +8,7 @@ import yaml
 import os
 import matplotlib.pyplot as plt
 import argparse
-from sklearn.metrics import classification_report
+from sklearn.metrics import classification_report, cohen_kappa_score, roc_auc_score, brier_score_loss
 from models.model_architectures import get_model
 from data.data_loader import get_dataloader
 from data.preprocess import get_transforms
@@ -45,6 +45,24 @@ def test(model, dataloader, device):
             all_outputs.extend(outputs.cpu().numpy())
     return running_acc / len(dataloader), running_f1 / len(dataloader), running_precision / len(dataloader), running_recall / len(dataloader), all_preds, all_labels, all_outputs
 
+def calculate_sensitivity_specificity(y_true, y_pred):
+    # For multi-class, convert to binary (OA vs no OA)
+    # Consider classes 0,1 as negative (no/mild OA) and 2,3,4 as positive (moderate/severe OA)
+    y_true_binary = np.array(y_true) >= 2
+    y_pred_binary = np.array(y_pred) >= 2
+    
+    # True positives, etc
+    tp = np.sum((y_true_binary == True) & (y_pred_binary == True))
+    tn = np.sum((y_true_binary == False) & (y_pred_binary == False))
+    fp = np.sum((y_true_binary == False) & (y_pred_binary == True))
+    fn = np.sum((y_true_binary == True) & (y_pred_binary == False))
+    
+    # Calculate metrics
+    sensitivity = tp / (tp + fn) if (tp + fn) > 0 else 0
+    specificity = tn / (tn + fp) if (tn + fp) > 0 else 0
+    
+    return sensitivity, specificity
+
 def main(config='default.yaml', model_name=None, model_path=None, use_gradcam_plus_plus=False):
     config_path = os.path.join('config', config)
     config = load_config(config_path)
@@ -70,16 +88,42 @@ def main(config='default.yaml', model_name=None, model_path=None, use_gradcam_pl
     
     test_acc, test_f1, test_precision, test_recall, test_preds, test_labels, test_outputs = test(model, test_loader, device)
     
+    # Calculate additional metrics
+    sensitivity, specificity = calculate_sensitivity_specificity(test_labels, test_preds)
+    
+    # Cohen's Kappa - measures agreement between predicted and actual classes
+    kappa = cohen_kappa_score(test_labels, test_preds)
+    
+    # AUC - for multi-class, we compute one-vs-rest ROC AUC
+    # Convert to binary labels for AUC calculation (OA severity >= 2 is positive)
+    binary_labels = np.array(test_labels) >= 2
+    binary_scores = np.array(test_outputs)[:, 2:].sum(axis=1)  # Sum probabilities for classes 2,3,4
+    auc = roc_auc_score(binary_labels, binary_scores)
+    
+    # Brier score - measures accuracy of probabilistic predictions
+    # For multi-class, use one-hot encoding and mean Brier score
+    n_classes = len(config['data']['class_labels'])
+    y_onehot = np.zeros((len(test_labels), n_classes))
+    for i, label in enumerate(test_labels):
+        y_onehot[i, label] = 1
+    brier = brier_score_loss(y_onehot.ravel(), np.array(test_outputs).ravel())
+    
     output_dir = os.path.join(config['output_dir'], "final_logs", model_name)
     os.makedirs(output_dir, exist_ok=True)
     
     print(f"Test Accuracy: {test_acc:.4f}, Test F1 Score: {test_f1:.4f}, Test Precision: {test_precision:.4f}, Test Recall: {test_recall:.4f}")
+    print(f"Sensitivity: {sensitivity:.4f}, Specificity: {specificity:.4f}, Kappa: {kappa:.4f}, AUC: {auc:.4f}, Brier Score: {brier:.4f}")
     
     with open(os.path.join(output_dir, "evaluation_metrics.txt"), "w") as f:
         f.write(f"Test Accuracy: {test_acc:.4f}\n")
         f.write(f"Test F1 Score: {test_f1:.4f}\n")
         f.write(f"Test Precision: {test_precision:.4f}\n")
         f.write(f"Test Recall: {test_recall:.4f}\n")
+        f.write(f"Sensitivity: {sensitivity:.4f}\n")
+        f.write(f"Specificity: {specificity:.4f}\n")
+        f.write(f"Kappa: {kappa:.4f}\n")
+        f.write(f"AUC: {auc:.4f}\n")
+        f.write(f"Brier Score: {brier:.4f}\n")
     
     target_layer = get_target_layer(model, model_name)
     
