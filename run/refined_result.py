@@ -16,14 +16,28 @@ def refine_prediction(model_pred, yolo_text):
     """
     Refine the predicted class (model_pred) based on YOLO_prediction string.
     Assumptions (all comparisons are case-insensitive):
-     1. If model_pred is 0 and YOLO_prediction contains "healthy", keep 0.
-     2. If model_pred is 0 and YOLO_prediction contains "osteophyte", change to 1.
-     3. If model_pred is 2 and YOLO_prediction contains "narrowing", change to 3.
-     4. If model_pred is 3 and YOLO_prediction contains "sclerosis", change to 4.
-     5. If model_pred is 4 but YOLO_prediction does NOT contain "sclerosis", change to 3.
-     Otherwise, leave the prediction unchanged.
+      1. If model_pred is 0 and YOLO_prediction contains "healthy", keep 0.
+      2. If model_pred is 0 and YOLO_prediction contains "osteophyte", change to 1.
+      3. If model_pred is 2 and YOLO_prediction contains "narrowing", change to 3.
+      4. If model_pred is 3 and YOLO_prediction contains "sclerosis", change to 4.
+      5. If model_pred is 4 but YOLO_prediction does NOT contain "sclerosis", change to 3.
+      6. If model_pred is 1 and YOLO_prediction contains "osteophytemore", then refined becomes 2.
+      7. If model_pred is 3 or 4 and the YOLO_prediction contains only "osteophyte" and/or "osteophytemore", then refined becomes 2.
+      Otherwise, leave the prediction unchanged.
     """
     text = yolo_text.lower() if isinstance(yolo_text, str) else ""
+    
+    # New rule 6
+    if model_pred == 1 and "osteophytemore" in text:
+        return 2
+
+    # New rule 7
+    if model_pred in [3, 4]:
+        tokens = [token.strip() for token in text.replace(";", ",").split(",") if token.strip()]
+        if tokens and set(tokens).issubset({"osteophyte", "osteophytemore"}):
+            return 2
+
+    # Existing rules
     refined = model_pred
     if model_pred == 0:
         if "healthy" in text:
