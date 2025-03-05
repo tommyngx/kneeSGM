@@ -170,9 +170,9 @@ def main(config='default.yaml', model_name=None, model_path=None, use_gradcam_pl
         f.write(f"Brier Score: {brier:.4f}\n")
         
         # Add per-class metrics to the output file
-        f.write("\nPer-Class Metrics:\n")
-        for i, class_name in enumerate(config['data']['class_names']):
-            f.write(f"Class {class_name} - Sensitivity: {per_class_sensitivity[i]:.4f}, Specificity: {per_class_specificity[i]:.4f}\n")
+        #f.write("\nPer-Class Metrics:\n")
+        #for i, class_name in enumerate(config['data']['class_names']):
+        #    f.write(f"Class {class_name} - Sensitivity: {per_class_sensitivity[i]:.4f}, Specificity: {per_class_specificity[i]:.4f}\n")
         
     # Collect all metrics in a dictionary for CSV export
     metrics_dict = {
@@ -211,7 +211,7 @@ def main(config='default.yaml', model_name=None, model_path=None, use_gradcam_pl
     save_random_predictions(model, test_loader, device, output_dir, epoch=0, class_names=config['data']['class_names'], use_gradcam_plus_plus=use_gradcam_plus_plus, target_layer=target_layer, model_name=model_name)
     
     # Save test outputs
-    np.save(os.path.join(output_dir, "test_outputs.npy"), test_outputs)
+    #np.save(os.path.join(output_dir, "test_outputs.npy"), test_outputs)
     
     # Print classification report
     print("Classification Report:")
