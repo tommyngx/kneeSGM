@@ -5,6 +5,7 @@ import pandas as pd
 import yaml
 import cv2
 from ultralytics import YOLO
+from tqdm import tqdm  # added tqdm import
 
 def load_config(config_path):
     with open(config_path, 'r') as f:
@@ -71,12 +72,10 @@ def main(config='default.yaml', csv_path=None, yolo_model=None, conf=0.25, save=
     # Set confidence (if supported by API)
     model.conf = conf
     
-    # Iterate through each row in the CSV and run detection
+    # Iterate through each row in the CSV using tqdm for progress
     yolo_predictions = []
-    total = len(df)
-    for idx, row in df.iterrows():
+    for idx, row in tqdm(df.iterrows(), total=len(df), desc="Processing images"):
         image_path = row['image_path']
-        print(f"Processing image ({idx+1}/{total}): {image_path}")
         pred_summary = run_yolo_on_image(image_path, model)
         yolo_predictions.append(pred_summary)
     
