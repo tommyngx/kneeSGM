@@ -185,7 +185,7 @@ def save_all_predictions_to_csv(all_predictions, output_dir):
     
     # Add predictions from each model as new columns
     for model_name, model_data in all_predictions.items():
-        df[f'{model_name}_prediction'] = model_data['predictions']
+        df[f'{model_name}'] = model_data['predictions']
     
     # Save the DataFrame to CSV
     csv_path = os.path.join(output_dir, "all_models_predictions.csv")
