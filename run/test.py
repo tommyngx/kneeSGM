@@ -93,12 +93,15 @@ def save_metrics_to_csv(metrics_dict, output_dir, model_name):
     """Save metrics to a CSV file with metrics in the first column and model name as the second column header."""
     csv_path = os.path.join(output_dir, "metrics_results.csv")
     
+    # Round all metrics to 4 decimal places
+    rounded_metrics = {k: round(v, 4) for k, v in metrics_dict.items()}
+    
     with open(csv_path, 'w', newline='') as csvfile:
         writer = csv.writer(csvfile)
         # Use model_name as column header instead of 'Value' and remove the 'Model' column
         writer.writerow(['Metric', model_name])
         
-        for metric_name, metric_value in metrics_dict.items():
+        for metric_name, metric_value in rounded_metrics.items():
             writer.writerow([metric_name, f"{metric_value:.4f}"])
     
     print(f"Metrics saved to {csv_path}")

@@ -175,11 +175,16 @@ def save_consolidated_metrics(all_metrics, output_dir):
     
     # Add a column for each model
     for model_name, metrics in all_metrics.items():
-        df[model_name] = pd.Series(metrics)
+        # Round all metrics to 4 decimal places
+        rounded_metrics = {k: round(v, 4) for k, v in metrics.items()}
+        df[model_name] = pd.Series(rounded_metrics)
     
-    # Save the DataFrame to CSV
+    # Ensure all numeric values are rounded to 4 decimal places in the DataFrame
+    df = df.round(4)
+    
+    # Save the DataFrame to CSV with float_format to ensure consistent decimal places
     csv_path = os.path.join(output_dir, "all_models_metrics.csv")
-    df.to_csv(csv_path)
+    df.to_csv(csv_path, float_format='%.4f')
     
     print(f"Consolidated metrics saved to {csv_path}")
 
