@@ -34,8 +34,38 @@ def extract_model_name(filename):
         return match.group(1)
     return None
 
+def get_image_info(dataloader):
+    """Extract image names and paths from the test dataloader."""
+    # Get the dataset from the dataloader
+    dataset = dataloader.dataset
+    image_names = []
+    image_paths = []
+    
+    # Try to extract image paths based on dataset structure
+    if hasattr(dataset, 'imgs'):
+        # For datasets that store image paths directly
+        for img_path, _ in dataset.imgs:
+            image_names.append(os.path.basename(img_path))
+            image_paths.append(img_path)
+    elif hasattr(dataset, 'samples'):
+        # For datasets using samples attribute
+        for img_path, _ in dataset.samples:
+            image_names.append(os.path.basename(img_path))
+            image_paths.append(img_path)
+    elif hasattr(dataset, 'image_paths'):
+        # For custom datasets with image_paths attribute
+        image_paths = dataset.image_paths
+        image_names = [os.path.basename(path) for path in image_paths]
+    else:
+        # Fallback to indices if we can't get paths
+        print("Warning: Could not extract image paths. Using indices instead.")
+        image_paths = [str(i) for i in range(len(dataset))]
+        image_names = [f"image_{i}" for i in range(len(dataset))]
+    
+    return image_names, image_paths
+
 def test_model(model_path, model_name, config_path, output_dir, use_gradcam_plus_plus=False):
-    """Test a single model and return metrics."""
+    """Test a single model and return metrics and predictions."""
     config = load_config(config_path)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
@@ -54,6 +84,9 @@ def test_model(model_path, model_name, config_path, output_dir, use_gradcam_plus
     print(f"\nTesting model: {model_name}")
     print(f"Model path: {model_path}")
     print(f"Number of test images: {len(test_loader.dataset)}")
+    
+    # Get image names and paths
+    image_names, image_paths = get_image_info(test_loader)
     
     # Evaluate the model
     test_acc, test_f1, test_precision, test_recall, test_preds, test_labels, test_outputs = test(model, test_loader, device)
@@ -119,7 +152,37 @@ def test_model(model_path, model_name, config_path, output_dir, use_gradcam_plus
     for i, class_name in enumerate(config['data']['class_names']):
         metrics[f'Specificity_{class_name}'] = per_class_specificity[i]
     
-    return metrics
+    # Return metrics and predictions for each image
+    return metrics, test_preds, test_labels, image_names, image_paths
+
+def save_all_predictions_to_csv(all_predictions, output_dir):
+    """Save all model predictions for each image to a CSV file."""
+    if not all_predictions:
+        print("No predictions to save")
+        return
+    
+    # Create a DataFrame with image info
+    first_model = next(iter(all_predictions.values()))
+    image_names = first_model['image_names']
+    image_paths = first_model['image_paths']
+    ground_truth = first_model['labels']
+    
+    # Create DataFrame with image information
+    df = pd.DataFrame({
+        'image_name': image_names,
+        'image_path': image_paths,
+        'ground_truth': ground_truth
+    })
+    
+    # Add predictions from each model as new columns
+    for model_name, model_data in all_predictions.items():
+        df[f'{model_name}_prediction'] = model_data['predictions']
+    
+    # Save the DataFrame to CSV
+    csv_path = os.path.join(output_dir, "all_models_predictions.csv")
+    df.to_csv(csv_path, index=False)
+    
+    print(f"All models' predictions saved to {csv_path}")
 
 def main(config='default.yaml', models_dir=None, use_gradcam_plus_plus=False):
     # Load configuration
@@ -144,6 +207,8 @@ def main(config='default.yaml', models_dir=None, use_gradcam_plus_plus=False):
     
     # Dictionary to store all metrics for all models
     all_metrics = {}
+    # Dictionary to store all predictions for all models
+    all_predictions = {}
     
     # Test each model
     for model_file in model_files:
@@ -152,11 +217,20 @@ def main(config='default.yaml', models_dir=None, use_gradcam_plus_plus=False):
             print(f"Could not extract model name from {model_file}, skipping...")
             continue
         
-        metrics = test_model(model_file, model_name, config_path, output_dir, use_gradcam_plus_plus)
+        metrics, predictions, labels, image_names, image_paths = test_model(model_file, model_name, config_path, output_dir, use_gradcam_plus_plus)
         all_metrics[model_name] = metrics
+        all_predictions[model_name] = {
+            'predictions': predictions,
+            'labels': labels,
+            'image_names': image_names,
+            'image_paths': image_paths
+        }
     
     # Save consolidated metrics to CSV
     save_consolidated_metrics(all_metrics, output_dir)
+    
+    # Save all model predictions to CSV
+    save_all_predictions_to_csv(all_predictions, output_dir)
     
     print(f"All models tested. Results saved in {output_dir}")
 
