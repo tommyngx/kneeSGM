@@ -35,33 +35,42 @@ def extract_model_name(filename):
     return None
 
 def get_image_info(dataloader):
-    """Extract image names and paths from the test dataloader."""
-    # Get the dataset from the dataloader
+    """Extract image names and paths from the test dataloader.
+    If the underlying dataset has attributes (data, image_path_column, dataset_based_link),
+    use them to construct the full image paths; otherwise, fallback to indices.
+    """
     dataset = dataloader.dataset
-    image_names = []
-    image_paths = []
+    # Check for custom attributes in the dataset
+    if hasattr(dataset, 'data') and hasattr(dataset, 'image_path_column') and hasattr(dataset, 'dataset_based_link'):
+        try:
+            # Get the image file names from the DataFrame column
+            image_files = dataset.data[dataset.image_path_column].tolist()
+            image_paths = [os.path.join(dataset.dataset_based_link, str(fname)) for fname in image_files]
+            image_names = [os.path.basename(path) for path in image_paths]
+            # Validate the number of images match dataset length
+            if len(image_names) == len(dataset):
+                return image_names, image_paths
+        except Exception as e:
+            print(f"Error extracting image info from custom attributes: {e}")
     
-    # Try to extract image paths based on dataset structure
+    # Fallback: try to use existing dataset attributes if available
     if hasattr(dataset, 'imgs'):
-        # For datasets that store image paths directly
-        for img_path, _ in dataset.imgs:
-            image_names.append(os.path.basename(img_path))
-            image_paths.append(img_path)
+        image_names = [os.path.basename(path) for path, _ in dataset.imgs]
+        image_paths = [path for path, _ in dataset.imgs]
+        return image_names, image_paths
     elif hasattr(dataset, 'samples'):
-        # For datasets using samples attribute
-        for img_path, _ in dataset.samples:
-            image_names.append(os.path.basename(img_path))
-            image_paths.append(img_path)
+        image_names = [os.path.basename(path) for path, _ in dataset.samples]
+        image_paths = [path for path, _ in dataset.samples]
+        return image_names, image_paths
     elif hasattr(dataset, 'image_paths'):
-        # For custom datasets with image_paths attribute
-        image_paths = dataset.image_paths
-        image_names = [os.path.basename(path) for path in image_paths]
-    else:
-        # Fallback to indices if we can't get paths
-        print("Warning: Could not extract image paths. Using indices instead.")
-        image_paths = [str(i) for i in range(len(dataset))]
-        image_names = [f"image_{i}" for i in range(len(dataset))]
+        image_names = [os.path.basename(path) for path in dataset.image_paths]
+        image_paths = list(dataset.image_paths)
+        return image_names, image_paths
     
+    # Fallback to indices if nothing else works
+    print("Warning: Could not extract image paths from dataset. Using indices as fallback.")
+    image_names = [f"image_{i}" for i in range(len(dataset))]
+    image_paths = [f"index_{i}" for i in range(len(dataset))]
     return image_names, image_paths
 
 def test_model(model_path, model_name, config_path, output_dir, use_gradcam_plus_plus=False):
