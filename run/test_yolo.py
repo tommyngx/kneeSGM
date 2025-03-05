@@ -19,6 +19,7 @@ def run_yolo_on_image(image_path, yolo_model, conf, save, project):
         f"model={yolo_model}",
         f"conf={conf}",
         f"source={image_path}",
+        f"name=predict",        # Force outputs into a single folder named 'predict'
         f"save={str(save).lower()}",
         f"project={project}"
     ]
