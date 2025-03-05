@@ -5,7 +5,8 @@ import pandas as pd
 import yaml
 import cv2
 from ultralytics import YOLO
-from tqdm import tqdm  # added tqdm import
+from tqdm import tqdm
+from collections import Counter  # new import
 
 def load_config(config_path):
     with open(config_path, 'r') as f:
@@ -15,23 +16,21 @@ def run_yolo_on_image(image_path, model):
     """
     Run YOLO detection on a single image using the YOLO Python API
     and return a comma-separated string of detected object names.
+    If "osteophyte" is detected more than once (case-insensitive), append "OsteophyteMore".
     """
     img = cv2.imread(image_path)
     if img is None:
         return "Error: cannot read image"
     
-    # Perform detection (verbose=False to suppress output)
     results = model(img, verbose=False)
     if not results:
         return "No detection"
     
     result = results[0]
-    # Ensure that boxes exist
     if not hasattr(result, 'boxes') or result.boxes is None or len(result.boxes) == 0:
         return "No detection"
     
     boxes = result.boxes
-    # Use the names provided in the detection result (a dict mapping class_id to name)
     names = result.names
     detected = []
     for box in boxes:
@@ -41,9 +40,21 @@ def run_yolo_on_image(image_path, model):
     if not detected:
         return "No detection"
     
-    # Remove duplicates and join the names into a single string.
-    detected = list(set(detected))
-    return ", ".join(detected)
+    # Count frequency of each detection (case-insensitive)
+    detected_lower = [name.lower() for name in detected]
+    counter = Counter(detected_lower)
+    # Get unique names preserving original case from the first occurrence
+    unique = {}
+    for name in detected:
+        key = name.lower()
+        if key not in unique:
+            unique[key] = name
+    result_list = list(unique.values())
+    # If "osteophyte" appears more than once, add "OsteophyteMore"
+    if counter.get("osteophyte", 0) > 1:
+        result_list.append("OsteophyteMore")
+    
+    return ", ".join(result_list)
 
 def main(config='default.yaml', csv_path=None, yolo_model=None, conf=0.25, save=True):
     # Load configuration
@@ -86,7 +97,7 @@ def main(config='default.yaml', csv_path=None, yolo_model=None, conf=0.25, save=
     print(f"Updated CSV with YOLO predictions saved at: {output_csv}")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Load a CSV of model predictions, run YOLO detection on each image, extract object names, and append the results.")
+    parser = argparse.ArgumentParser(description="Load a CSV of model predictions, run YOLO detection on each image, extract object names (including extra OsteophyteMore if applicable), and append the results.")
     parser.add_argument('--config', type=str, default='default.yaml', help='Name of the configuration file in config folder')
     parser.add_argument('--csv_path', type=str, required=True, help='Path to the all_models_predictions.csv file')
     parser.add_argument('--yolo_model', type=str, default=None, help='YOLO model file name (e.g., yolov8n.pt)')
