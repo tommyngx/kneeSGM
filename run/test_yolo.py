@@ -14,7 +14,7 @@ def run_yolo_on_image(image_path, yolo_model, conf, save, project):
     Run YOLO detection on a single image and capture its prediction summary.
     The YOLO command is run as a subprocess.
     """
-    name_folder = "predict"  # desired folder name for output images
+    name_folder = "predict_yolo"  # desired folder name for output images
     command = [
         "yolo", "task=detect", "mode=predict",
         f"model={yolo_model}",
