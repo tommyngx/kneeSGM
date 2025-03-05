@@ -63,6 +63,31 @@ def calculate_sensitivity_specificity(y_true, y_pred):
     
     return sensitivity, specificity
 
+def calculate_per_class_metrics(y_true, y_pred, num_classes):
+    """Calculate sensitivity and specificity for each class using one-vs-rest approach"""
+    per_class_sensitivity = []
+    per_class_specificity = []
+    
+    for cls in range(num_classes):
+        # Convert to binary classification problem (current class vs the rest)
+        y_true_binary = np.array(y_true) == cls
+        y_pred_binary = np.array(y_pred) == cls
+        
+        # Calculate TP, TN, FP, FN
+        tp = np.sum((y_true_binary == True) & (y_pred_binary == True))
+        tn = np.sum((y_true_binary == False) & (y_pred_binary == False))
+        fp = np.sum((y_true_binary == False) & (y_pred_binary == True))
+        fn = np.sum((y_true_binary == True) & (y_pred_binary == False))
+        
+        # Calculate metrics
+        sensitivity = tp / (tp + fn) if (tp + fn) > 0 else 0
+        specificity = tn / (tn + fp) if (tn + fp) > 0 else 0
+        
+        per_class_sensitivity.append(sensitivity)
+        per_class_specificity.append(specificity)
+    
+    return per_class_sensitivity, per_class_specificity
+
 def main(config='default.yaml', model_name=None, model_path=None, use_gradcam_plus_plus=False):
     config_path = os.path.join('config', config)
     config = load_config(config_path)
@@ -90,6 +115,7 @@ def main(config='default.yaml', model_name=None, model_path=None, use_gradcam_pl
     
     # Calculate additional metrics
     sensitivity, specificity = calculate_sensitivity_specificity(test_labels, test_preds)
+    per_class_sensitivity, per_class_specificity = calculate_per_class_metrics(test_labels, test_preds, len(config['data']['class_labels']))
     
     # Cohen's Kappa - measures agreement between predicted and actual classes
     kappa = cohen_kappa_score(test_labels, test_preds)
@@ -114,6 +140,10 @@ def main(config='default.yaml', model_name=None, model_path=None, use_gradcam_pl
     print(f"Test Accuracy: {test_acc:.4f}, Test F1 Score: {test_f1:.4f}, Test Precision: {test_precision:.4f}, Test Recall: {test_recall:.4f}")
     print(f"Sensitivity: {sensitivity:.4f}, Specificity: {specificity:.4f}, Kappa: {kappa:.4f}, AUC: {auc:.4f}, Brier Score: {brier:.4f}")
     
+    # Print per-class sensitivity and specificity
+    for i, class_name in enumerate(config['data']['class_names']):
+        print(f"Class {class_name} - Sensitivity: {per_class_sensitivity[i]:.4f}, Specificity: {per_class_specificity[i]:.4f}")
+    
     with open(os.path.join(output_dir, "evaluation_metrics.txt"), "w") as f:
         f.write(f"Test Accuracy: {test_acc:.4f}\n")
         f.write(f"Test F1 Score: {test_f1:.4f}\n")
@@ -124,7 +154,12 @@ def main(config='default.yaml', model_name=None, model_path=None, use_gradcam_pl
         f.write(f"Kappa: {kappa:.4f}\n")
         f.write(f"AUC: {auc:.4f}\n")
         f.write(f"Brier Score: {brier:.4f}\n")
-    
+        
+        # Add per-class metrics to the output file
+        f.write("\nPer-Class Metrics:\n")
+        for i, class_name in enumerate(config['data']['class_names']):
+            f.write(f"Class {class_name} - Sensitivity: {per_class_sensitivity[i]:.4f}, Specificity: {per_class_specificity[i]:.4f}\n")
+        
     target_layer = get_target_layer(model, model_name)
     
     # Ensure the same parameters are used for save_confusion_matrix
