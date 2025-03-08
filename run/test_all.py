@@ -200,7 +200,7 @@ def main(config='default.yaml', models_dir=None, use_gradcam_plus_plus=False):
     
     # Set output directory
     dataset_name =config['data']['dataset_name']
-    output_dir = os.path.join(config['output_dir'], "final_logs_all_{dataset_name}")
+    output_dir = os.path.join(config['output_dir'], f"final_logs_all_{dataset_name}")
     os.makedirs(output_dir, exist_ok=True)
     
     # Find all model checkpoints in the specified directory
