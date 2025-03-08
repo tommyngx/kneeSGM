@@ -95,9 +95,9 @@ def refine_prediction(model_pred, yolo_text):
     elif model_pred == 3:
         if "sclerosis" in text:
             refined = 4
-    elif model_pred == 4:
-        if "sclerosis" not in text:
-            refined = 3
+    #elif model_pred == 4:
+    #    if "sclerosis" not in text:
+    #        refined = 3
     return refined
 
 def calculate_sensitivity_specificity(y_true, y_pred):
