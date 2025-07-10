@@ -136,9 +136,9 @@ def plot_model_gradcam_and_yolo(config_path, model_name, model_path, yolo_model_
 
         # GradCAM (use util function)
         target_layer = get_target_layer(model, model_name)
+        # Remove true_label/pred_label/class_names so plot_gradcam_on_image matches save_random_predictions
         gradcam_img = plot_gradcam_on_image(
-            model, img_tensor, orig_img, target_layer, pred, device, model_name=model_name,
-            true_label=label, pred_label=pred, class_names=config['data'].get('class_names', None)
+            model, img_tensor, orig_img, target_layer, pred, device, model_name=model_name
         )
 
         # YOLO prediction with bounding boxes and labels
