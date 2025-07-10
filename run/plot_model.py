@@ -129,3 +129,13 @@ if __name__ == "__main__":
         yolo_model_path=args.yolo_model_path,
         output_path=args.output_path
     )
+
+"""
+Ví dụ cách chạy:
+python run/plot_model.py \
+    --config config/default.yaml \
+    --model_name resnet50 \
+    --model_path checkpoints/resnet50_epoch_10.pth \
+    --yolo_model_path yolov8n.pt \
+    --output_path gradcam_yolo_plot.png
+"""
