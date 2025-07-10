@@ -97,7 +97,13 @@ def plot_model_gradcam_and_yolo(config_path, model_name, model_path, yolo_model_
 
     for row, (img_path, label) in enumerate(selected_items):
         orig_img = Image.open(img_path).convert("RGB")
-        img_tensor = test_transform(orig_img).unsqueeze(0).to(device)
+        # Handle albumentations transform (expects dict input)
+        if hasattr(test_transform, "__call__") and hasattr(test_transform, "is_albumentations") and test_transform.is_albumentations:
+            transformed = test_transform(image=np.array(orig_img))
+            img_tensor = torch.from_numpy(transformed["image"]).permute(2, 0, 1).unsqueeze(0).float().to(device)
+        else:
+            # torchvision transform or compatible
+            img_tensor = test_transform(orig_img).unsqueeze(0).to(device)
 
         # Model prediction
         with torch.no_grad():
