@@ -68,27 +68,6 @@ def refine_prediction(model_pred, yolo_text):
     - Các rule cũ vẫn giữ nguyên
     """
     text = yolo_text.lower() if isinstance(yolo_text, str) else ""
-
-    # sclerosis: bất kể model_pred là gì, nếu có từ này thì trả về 4
-    if "sclerosis" in text:
-        return 4
-
-    # healthy: nếu model_pred > 1 thì trả về 1, nếu 0 hoặc 1 thì giữ nguyên
-    if "healthy" in text:
-        return 1 if model_pred > 1 else model_pred
-
-    # osteophytebig: nếu model_pred < 2 thì trả về 2, nếu >=2 thì giữ nguyên
-    if "osteophytebig" in text:
-        return model_pred if model_pred >= 2 else 2
-
-    # narrowing: nếu model_pred < 3 thì trả về 3, nếu >=3 thì giữ nguyên
-    if "narrowing" in text:
-        return model_pred if model_pred >= 3 else 3
-
-    # osteophyte: nếu model_pred < 1 thì trả về 1, nếu >=1 thì giữ nguyên
-    if "osteophyte" in text:
-        return model_pred if model_pred >= 1 else 1
-
     # Các rule cũ (nếu muốn giữ lại)
     rules = [
         {"model_pred": 0, "keyword": "osteophyte", "new_pred": 2},
@@ -105,6 +84,24 @@ def refine_prediction(model_pred, yolo_text):
     for rule in rules:
         if model_pred == rule["model_pred"] and rule["keyword"] in text:
             return rule["new_pred"]
+        # sclerosis: bất kể model_pred là gì, nếu có từ này thì trả về 4
+    if "sclerosis" in text:
+        return 4
+    # healthy: nếu model_pred > 1 thì trả về 1, nếu 0 hoặc 1 thì giữ nguyên
+    if "healthy" in text:
+        return 1 if model_pred > 1 else model_pred
+
+    # osteophytebig: nếu model_pred < 2 thì trả về 2, nếu >=2 thì giữ nguyên
+    if "osteophytebig" in text:
+        return model_pred if model_pred >= 2 else 2
+
+    # narrowing: nếu model_pred < 3 thì trả về 3, nếu >=3 thì giữ nguyên
+    if "narrowing" in text:
+        return model_pred if model_pred >= 3 else 3
+
+    # osteophyte: nếu model_pred < 1 thì trả về 1, nếu >=1 thì giữ nguyên
+    if "osteophyte" in text:
+        return model_pred if model_pred >= 1 else 1
     return model_pred
 
 def calculate_sensitivity_specificity(y_true, y_pred):
