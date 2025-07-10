@@ -20,10 +20,27 @@ def load_config(config_path):
         return yaml.safe_load(f)
 
 def get_random_images_by_class(dataset, class_indices, n_per_class=1):
-    """Randomly select n_per_class images for each class in class_indices."""
+    """
+    Randomly select n_per_class images for each class in class_indices.
+    Supports datasets with .samples, .imgs, or .data/.labels attributes.
+    """
     selected = []
+    # Try .samples or .imgs (standard torchvision datasets)
+    if hasattr(dataset, "samples"):
+        items = dataset.samples
+    elif hasattr(dataset, "imgs"):
+        items = dataset.imgs
+    # Try custom attributes (e.g., .data and .labels)
+    elif hasattr(dataset, "data") and hasattr(dataset, "labels"):
+        items = list(zip(dataset.data, dataset.labels))
+    # Try .image_paths and .labels
+    elif hasattr(dataset, "image_paths") and hasattr(dataset, "labels"):
+        items = list(zip(dataset.image_paths, dataset.labels))
+    else:
+        raise AttributeError("Dataset must have .samples, .imgs, (.data and .labels), or (.image_paths and .labels) attributes.")
+
     for cls in class_indices:
-        idxs = [i for i, (_, label) in enumerate(dataset.samples) if label == cls]
+        idxs = [i for i, (_, label) in enumerate(items) if label == cls]
         if idxs:
             chosen = random.sample(idxs, min(n_per_class, len(idxs)))
             selected.extend(chosen)
