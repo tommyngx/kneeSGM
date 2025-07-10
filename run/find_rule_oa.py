@@ -35,7 +35,7 @@ def evaluate_rule(df, model_col, yolo_col, rule_func):
     report = classification_report(df["ground_truth"], preds)
     return acc, f1, report, preds
 
-def try_rule_combinations(df, model_col, yolo_col, model_preds, yolo_keywords, possible_new_preds, max_rules=2, top_k=10):
+def try_rule_combinations_ori(df, model_col, yolo_col, model_preds, yolo_keywords, possible_new_preds, max_rules=2, top_k=10):
     """
     Tìm top_k best rule sets cải thiện acc, f1 bằng cách refine prediction từ YOLO + model_pred.
     Trả về danh sách top_k rule sets (acc, f1, combo, report, desc).
@@ -68,6 +68,53 @@ def try_rule_combinations(df, model_col, yolo_col, model_preds, yolo_keywords, p
     results.append((acc, f1, combo_conditions, report, desc))
 
     # Sort by acc, then f1, descending
+    results = sorted(results, key=lambda x: (x[0], x[1]), reverse=True)
+    return results[:top_k]
+
+def try_rule_combinations(df, model_col, yolo_col, model_preds, yolo_keywords, possible_new_preds, max_rules=2, top_k=10):
+    """
+    Tìm top_k tổ hợp quy tắc tốt nhất để cải thiện accuracy và F1 score bằng cách kết hợp dự đoán từ YOLO và mô hình.
+    Trả về: danh sách top_k (acc, f1, combo, report, desc).
+    
+    Parameters:
+    - df: DataFrame chứa ground_truth, model_col, yolo_col
+    - model_col: Tên cột chứa dự đoán của mô hình
+    - yolo_col: Tên cột chứa dự đoán của YOLO
+    - model_preds: Danh sách các giá trị dự đoán của mô hình
+    - yolo_keywords: Danh sách các từ khóa của YOLO
+    - possible_new_preds: Danh sách các giá trị dự đoán mới
+    - max_rules: Số quy tắc tối đa trong một tổ hợp
+    - top_k: Số tổ hợp tốt nhất cần trả về
+    """
+    results = []
+    
+    # Tập hợp từ khóa cho phép trong các quy tắc phức tạp
+    allowed_tokens = {"osteophyte", "osteophytemore", "osteophytebig", "narrowing", "healthy", "no detection"}
+    
+    # Tạo tất cả các quy tắc tiềm năng
+    all_rules = []
+    for m_pred, yolo_kw, new_pred in itertools.product(model_preds, yolo_keywords, possible_new_preds):
+        if new_pred > m_pred:  # Chỉ giữ các quy tắc nâng cấp nhãn
+            all_rules.append((m_pred, yolo_kw, new_pred))
+    
+    # Thử nghiệm các tổ hợp từ 1 đến max_rules quy tắc
+    for k in range(1, max_rules + 1):
+        for rule_combo in itertools.combinations(all_rules, k):
+            rule_func = rule_template_factory(list(rule_combo))
+            acc, f1, report, _ = evaluate_rule(df, model_col, yolo_col, rule_func)
+            desc = " AND ".join([f"(model=={r[0]} & '{r[1]}' in YOLO → {r[2]})" for r in rule_combo])
+            results.append((acc, f1, rule_combo, report, desc))
+    
+    # Thêm quy tắc phức tạp: Chỉ chấp nhận một số từ khóa nhất định
+    combo_conditions = [
+        ([3, 4], allowed_tokens, 2),  # Nếu model=3 hoặc 4 và YOLO chỉ chứa các từ khóa cho phép, đổi thành 2
+    ]
+    rule_func = rule_template_factory([], combo_conditions=combo_conditions)
+    acc, f1, report, _ = evaluate_rule(df, model_col, yolo_col, rule_func)
+    desc = "If model==3 or 4 and YOLO ONLY has osteophyte/osteophytemore/osteophytebig/narrowing => 2"
+    results.append((acc, f1, combo_conditions, report, desc))
+    
+    # Sắp xếp theo accuracy và F1 score (giảm dần)
     results = sorted(results, key=lambda x: (x[0], x[1]), reverse=True)
     return results[:top_k]
 
