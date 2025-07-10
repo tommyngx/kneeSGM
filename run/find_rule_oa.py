@@ -105,5 +105,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Find best rule-based OA refinement from CSV.")
     parser.add_argument('--csv_path', type=str, required=True, help="Path to CSV file")
     parser.add_argument('--model_col', type=str, default='resnet50', help="Model prediction column name")
-    parser.add_argument('--yolo_col', type=str, default='YOLO_prediction', help="YOLO prediction column name")
+    parser.add_argument('--yolo_col', type=str, default='YOLO_prediction', help="YOLO prediction column name (default: YOLO_prediction)")
     args = parser.parse_args()
+    main(args.csv_path, args.model_col, args.yolo_col)
