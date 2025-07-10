@@ -358,7 +358,7 @@ def plot_gradcam_on_image(model, input_tensor, orig_img, target_layer, target_cl
 
     # Use GradCAM++ for CNN models, fallback to GradCAM if shape mismatch
     try:
-        if any(cnn_model in model_name for cnn_model in ['resnet', 'resnext', 'efficientnet', 'densenet', 'convnext', 'resnext50_32x4d', 'xception']):
+        if any(cnn_model in model_name for cnn_model in ['resnet', 'resnext', 'efficientnet', 'efficientnet_b0', 'densenet', 'convnext', 'resnext50_32x4d', 'xception']):
             activations, gradients = register_hooks(model, input_tensor, target_layer)
             # Check shape compatibility for GradCAM++
             if (
