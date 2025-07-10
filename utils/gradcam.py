@@ -348,7 +348,7 @@ def get_target_layer(model, model_name):
 
 def plot_gradcam_on_image(model, input_tensor, orig_img, target_layer, target_class, device, model_name=""):
     """
-    Generate GradCAM heatmap and overlay it on the original image.
+    Generate GradCAM++ heatmap and overlay it on the original image.
     Returns a PIL Image with the overlay.
     """
     model.eval()
@@ -356,13 +356,16 @@ def plot_gradcam_on_image(model, input_tensor, orig_img, target_layer, target_cl
     orig_img = orig_img.convert("RGB")
     orig_np = np.array(orig_img).astype(np.float32) / 255.0
 
-    # Pass model_name to generate_gradcam
-    heatmap = generate_gradcam(model, input_tensor, target_layer, model_name=model_name)
+    # Use GradCAM++ for CNN models
+    if any(cnn_model in model_name for cnn_model in ['resnet', 'resnext', 'efficientnet', 'densenet', 'convnext', 'resnext50_32x4d', 'xception']):
+        heatmap = generate_gradcam_plus_plus_cnn(*register_hooks(model, input_tensor, target_layer), input_tensor)
+    else:
+        # Fallback to normal gradcam for other models
+        heatmap = generate_gradcam(model, input_tensor, target_layer, model_name=model_name)
 
     # Ensure heatmap is color (H, W, 3) and uint8
     if isinstance(heatmap, np.ndarray):
         if heatmap.ndim == 2:
-            # Already handled in post_process_heatmap, but double check
             heatmap = cv2.applyColorMap(np.uint8(255 * heatmap / np.max(heatmap)), cv2.COLORMAP_JET)
             heatmap = cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB)
         elif heatmap.ndim == 3 and heatmap.shape[2] == 3:
