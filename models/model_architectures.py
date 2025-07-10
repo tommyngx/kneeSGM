@@ -40,6 +40,9 @@ def get_model(model_name, config_path='config/default.yaml', pretrained=True):
         model.head.fc = nn.Linear(model.head.fc.in_features, num_classes)
     elif 'efficientnet_b0' in model_name or 'efficientnet_b7' in model_name or 'efficientnet' in model_name:
         model.classifier = nn.Linear(model.classifier.in_features, num_classes)
+    elif 'dinov2' in model_name:
+        # For timm dinov2 models, the classifier is usually called 'head'
+        model.head = nn.Linear(model.head.in_features, num_classes)
     else:
         raise ValueError(f"Model {model_name} not supported.")
     
