@@ -47,6 +47,9 @@ def try_rule_combinations(df, model_col, yolo_col, model_preds, yolo_keywords, p
     best_report = ""
     best_desc = None
 
+    # Add 'osteophytebig' and 'narrowing' to allowed tokens for combo rules
+    allowed_tokens = {"osteophyte", "osteophytemore", "osteophytebig", "narrowing"}
+
     # Generate all possible rule tuples (m_pred, yolo_kw, new_pred)
     all_rules = []
     for m_pred, yolo_kw, new_pred in itertools.product(model_preds, yolo_keywords, possible_new_preds):
@@ -65,8 +68,7 @@ def try_rule_combinations(df, model_col, yolo_col, model_preds, yolo_keywords, p
             best_desc = " AND ".join([f"(model=={r[0]} & '{r[1]}' in YOLO → {r[2]})" for r in rule_combo])
 
     # Try combo rules: e.g. ONLY certain tokens present
-    # Example: pred=3/4 and YOLO ONLY has "osteophyte" or "osteophytemore" => 2
-    allowed_tokens = {"osteophyte", "osteophytemore","osteophytebig"}
+    # Example: pred=3/4 and YOLO ONLY has "osteophyte", "osteophytemore", "osteophytebig", or "narrowing" => 2
     combo_conditions = [
         (3, allowed_tokens, 2),
         (4, allowed_tokens, 2)
@@ -78,7 +80,7 @@ def try_rule_combinations(df, model_col, yolo_col, model_preds, yolo_keywords, p
         best_f1 = f1
         best_combo = combo_conditions
         best_report = report
-        best_desc = "If model==3 or 4 and YOLO ONLY has 'osteophyte'/'osteophytemore', predict 2"
+        best_desc = "If model==3 or 4 and YOLO ONLY has 'osteophyte'/'osteophytemore'/'osteophytebig'/'narrowing', predict 2"
 
     return best_acc, best_f1, best_combo, best_report, best_desc
 
