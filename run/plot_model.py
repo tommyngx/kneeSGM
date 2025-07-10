@@ -121,6 +121,9 @@ def plot_model_gradcam_and_yolo(config_path, model_name, model_path, yolo_model_
 
     for row, idx in enumerate(selected_idxs):
         img_path, label = get_img_path_and_label(dataset, idx)
+        if img_path is None or not os.path.exists(img_path):
+            print(f"Warning: Image path not found for idx {idx}, skipping.")
+            continue
         orig_img = Image.open(img_path).convert("RGB")
         img_tensor = test_transform(orig_img).unsqueeze(0).to(device)
 
