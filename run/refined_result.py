@@ -243,12 +243,3 @@ if __name__ == "__main__":
     output_csv = os.path.join(os.path.dirname(csv_path), f"refined_results_{model_name}.csv")
     df.to_csv(output_csv, index=False)
     print(f"Refined results saved to: {output_csv}")
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Refine model predictions using YOLO output and compute metrics.")
-    parser.add_argument('--csv_path', type=str, required=True, help="Path to all_models_predictions_yolo.csv")
-    parser.add_argument('--model_name', type=str, required=True, help="Name of the model column to refine (e.g., 'resnet50')")
-    parser.add_argument('--config', type=str, default='default.yaml', help="Name of the configuration file in config folder")
-    args = parser.parse_args()
-    
-    main(csv_path=args.csv_path, model_name=args.model_name, config=args.config)
