@@ -16,6 +16,7 @@ from ultralytics import YOLO
 
 def load_config(config_path):
     import yaml
+    config_path = os.path.join('config', config_path)
     with open(config_path, 'r') as f:
         return yaml.safe_load(f)
 
