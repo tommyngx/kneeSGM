@@ -99,10 +99,6 @@ def refine_prediction(model_pred, yolo_text):
 
         # From Top 9
         {"model_pred": 0, "keyword": "osteophytebig", "new_pred": 1},
-
-        # From Top 10 (duplicate rule retained for completeness)
-        # Already added above:
-        # {"model_pred": 0, "keyword": "osteophytebig", "new_pred": 2},
     ]
     for rule in rules:
         if model_pred == rule["model_pred"] and rule["keyword"] in text:
