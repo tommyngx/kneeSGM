@@ -42,7 +42,7 @@ def try_rule_combinations(df, model_col, yolo_col, model_preds, yolo_keywords, p
     """
     results = []
 
-    allowed_tokens = {"osteophyte", "osteophytemore", "osteophytebig", "narrowing"}
+    allowed_tokens = {"osteophyte", "osteophytemore", "osteophytebig", "narrowing", "healthy", "no detection"}
 
     # Tạo rule tuples (m_pred, yolo_kw, new_pred) hợp lý
     all_rules = []
@@ -99,7 +99,7 @@ def main(csv_path, model_col, yolo_col):
         print(f"\nTop {i}:{improved}")
         print(desc)
         print(f"Accuracy: {acc:.4f}, F1: {f1:.4f}")
-        print("Classification report:\n", report)
+        #print("Classification report:\n", report)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Find best rule-based OA refinement from CSV.")
