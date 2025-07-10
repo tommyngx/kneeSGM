@@ -355,6 +355,7 @@ def plot_gradcam_on_image(
     Returns a PIL Image with the overlay.
     If true_label and pred_label are provided, use green title if correct, red if wrong.
     """
+    import cv2  # Ensure cv2 is always imported in this function
     model.eval()
     input_tensor = input_tensor.to(device)
     orig_img = orig_img.convert("RGB")
