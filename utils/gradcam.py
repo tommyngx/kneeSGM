@@ -356,31 +356,40 @@ def plot_gradcam_on_image(model, input_tensor, orig_img, target_layer, target_cl
     orig_img = orig_img.convert("RGB")
     orig_np = np.array(orig_img).astype(np.float32) / 255.0
 
-    # Use GradCAM++ for CNN models
-    if any(cnn_model in model_name for cnn_model in ['resnet', 'resnext', 'efficientnet', 'densenet', 'convnext', 'resnext50_32x4d', 'xception']):
-        heatmap = generate_gradcam_plus_plus_cnn(*register_hooks(model, input_tensor, target_layer), input_tensor)
-    else:
-        # Fallback to normal gradcam for other models
+    # Use GradCAM++ for CNN models, fallback to GradCAM if shape mismatch
+    try:
+        if any(cnn_model in model_name for cnn_model in ['resnet', 'resnext', 'efficientnet', 'densenet', 'convnext', 'resnext50_32x4d', 'xception']):
+            activations, gradients = register_hooks(model, input_tensor, target_layer)
+            # Check shape compatibility for GradCAM++
+            if (
+                gradients.dim() == 4 and activations.dim() == 4 and
+                gradients.shape[2:] == activations.shape[2:]
+            ):
+                heatmap = generate_gradcam_plus_plus_cnn(activations, gradients, input_tensor)
+            else:
+                # Fallback to GradCAM if shape mismatch
+                heatmap = generate_gradcam_cnn(activations, gradients, input_tensor)
+        else:
+            heatmap = generate_gradcam(model, input_tensor, target_layer, model_name=model_name)
+    except Exception as e:
+        print(f"[WARN] GradCAM++ failed ({e}), fallback to GradCAM.")
         heatmap = generate_gradcam(model, input_tensor, target_layer, model_name=model_name)
 
-    # Ensure heatmap is color (H, W, 3) and uint8
-    if isinstance(heatmap, np.ndarray):
-        if heatmap.ndim == 2:
-            heatmap = cv2.applyColorMap(np.uint8(255 * heatmap / np.max(heatmap)), cv2.COLORMAP_JET)
-            heatmap = cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB)
-        elif heatmap.ndim == 3 and heatmap.shape[2] == 3:
-            if heatmap.dtype != np.uint8:
-                heatmap = np.uint8(255 * heatmap / np.max(heatmap))
-        else:
-            raise ValueError("Unexpected heatmap shape for GradCAM overlay.")
+    # --- Use show_cam_on_image for overlay (like save_random_predictions) ---
+    # Normalize orig_np to [0,1] if not already
+    if orig_np.max() > 1.0:
+        orig_np = orig_np / 255.0
+    # If heatmap is color, convert to grayscale for mask, else use as is
+    if isinstance(heatmap, np.ndarray) and heatmap.ndim == 3 and heatmap.shape[2] == 3:
+        # Convert to grayscale mask for show_cam_on_image
+        mask = cv2.cvtColor(heatmap, cv2.COLOR_RGB2GRAY)
+        mask = mask.astype(np.float32) / 255.0
+    elif isinstance(heatmap, np.ndarray) and heatmap.ndim == 2:
+        mask = heatmap.astype(np.float32) / np.max(heatmap)
     else:
-        raise ValueError("Heatmap must be a numpy array.")
+        raise ValueError("Unexpected heatmap shape for GradCAM overlay.")
 
-    # Resize heatmap to match original image size if needed
-    if heatmap.shape[:2] != orig_np.shape[:2]:
-        heatmap = cv2.resize(heatmap, (orig_np.shape[1], orig_np.shape[0]))
-
-    # Overlay: blend color GradCAM with original image
-    overlay = np.uint8(0.5 * orig_np * 255 + 0.5 * heatmap)
-    overlay_img = Image.fromarray(overlay)
+    # Use show_cam_on_image for blending
+    cam_img = show_cam_on_image(orig_np, mask, use_rgb=True)
+    overlay_img = Image.fromarray(cam_img)
     return overlay_img
