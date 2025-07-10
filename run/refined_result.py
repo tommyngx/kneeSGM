@@ -75,17 +75,34 @@ def refine_prediction(model_pred, yolo_text):
     """
     text = yolo_text.lower() if isinstance(yolo_text, str) else ""
     rules = [
+        # From Top 1
         {"model_pred": 0, "keyword": "osteophyte", "new_pred": 2},
         {"model_pred": 1, "keyword": "osteophyte", "new_pred": 2},
+
+        # From Top 2
         {"model_pred": 1, "keyword": "osteophytebig", "new_pred": 2},
+
+        # From Top 3
         {"model_pred": 3, "keyword": "sclerosis", "new_pred": 4},
+
+        # From Top 4
         {"model_pred": 0, "keyword": "narrowing", "new_pred": 2},
-        {"model_pred": 2, "keyword": "narrowing", "new_pred": 3},
-        {"model_pred": 4, "keyword": "sclerosis", "new_pred": 4},
-        {"model_pred": 4, "keyword": "osteophyte", "new_pred": 3},
-        {"model_pred": 1, "keyword": "osteophytemore", "new_pred": 2},
+
+        # From Top 5
         {"model_pred": 0, "keyword": "osteophytebig", "new_pred": 2},
-        # thêm các rule khác ở đây nếu muốn
+
+        # From Top 7
+        {"model_pred": 0, "keyword": "osteophyte", "new_pred": 3},
+
+        # From Top 8
+        {"model_pred": 0, "keyword": "osteophyte", "new_pred": 4},
+
+        # From Top 9
+        {"model_pred": 0, "keyword": "osteophytebig", "new_pred": 1},
+
+        # From Top 10 (duplicate rule retained for completeness)
+        # Already added above:
+        # {"model_pred": 0, "keyword": "osteophytebig", "new_pred": 2},
     ]
     for rule in rules:
         if model_pred == rule["model_pred"] and rule["keyword"] in text:
