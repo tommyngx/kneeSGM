@@ -20,32 +20,33 @@ def get_model(model_name, config_path='config/default.yaml', pretrained=True):
         
     config = load_config(config_path)
     num_classes = len(config['data']['class_labels'])
-    model = timm.create_model(model_name, pretrained=use_pretrained)
-    
-    if 'convnext_base' in model_name:
-        model.head.fc = nn.Linear(model.head.fc.in_features, num_classes)
-    elif 'resnet50' in model_name or 'resnet101' in model_name:
-        model.fc = nn.Linear(model.fc.in_features, num_classes) 
-    elif 'resnext50_32x4d' in model_name or 'resnext101_32x8d' in model_name:
-        model.fc = nn.Linear(model.fc.in_features, num_classes)
-    elif 'vit_base_patch16_224' in model_name:
-        model.head = nn.Linear(model.head.in_features, num_classes)
-    elif 'densenet121' in model_name or 'densenet169' in model_name or 'densenet201' in model_name or 'densenet161' in model_name:
-        model.classifier = nn.Linear(model.classifier.in_features, num_classes)
-    elif 'xception' in model_name:
-        model.fc = nn.Linear(model.fc.in_features, num_classes)
-    elif 'caformer_s18' in model_name:
-        model.head.fc.fc2 = nn.Linear(model.head.fc.fc2.in_features, num_classes)
-    elif 'fastvit' in model_name:
-        model.head.fc = nn.Linear(model.head.fc.in_features, num_classes)
-    elif 'efficientnet_b0' in model_name or 'efficientnet_b7' in model_name or 'efficientnet' in model_name:
-        model.classifier = nn.Linear(model.classifier.in_features, num_classes)
-    elif 'dinov2' in model_name:
-        # Use the recommended timm dinov2 model name and set eval mode
+
+    # Special handling for dinov2
+    if 'dinov2' in model_name:
         model = timm.create_model('vit_large_patch14_dinov2.lvd142m', pretrained=True)
         model = model.eval()
         model.head = nn.Linear(model.head.in_features, num_classes)
     else:
-        raise ValueError(f"Model {model_name} not supported.")
+        model = timm.create_model(model_name, pretrained=use_pretrained)
+        if 'convnext_base' in model_name:
+            model.head.fc = nn.Linear(model.head.fc.in_features, num_classes)
+        elif 'resnet50' in model_name or 'resnet101' in model_name:
+            model.fc = nn.Linear(model.fc.in_features, num_classes) 
+        elif 'resnext50_32x4d' in model_name or 'resnext101_32x8d' in model_name:
+            model.fc = nn.Linear(model.fc.in_features, num_classes)
+        elif 'vit_base_patch16_224' in model_name:
+            model.head = nn.Linear(model.head.in_features, num_classes)
+        elif 'densenet121' in model_name or 'densenet169' in model_name or 'densenet201' in model_name or 'densenet161' in model_name:
+            model.classifier = nn.Linear(model.classifier.in_features, num_classes)
+        elif 'xception' in model_name:
+            model.fc = nn.Linear(model.fc.in_features, num_classes)
+        elif 'caformer_s18' in model_name:
+            model.head.fc.fc2 = nn.Linear(model.head.fc.fc2.in_features, num_classes)
+        elif 'fastvit' in model_name:
+            model.head.fc = nn.Linear(model.head.fc.in_features, num_classes)
+        elif 'efficientnet_b0' in model_name or 'efficientnet_b7' in model_name or 'efficientnet' in model_name:
+            model.classifier = nn.Linear(model.classifier.in_features, num_classes)
+        else:
+            raise ValueError(f"Model {model_name} not supported.")
     
     return model
