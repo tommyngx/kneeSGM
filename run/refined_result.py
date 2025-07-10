@@ -58,54 +58,39 @@ def load_config(config_path):
 def refine_prediction(model_pred, yolo_text):
     """
     Refine the predicted class (model_pred) based on YOLO_prediction string.
-    Assumptions (all comparisons are case-insensitive):
-      1. If model_pred is 0 and YOLO_prediction contains "healthy", keep 0.
-      2. If model_pred is 0 and YOLO_prediction contains "osteophyte", change to 1.
-      3. If model_pred is 2 and YOLO_prediction contains "narrowing", change to 3.
-      4. If model_pred is 3 and YOLO_prediction contains "sclerosis", change to 4.
-      5. If model_pred is 4 but YOLO_prediction does NOT contain "sclerosis", change to 3.
-      6. If model_pred is 1 and YOLO_prediction contains "osteophytemore" or "osteophytebig", then refined becomes 2.
-      7. If model_pred is 3 or 4 and the YOLO_prediction contains ONLY "osteophyte" and/or "osteophytemore", then refined becomes 2.
-      Otherwise, leave the prediction unchanged.
+    Rule list nội bộ:
+    rules = [
+        {"model_pred": 0, "keyword": "osteophyte", "new_pred": 2},
+        {"model_pred": 1, "keyword": "osteophyte", "new_pred": 2},
+        {"model_pred": 1, "keyword": "osteophytebig", "new_pred": 2},
+        {"model_pred": 3, "keyword": "sclerosis", "new_pred": 4},
+        {"model_pred": 0, "keyword": "narrowing", "new_pred": 2},
+        {"model_pred": 2, "keyword": "narrowing", "new_pred": 3},
+        {"model_pred": 4, "keyword": "sclerosis", "new_pred": 4},
+        {"model_pred": 4, "keyword": "osteophyte", "new_pred": 3},
+        {"model_pred": 1, "keyword": "osteophytemore", "new_pred": 2},
+        {"model_pred": 0, "keyword": "osteophytebig", "new_pred": 2},
+        # thêm các rule khác ở đây nếu muốn
+    ]
     """
-
     text = yolo_text.lower() if isinstance(yolo_text, str) else ""
-    refined = model_pred
-
-    # Rule 6: If pred=1 and YOLO has "osteophytemore" or "osteophytebig" => 2
-    if model_pred == 1 and ("osteophytemore" in text or "osteophytebig" in text):
-        return 2
-
-    # Rule 7: If pred=3/4 and YOLO ONLY has "osteophyte" or "osteophytemore" => 2
-    if model_pred in [3, 4]:
-        tokens = [token.strip() for token in text.replace(";", ",").split(",") if token.strip()]
-        allowed_tokens = {"osteophyte", "osteophytemore"}
-        if tokens and set(tokens).issubset(allowed_tokens):
-            return 2
-
-    # Rule 1 and 2: pred=0
-    if model_pred == 0:
-        if "healthy" in text:
-            refined = 0  # explicit, but already 0
-        elif "osteophyte" in text:
-            refined = 1
-
-    # Rule 3: pred=2 and "narrowing" -> 3
-    elif model_pred == 2:
-        if "narrowing" in text:
-            refined = 3
-
-    # Rule 4: pred=3 and "sclerosis" -> 4
-    elif model_pred == 3:
-        if "sclerosis" in text:
-            refined = 4
-
-    # Rule 5: pred=4 but lacks "sclerosis" -> 3
-    elif model_pred == 4:
-        if "sclerosis" not in text:
-            refined = 3
-
-    return refined
+    rules = [
+        {"model_pred": 0, "keyword": "osteophyte", "new_pred": 2},
+        {"model_pred": 1, "keyword": "osteophyte", "new_pred": 2},
+        {"model_pred": 1, "keyword": "osteophytebig", "new_pred": 2},
+        {"model_pred": 3, "keyword": "sclerosis", "new_pred": 4},
+        {"model_pred": 0, "keyword": "narrowing", "new_pred": 2},
+        {"model_pred": 2, "keyword": "narrowing", "new_pred": 3},
+        {"model_pred": 4, "keyword": "sclerosis", "new_pred": 4},
+        {"model_pred": 4, "keyword": "osteophyte", "new_pred": 3},
+        {"model_pred": 1, "keyword": "osteophytemore", "new_pred": 2},
+        {"model_pred": 0, "keyword": "osteophytebig", "new_pred": 2},
+        # thêm các rule khác ở đây nếu muốn
+    ]
+    for rule in rules:
+        if model_pred == rule["model_pred"] and rule["keyword"] in text:
+            return rule["new_pred"]
+    return model_pred
 
 def calculate_sensitivity_specificity(y_true, y_pred):
     # Binary conversion: consider classes 0,1 as negative, 2,3,4 as positive
@@ -237,6 +222,21 @@ def main(csv_path, model_name, config='default.yaml'):
     cm_normalized = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
     np.set_printoptions(precision=2)
     print("\nNormalized Confusion Matrix:")
+    print(cm_normalized)
+    
+    # Optionally, save refined CSV with a new name
+    output_csv = os.path.join(os.path.dirname(csv_path), f"refined_results_{model_name}.csv")
+    df.to_csv(output_csv, index=False)
+    print(f"Refined results saved to: {output_csv}")
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Refine model predictions using YOLO output and compute metrics.")
+    parser.add_argument('--csv_path', type=str, required=True, help="Path to all_models_predictions_yolo.csv")
+    parser.add_argument('--model_name', type=str, required=True, help="Name of the model column to refine (e.g., 'resnet50')")
+    parser.add_argument('--config', type=str, default='default.yaml', help="Name of the configuration file in config folder")
+    args = parser.parse_args()
+    
+    main(csv_path=args.csv_path, model_name=args.model_name, config=args.config)
     print(cm_normalized)
     
     # Optionally, save refined CSV with a new name
