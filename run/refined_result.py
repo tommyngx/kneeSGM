@@ -193,7 +193,7 @@ def main(csv_path, model_name, config='default.yaml'):
 
     # Identify all model columns (exclude ground_truth, YOLO_prediction, image columns)
     exclude_cols = {'ground_truth', 'YOLO_prediction', 'image_path', 'image_name'}
-    model_cols = [col for col in df.columns if col not in exclude_cols]
+    model_cols = [col for col in df.columns if col not in exclude_cols and not col.endswith('_refined')]
 
     output_dir = os.path.dirname(csv_path)
     refined_df = df.copy()
@@ -205,14 +205,15 @@ def main(csv_path, model_name, config='default.yaml'):
         refined_preds = [refine_prediction(mp, yt) for mp, yt in zip(model_preds, yolo_texts)]
         refined_df[f'{col}_refined'] = refined_preds
 
-    # Now, for each model, compare with ground_truth and collect metrics
+    # Now, for each model (original and refined), compare with ground_truth and collect metrics
     all_metrics = {}
     class_names = [str(x) for x in config_data['data']['class_names']]
     num_classes = len(class_names)
     ground_truth = df['ground_truth'].tolist()
 
+    # Evaluate original models
     for col in model_cols:
-        preds = refined_df[f'{col}_refined'].tolist()
+        preds = df[col].tolist()
         acc = accuracy_score(ground_truth, preds)
         f1 = f1_score(ground_truth, preds, average='weighted')
         precision = precision_score(ground_truth, preds, average='weighted', zero_division=0)
@@ -220,9 +221,9 @@ def main(csv_path, model_name, config='default.yaml'):
         kappa = cohen_kappa_score(ground_truth, preds)
         sensitivity, specificity = calculate_sensitivity_specificity(ground_truth, preds)
         ground_truth_bin = np.array(ground_truth) >= 2
-        refined_bin = np.array(preds) >= 2
+        pred_bin = np.array(preds) >= 2
         try:
-            auc = roc_auc_score(ground_truth_bin, refined_bin)
+            auc = roc_auc_score(ground_truth_bin, pred_bin)
         except Exception:
             auc = None
         gt_onehot = np.zeros((len(ground_truth), num_classes))
@@ -249,6 +250,46 @@ def main(csv_path, model_name, config='default.yaml'):
             metrics[f'Specificity_{cname}'] = per_class_specificity[i]
         all_metrics[col] = metrics
 
+    # Evaluate refined models
+    for col in model_cols:
+        refined_col = f'{col}_refined'
+        preds = refined_df[refined_col].tolist()
+        acc = accuracy_score(ground_truth, preds)
+        f1 = f1_score(ground_truth, preds, average='weighted')
+        precision = precision_score(ground_truth, preds, average='weighted', zero_division=0)
+        recall = recall_score(ground_truth, preds, average='weighted')
+        kappa = cohen_kappa_score(ground_truth, preds)
+        sensitivity, specificity = calculate_sensitivity_specificity(ground_truth, preds)
+        ground_truth_bin = np.array(ground_truth) >= 2
+        pred_bin = np.array(preds) >= 2
+        try:
+            auc = roc_auc_score(ground_truth_bin, pred_bin)
+        except Exception:
+            auc = None
+        gt_onehot = np.zeros((len(ground_truth), num_classes))
+        pred_onehot = np.zeros((len(preds), num_classes))
+        for i, (gt, pred) in enumerate(zip(ground_truth, preds)):
+            gt_onehot[i, int(gt)] = 1
+            pred_onehot[i, int(pred)] = 1
+        brier = brier_score_loss(gt_onehot.ravel(), pred_onehot.ravel())
+        per_class_sensitivity, per_class_specificity = calculate_per_class_metrics(ground_truth, preds, num_classes)
+        metrics = {
+            'Accuracy': acc,
+            'F1_Score': f1,
+            'Precision': precision,
+            'Recall': recall,
+            'Sensitivity': sensitivity,
+            'Specificity': specificity,
+            'Kappa': kappa,
+            'AUC': auc if auc is not None else 0,
+            'Brier_Score': brier,
+        }
+        for i, cname in enumerate(class_names):
+            metrics[f'Sensitivity_{cname}'] = per_class_sensitivity[i]
+        for i, cname in enumerate(class_names):
+            metrics[f'Specificity_{cname}'] = per_class_specificity[i]
+        all_metrics[refined_col] = metrics
+
     # Save all refined predictions to CSV
     output_csv = os.path.join(output_dir, f"refined_results.csv")
     refined_df.to_csv(output_csv, index=False)
@@ -268,11 +309,13 @@ def main(csv_path, model_name, config='default.yaml'):
     metrics_df.to_csv(metrics_csv, float_format='%.4f')
     print(f"All models' refined metrics saved to {metrics_csv}")
 
-    # Print only the requested model's metrics
-    if model_name in all_metrics:
-        print(f"\nMetrics for {model_name}:")
-        for k, v in all_metrics[model_name].items():
-            print(f"{k}: {v:.4f}")
+    # Print only the requested model's metrics (original and refined)
+    for suffix in ["", "_refined"]:
+        col = model_name + suffix
+        if col in all_metrics:
+            print(f"\nMetrics for {col}:")
+            for k, v in all_metrics[col].items():
+                print(f"{k}: {v:.4f}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Refine model predictions using YOLO output and compute metrics.")
