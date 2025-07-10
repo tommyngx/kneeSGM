@@ -198,6 +198,9 @@ def main(csv_path, model_name, config='default.yaml'):
     all_metrics = {}
     output_dir = os.path.dirname(csv_path)
 
+    # Prepare a DataFrame to save all refined predictions
+    refined_df = df.copy()
+
     for col in tqdm(model_cols, desc="Refining all models"):
         model_preds = df[col].tolist()
         yolo_texts = df['YOLO_prediction'].tolist()
@@ -209,7 +212,8 @@ def main(csv_path, model_name, config='default.yaml'):
             refined = refine_prediction(mp, yt)
             refined_preds.append(refined)
 
-        df[f'{col}_refined'] = refined_preds
+        # Save refined predictions to the new DataFrame
+        refined_df[f'{col}_refined'] = refined_preds
 
         # Compute metrics
         acc = accuracy_score(ground_truth, refined_preds)
@@ -287,9 +291,9 @@ def main(csv_path, model_name, config='default.yaml'):
     # Save all metrics for all models
     save_consolidated_metrics(all_metrics, output_dir, suffix="_refined")
 
-    # Save refined predictions to CSV
+    # Save refined predictions to CSV (use refined_df, not df)
     output_csv = os.path.join(output_dir, f"refined_results.csv")
-    df.to_csv(output_csv, index=False)
+    refined_df.to_csv(output_csv, index=False)
     print(f"Refined results saved to: {output_csv}")
 
 if __name__ == "__main__":
