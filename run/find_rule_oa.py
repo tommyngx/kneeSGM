@@ -15,12 +15,20 @@ def evaluate_rule(df, model_col, yolo_col, rule):
     report = classification_report(df['ground_truth'], preds, zero_division=0)
     return acc, f1, report, preds
 
-def rule_template_factory(conditions):
+def rule_template_factory(conditions, combo_conditions=None):
     """
-    Return a rule function based on a list of (model_pred, yolo_keyword, new_pred) tuples.
+    Return a rule function based on a list of (model_pred, yolo_keyword, new_pred) tuples,
+    and a list of (model_pred, set_of_yolo_keywords, new_pred) for combo rules.
     """
     def rule(model_pred, yolo_text):
         text = str(yolo_text).lower()
+        tokens = [token.strip() for token in text.replace(";", ",").split(",") if token.strip()]
+        # Combo rules: e.g. ONLY certain tokens present
+        if combo_conditions:
+            for m_pred, allowed_tokens, new_pred in combo_conditions:
+                if model_pred == m_pred and tokens and set(tokens).issubset(allowed_tokens):
+                    return new_pred
+        # Single keyword rules
         for cond in conditions:
             m_pred, yolo_kw, new_pred = cond
             if (model_pred == m_pred) and (yolo_kw in text):
@@ -31,6 +39,7 @@ def rule_template_factory(conditions):
 def try_rule_combinations(df, model_col, yolo_col, model_preds, yolo_keywords, possible_new_preds, max_rules=2):
     """
     Try combinations of up to max_rules rules and return the best combination.
+    Also tries combo rules with sets of YOLO keywords.
     """
     best_acc = 0
     best_f1 = 0
@@ -54,6 +63,22 @@ def try_rule_combinations(df, model_col, yolo_col, model_preds, yolo_keywords, p
             best_combo = rule_combo
             best_report = report
             best_desc = " AND ".join([f"(model=={r[0]} & '{r[1]}' in YOLO → {r[2]})" for r in rule_combo])
+
+    # Try combo rules: e.g. ONLY certain tokens present
+    # Example: pred=3/4 and YOLO ONLY has "osteophyte" or "osteophytemore" => 2
+    allowed_tokens = {"osteophyte", "osteophytemore"}
+    combo_conditions = [
+        (3, allowed_tokens, 2),
+        (4, allowed_tokens, 2)
+    ]
+    rule = rule_template_factory([], combo_conditions=combo_conditions)
+    acc, f1, report, _ = evaluate_rule(df, model_col, yolo_col, rule)
+    if acc > best_acc or (acc == best_acc and f1 > best_f1):
+        best_acc = acc
+        best_f1 = f1
+        best_combo = combo_conditions
+        best_report = report
+        best_desc = "If model==3 or 4 and YOLO ONLY has 'osteophyte'/'osteophytemore', predict 2"
 
     return best_acc, best_f1, best_combo, best_report, best_desc
 
@@ -79,26 +104,64 @@ def main(csv_path, model_col, yolo_col):
     for m_pred, yolo_kw, new_pred in itertools.product(model_preds, yolo_keywords, possible_new_preds):
         if new_pred == m_pred:
             continue
-        rule = rule_template_factory([(m_pred, yolo_kw, new_pred)])
+        # Add special handling for multi-keyword rules
+        # Rule 6: If pred=1 and YOLO has "osteophytemore" or "osteophytebig" => 2
+        def special_rule(model_pred, yolo_text):
+            text = str(yolo_text).lower()
+            tokens = [token.strip() for token in text.replace(";", ",").split(",") if token.strip()]
+            # Rule 6
+            if model_pred == 1 and ("osteophytemore" in text or "osteophytebig" in text):
+                return 2
+            # Rule 7
+            if model_pred in [3, 4]:
+                allowed_tokens = {"osteophyte", "osteophytemore"}
+                if tokens and set(tokens).issubset(allowed_tokens):
+                    return 2
+            # Rule 1 and 2
+            if model_pred == 0:
+                if "healthy" in text:
+                    return 0
+                elif "osteophyte" in text:
+                    return 1
+            # Rule 3
+            elif model_pred == 2:
+                if "narrowing" in text:
+                    return 3
+            # Rule 4
+            elif model_pred == 3:
+                if "sclerosis" in text:
+                    return 4
+            # Rule 5
+            elif model_pred == 4:
+                if "sclerosis" not in text:
+                    return 3
+            # Default: single rule
+            if (model_pred == m_pred) and (yolo_kw in text):
+                return new_pred
+            return model_pred
+
+        rule = special_rule
         acc, f1, report, _ = evaluate_rule(df, model_col, yolo_col, rule)
         if acc > best_acc or (acc == best_acc and f1 > best_f1):
             best_acc = acc
             best_f1 = f1
             best_rule = (m_pred, yolo_kw, new_pred)
             best_report = report
-            best_desc = f"If model=={m_pred} and '{yolo_kw}' in YOLO, predict {new_pred}"
+            best_desc = (
+                f"Special rule + If model=={m_pred} and '{yolo_kw}' in YOLO, predict {new_pred}"
+            )
 
-    print("Best single rule found:")
+    print("Best single rule found (with special combos):")
     print(best_desc)
     print(f"Accuracy: {best_acc:.4f}, F1: {best_f1:.4f}")
     print("Classification report:\n", best_report)
 
-    # Try combinations of 2 rules for better performance
-    print("\nSearching for best combination of 2 rules...")
+    # Try combinations of 2 rules for better performance (including combo rules)
+    print("\nSearching for best combination of 2 rules and combo rules...")
     combo_acc, combo_f1, combo_rules, combo_report, combo_desc = try_rule_combinations(
         df, model_col, yolo_col, model_preds, yolo_keywords, possible_new_preds, max_rules=2
     )
-    print("Best 2-rule combination found:")
+    print("Best 2-rule or combo found:")
     print(combo_desc)
     print(f"Accuracy: {combo_acc:.4f}, F1: {combo_f1:.4f}")
     print("Classification report:\n", combo_report)
