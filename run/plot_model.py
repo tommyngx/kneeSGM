@@ -104,11 +104,20 @@ def plot_model_gradcam_and_yolo(config_path, model_name, model_path, yolo_model_
         ):
             transformed = test_transform(image=np.array(orig_img))
             img = transformed["image"]
-            # If image is HWC, convert to CHW
-            if img.ndim == 3 and img.shape[2] in [1, 3]:
-                img_tensor = torch.from_numpy(img).permute(2, 0, 1).unsqueeze(0).float().to(device)
+            # If img is a torch.Tensor, just use it
+            if isinstance(img, torch.Tensor):
+                if img.ndim == 3:
+                    img_tensor = img.unsqueeze(0).float().to(device)
+                else:
+                    img_tensor = img.float().to(device)
+            # If image is HWC numpy, convert to CHW tensor
+            elif isinstance(img, np.ndarray):
+                if img.ndim == 3 and img.shape[2] in [1, 3]:
+                    img_tensor = torch.from_numpy(img).permute(2, 0, 1).unsqueeze(0).float().to(device)
+                else:
+                    img_tensor = torch.from_numpy(img).unsqueeze(0).float().to(device)
             else:
-                img_tensor = torch.from_numpy(img).unsqueeze(0).float().to(device)
+                raise TypeError(f"Unknown image type after albumentations: {type(img)}")
         else:
             # torchvision transform or compatible
             img_tensor = test_transform(orig_img).unsqueeze(0).to(device)
