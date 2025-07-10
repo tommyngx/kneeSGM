@@ -35,15 +35,12 @@ def evaluate_rule(df, model_col, yolo_col, rule_func):
     report = classification_report(df["ground_truth"], preds)
     return acc, f1, report, preds
 
-def try_rule_combinations(df, model_col, yolo_col, model_preds, yolo_keywords, possible_new_preds, max_rules=2):
+def try_rule_combinations(df, model_col, yolo_col, model_preds, yolo_keywords, possible_new_preds, max_rules=2, top_k=10):
     """
-    Tìm best rule set cải thiện acc, f1 bằng cách refine prediction từ YOLO + model_pred.
+    Tìm top_k best rule sets cải thiện acc, f1 bằng cách refine prediction từ YOLO + model_pred.
+    Trả về danh sách top_k rule sets (acc, f1, combo, report, desc).
     """
-    best_acc = 0
-    best_f1 = 0
-    best_combo = None
-    best_report = ""
-    best_desc = None
+    results = []
 
     allowed_tokens = {"osteophyte", "osteophytemore", "osteophytebig", "narrowing"}
 
@@ -58,12 +55,8 @@ def try_rule_combinations(df, model_col, yolo_col, model_preds, yolo_keywords, p
         for rule_combo in itertools.combinations(all_rules, k):
             rule_func = rule_template_factory(list(rule_combo))
             acc, f1, report, _ = evaluate_rule(df, model_col, yolo_col, rule_func)
-            if acc > best_acc or (acc == best_acc and f1 > best_f1):
-                best_acc = acc
-                best_f1 = f1
-                best_combo = rule_combo
-                best_report = report
-                best_desc = " AND ".join([f"(model=={r[0]} & '{r[1]}' in YOLO → {r[2]})" for r in rule_combo])
+            desc = " AND ".join([f"(model=={r[0]} & '{r[1]}' in YOLO → {r[2]})" for r in rule_combo])
+            results.append((acc, f1, rule_combo, report, desc))
 
     # Test combo rules: ONLY certain tokens
     combo_conditions = [
@@ -71,14 +64,12 @@ def try_rule_combinations(df, model_col, yolo_col, model_preds, yolo_keywords, p
     ]
     rule_func = rule_template_factory([], combo_conditions=combo_conditions)
     acc, f1, report, _ = evaluate_rule(df, model_col, yolo_col, rule_func)
-    if acc > best_acc or (acc == best_acc and f1 > best_f1):
-        best_acc = acc
-        best_f1 = f1
-        best_combo = combo_conditions
-        best_report = report
-        best_desc = "If model==3 or 4 and YOLO ONLY has osteophyte/osteophytemore/osteophytebig/narrowing => 2"
+    desc = "If model==3 or 4 and YOLO ONLY has osteophyte/osteophytemore/osteophytebig/narrowing => 2"
+    results.append((acc, f1, combo_conditions, report, desc))
 
-    return best_acc, best_f1, best_combo, best_report, best_desc
+    # Sort by acc, then f1, descending
+    results = sorted(results, key=lambda x: (x[0], x[1]), reverse=True)
+    return results[:top_k]
 
 def main(csv_path, model_col, yolo_col):
     df = pd.read_csv(csv_path)
@@ -92,14 +83,23 @@ def main(csv_path, model_col, yolo_col):
     yolo_keywords = sorted(list(yolo_keywords))
     possible_new_preds = sorted(df[model_col].unique())
 
-    print("\nSearching for best rule combinations...")
-    combo_acc, combo_f1, combo_rules, combo_report, combo_desc = try_rule_combinations(
-        df, model_col, yolo_col, model_preds, yolo_keywords, possible_new_preds, max_rules=2
+    # Baseline: no rule, just model prediction
+    baseline_acc = accuracy_score(df["ground_truth"], df[model_col])
+    baseline_f1 = f1_score(df["ground_truth"], df[model_col], average="macro")
+    print(f"\nBaseline (no rule): Accuracy: {baseline_acc:.4f}, F1: {baseline_f1:.4f}")
+
+    print("\nSearching for top rule combinations...")
+    top_rules = try_rule_combinations(
+        df, model_col, yolo_col, model_preds, yolo_keywords, possible_new_preds, max_rules=2, top_k=10
     )
-    print("Best rule or combo found:")
-    print(combo_desc)
-    print(f"Accuracy: {combo_acc:.4f}, F1: {combo_f1:.4f}")
-    print("Classification report:\n", combo_report)
+    for i, (acc, f1, combo, report, desc) in enumerate(top_rules, 1):
+        improved = ""
+        if acc > baseline_acc or (acc == baseline_acc and f1 > baseline_f1):
+            improved = " (IMPROVED)"
+        print(f"\nTop {i}:{improved}")
+        print(desc)
+        print(f"Accuracy: {acc:.4f}, F1: {f1:.4f}")
+        print("Classification report:\n", report)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Find best rule-based OA refinement from CSV.")
