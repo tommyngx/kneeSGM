@@ -152,7 +152,12 @@ def plot_model_gradcam_and_yolo(config_path, model_name, model_path, yolo_model_
 
     plt.tight_layout(rect=[0, 0, 1, 0.97])
     if not output_path or output_path.strip() == "":
-        output_path = f"gradcam_yolo_plot.png"
+        output_path = os.path.join(os.getcwd(), "gradcam_yolo_plot.png")
+    elif os.path.isdir(output_path):
+        output_path = os.path.join(output_path, "gradcam_yolo_plot.png")
+    else:
+        # Always append model name to output file for uniqueness
+        output_path = output_path.replace(".png", f"_{model_name}.png")
     plt.savefig(output_path)
     plt.close()
     print(f"Saved combined GradCAM and YOLO plot to {output_path}")
