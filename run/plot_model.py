@@ -59,21 +59,23 @@ def run_yolo_on_image(image_path, yolo_model, return_boxes=False):
     return ", ".join(set(detected)) if detected else "No detection"
 
 def plot_model_gradcam_and_yolo(config_path, model_name, model_path, yolo_model_path, output_path):
+    print("[DEBUG] Loading config...")
     config = load_config(config_path)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print("[DEBUG] Loading model...")
     model = get_model(model_name, config_path=config_path, pretrained=False)
     checkpoint = torch.load(model_path, map_location=device, weights_only=True)
     model.load_state_dict(checkpoint['model_state_dict'])
     model = model.to(device)
     model.eval()
 
+    print("[DEBUG] Preparing transforms and dataloader...")
     _, test_transform = get_transforms(config['data']['image_size'], config_path=config_path)
-    # Load train loader instead of test loader
     train_loader = get_dataloader('train', config['data']['batch_size'], config['data']['num_workers'],
                                   transform=test_transform, config_path=config_path)
     dataset = train_loader.dataset
 
-    # Get image names, paths, and labels using test_all.py logic
+    print("[DEBUG] Getting image info...")
     image_names, image_paths = get_image_info(type('FakeLoader', (), {'dataset': dataset})())
     if hasattr(dataset, 'labels'):
         labels = list(dataset.labels)
@@ -82,16 +84,17 @@ def plot_model_gradcam_and_yolo(config_path, model_name, model_path, yolo_model_
     else:
         labels = [dataset[i][1] for i in range(len(dataset))]
 
-    # Randomly select 1 image for each class 1,2,3,4 (not 0), but only keep 3 images total
+    print("[DEBUG] Selecting random images by class...")
     class_indices = [1, 2, 3, 4]
     selected_items = get_random_images_by_class(image_paths, labels, class_indices, n_per_class=1)
     if not selected_items:
         print("No images found for the specified classes.")
         return
 
-    # Load YOLO model
+    print("[DEBUG] Loading YOLO model...")
     yolo_model = YOLO(yolo_model_path)
 
+    print("[DEBUG] Creating plot...")
     fig, axes = plt.subplots(len(selected_items), 3, figsize=(15, 5 * len(selected_items)))
     fig.suptitle(f"GradCAM and YOLO results for {model_name}", fontsize=22)
 
@@ -106,6 +109,7 @@ def plot_model_gradcam_and_yolo(config_path, model_name, model_path, yolo_model_
         prop = None
 
     for row, (img_path, label) in enumerate(selected_items):
+        print(f"[DEBUG] Processing image {row+1}/{len(selected_items)}: {img_path}")
         orig_img = Image.open(img_path).convert("RGB")
         # Handle albumentations transform (expects dict input)
         if hasattr(test_transform, "__call__") and (
@@ -130,23 +134,25 @@ def plot_model_gradcam_and_yolo(config_path, model_name, model_path, yolo_model_
             img_tensor = test_transform(orig_img).unsqueeze(0).to(device)
 
         # Model prediction
+        print("[DEBUG] Running model prediction...")
         with torch.no_grad():
             output = model(img_tensor)
             pred = torch.argmax(output, dim=1).item()
             probs = torch.softmax(output, dim=1).cpu().numpy()[0]
 
         # GradCAM (use util function)
+        print("[DEBUG] Generating GradCAM image...")
         target_layer = get_target_layer(model, model_name)
         gradcam_img = plot_gradcam_on_image(
             model, img_tensor, orig_img, target_layer, pred, device, model_name=model_name
         )
 
         # YOLO prediction with bounding boxes and labels
+        print("[DEBUG] Running YOLO detection...")
         yolo_img, yolo_boxes = run_yolo_on_image(img_path, yolo_model, return_boxes=True)
         yolo_img_draw = np.array(orig_img).copy()
         import cv2
         symptom_names = []
-        # Assign a unique color for each class_id (up to 10 classes, repeat if more)
         color_palette = [
             (128, 0, 128),  # Purple
             (0, 128, 255),  # Light Blue
@@ -164,7 +170,6 @@ def plot_model_gradcam_and_yolo(config_path, model_name, model_path, yolo_model_
             x1, y1, x2, y2 = xyxy
             color = color_palette[class_id % len(color_palette)]
             cv2.rectangle(yolo_img_draw, (x1, y1), (x2, y2), color, 2)
-            # Make font size larger for bbox label
             font_scale = 1.2
             font_thickness = 3
             label_text = f"{name}"
@@ -196,6 +201,7 @@ def plot_model_gradcam_and_yolo(config_path, model_name, model_path, yolo_model_
         )
         axes[row, 2].axis('off')
 
+    print("[DEBUG] Saving plot...")
     plt.tight_layout(rect=[0, 0, 1, 0.97])
     if not output_path or output_path.strip() == "":
         output_path = os.path.join(os.getcwd(), "gradcam_yolo_plot.png")
