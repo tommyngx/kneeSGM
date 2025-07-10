@@ -82,10 +82,10 @@ def refine_prediction(model_pred, yolo_text):
             {"model_pred": 3, "keyword": "sclerosis", "new_pred": 4},
             {"model_pred": 0, "keyword": "narrowing", "new_pred": 2},
             {"model_pred": 0, "keyword": "osteophyte", "new_pred": 3},
-            {"model_pred": 0, "keyword": "osteophyte", "new_pred": 4},
+            #{"model_pred": 0, "keyword": "osteophyte", "new_pred": 4},
             {"model_pred": 0, "keyword": "osteophytebig", "new_pred": 1},
-            {"model_pred": 0, "keyword": "osteophytebig", "new_pred": 2},
-            {"model_pred": 0, "keyword": "osteophytebig", "new_pred": 3},
+            #{"model_pred": 0, "keyword": "osteophytebig", "new_pred": 2},
+            #{"model_pred": 0, "keyword": "osteophytebig", "new_pred": 3},
         ]
     for rule in rules:
         if model_pred == rule["model_pred"] and rule["keyword"] in text:
