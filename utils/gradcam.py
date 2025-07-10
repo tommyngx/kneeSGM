@@ -324,3 +324,34 @@ def get_target_layer(model, model_name):
             return model.act4 if hasattr(model, 'act4') else model.block1
     else:
         raise ValueError(f"Model {model_name} not supported for Grad-CAM.")
+
+def plot_gradcam_on_image(model, input_tensor, orig_img, target_layer, target_class, device):
+    """
+    Generate GradCAM heatmap and overlay it on the original image.
+    Returns a PIL Image with the overlay.
+    """
+    model.eval()
+    input_tensor = input_tensor.to(device)
+    orig_img = orig_img.convert("RGB")
+    orig_np = np.array(orig_img).astype(np.float32) / 255.0
+
+    # Generate heatmap using the appropriate gradcam function
+    heatmap = generate_gradcam(model, input_tensor, target_layer, model_name="")  # model_name can be passed if needed
+
+    # Normalize and resize heatmap
+    if isinstance(heatmap, np.ndarray):
+        if heatmap.ndim == 2:
+            heatmap = np.uint8(255 * heatmap / np.max(heatmap))
+            heatmap = cv2.resize(heatmap, orig_img.size)
+            heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
+            heatmap = cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB)
+        elif heatmap.ndim == 3 and heatmap.shape[2] == 3:
+            heatmap = cv2.resize(heatmap, orig_img.size)
+        else:
+            raise ValueError("Unexpected heatmap shape for GradCAM overlay.")
+    else:
+        raise ValueError("Heatmap must be a numpy array.")
+
+    overlay = np.uint8(0.5 * orig_np * 255 + 0.5 * heatmap)
+    overlay_img = Image.fromarray(overlay)
+    return overlay_img
