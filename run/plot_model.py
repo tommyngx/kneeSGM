@@ -50,22 +50,28 @@ def get_random_images_by_class(dataset, class_indices, n_per_class=1):
             selected.extend(chosen)
     return selected
 
-def run_yolo_on_image(image_path, yolo_model):
+def run_yolo_on_image(image_path, yolo_model, return_boxes=False):
     img = Image.open(image_path).convert("RGB")
-    img = np.array(img)
-    results = yolo_model(img, verbose=False)
+    img_np = np.array(img)
+    results = yolo_model(img_np, verbose=False)
     if not results:
-        return "No detection"
+        return "No detection" if not return_boxes else (img, [])
     result = results[0]
     if not hasattr(result, 'boxes') or result.boxes is None or len(result.boxes) == 0:
-        return "No detection"
+        return "No detection" if not return_boxes else (img, [])
     boxes = result.boxes
     names = result.names
     detected = []
+    box_list = []
     for box in boxes:
         class_id = int(box.cls.item())
         detection_name = names[class_id]
         detected.append(detection_name)
+        xyxy = box.xyxy[0].cpu().numpy().astype(int)
+        conf = float(box.conf.item()) if hasattr(box, "conf") else 1.0
+        box_list.append((xyxy, detection_name, conf, class_id))
+    if return_boxes:
+        return img, box_list
     return ", ".join(set(detected)) if detected else "No detection"
 
 def plot_model_gradcam_and_yolo(config_path, model_name, model_path, yolo_model_path, output_path):
@@ -132,8 +138,18 @@ def plot_model_gradcam_and_yolo(config_path, model_name, model_path, yolo_model_
         target_layer = get_target_layer(model, model_name)
         gradcam_img = plot_gradcam_on_image(model, img_tensor, orig_img, target_layer, pred, device, model_name=model_name)
 
-        # YOLO prediction
-        yolo_pred = run_yolo_on_image(img_path, yolo_model)
+        # YOLO prediction with bounding boxes and labels
+        yolo_img, yolo_boxes = run_yolo_on_image(img_path, yolo_model, return_boxes=True)
+        yolo_img_draw = np.array(orig_img).copy()
+        import cv2
+        for xyxy, name, conf, class_id in yolo_boxes:
+            x1, y1, x2, y2 = xyxy
+            color = (0, 255, 0)
+            cv2.rectangle(yolo_img_draw, (x1, y1), (x2, y2), color, 2)
+            label_text = f"{name} ({class_id}) {conf:.2f}"
+            (tw, th), _ = cv2.getTextSize(label_text, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2)
+            cv2.rectangle(yolo_img_draw, (x1, y1 - th - 4), (x1 + tw, y1), color, -1)
+            cv2.putText(yolo_img_draw, label_text, (x1, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0,0,0), 2)
 
         # Plot original
         axes[row, 0].imshow(orig_img)
@@ -145,9 +161,9 @@ def plot_model_gradcam_and_yolo(config_path, model_name, model_path, yolo_model_
         axes[row, 1].set_title(f"GradCAM\nPred: {pred} (prob: {probs[pred]:.2f})")
         axes[row, 1].axis('off')
 
-        # Plot YOLO
-        axes[row, 2].imshow(orig_img)
-        axes[row, 2].set_title(f"YOLO: {yolo_pred}")
+        # Plot YOLO with bounding boxes and labels
+        axes[row, 2].imshow(yolo_img_draw)
+        axes[row, 2].set_title(f"YOLO")
         axes[row, 2].axis('off')
 
     plt.tight_layout(rect=[0, 0, 1, 0.97])
