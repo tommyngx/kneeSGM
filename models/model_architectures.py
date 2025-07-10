@@ -25,7 +25,18 @@ def get_model(model_name, config_path='config/default.yaml', pretrained=True):
     if 'dinov2' in model_name:
         model = timm.create_model('vit_large_patch14_dinov2.lvd142m', pretrained=True)
         model = model.eval()
-        model.head = nn.Linear(model.head.in_features, num_classes)
+        # If model.head is Identity, replace with a new Linear layer using the last feature dim
+        if isinstance(model.head, nn.Identity):
+            # Try to get the last feature dimension from model.norm or model.pre_logits
+            if hasattr(model, 'norm') and hasattr(model.norm, 'normalized_shape'):
+                in_features = model.norm.normalized_shape[0]
+            elif hasattr(model, 'pre_logits') and hasattr(model.pre_logits, 'out_features'):
+                in_features = model.pre_logits.out_features
+            else:
+                raise AttributeError("Cannot determine in_features for dinov2 head replacement.")
+            model.head = nn.Linear(in_features, num_classes)
+        else:
+            model.head = nn.Linear(model.head.in_features, num_classes)
     else:
         model = timm.create_model(model_name, pretrained=use_pretrained)
         if 'convnext_base' in model_name:
