@@ -168,8 +168,10 @@ def plot_model_gradcam_and_yolo(config_path, model_name, model_path, yolo_model_
             import cv2
             symptom_names = []
             color_palette = [
-                (128, 0, 128),  # Purple
+                (0, 255, 255),  # Yellow
                 (0, 128, 255),  # Light Blue
+                (255, 128, 0),  # Orange
+                (128, 0, 128),  # Purple
                 (128, 128, 0),  # Olive
                 (255, 0, 0),    # Red
                 (0, 255, 0),    # Green
@@ -177,8 +179,7 @@ def plot_model_gradcam_and_yolo(config_path, model_name, model_path, yolo_model_
                 (255, 255, 0),  # Cyan
                 (255, 0, 255),  # Magenta
                 (0, 255, 255),  # Yellow
-                (255, 128, 0),  # Orange
-                (0, 128, 255),  # Light Blue
+
             ]
             for xyxy, name, conf, class_id in yolo_boxes:
                 x1, y1, x2, y2 = xyxy
@@ -210,7 +211,7 @@ def plot_model_gradcam_and_yolo(config_path, model_name, model_path, yolo_model_
             symptom_summary = ", ".join(sorted(set(symptom_names))) if symptom_names else "Không phát hiện"
             axes[row, 2].imshow(yolo_img_draw)
             axes[row, 2].set_title(
-                f"Features: {symptom_summary}",
+                f"Features:\n {symptom_summary}",
                 fontproperties=prop, fontsize=font_size
             )
             axes[row, 2].axis('off')
