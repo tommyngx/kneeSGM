@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
 from tqdm import tqdm
+import warnings
+warnings.filterwarnings("ignore")
 
 from models.model_architectures import get_model
 from data.data_loader import get_dataloader
