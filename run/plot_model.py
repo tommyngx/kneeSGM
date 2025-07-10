@@ -22,7 +22,8 @@ def load_config(config_path):
 def get_random_images_by_class(dataset, class_indices, n_per_class=1):
     """
     Randomly select n_per_class images for each class in class_indices.
-    Supports datasets with .samples, .imgs, or .data/.labels attributes.
+    Tries to support as many dataset formats as possible.
+    Returns a list of indices into the dataset.
     """
     selected = []
     # Try .samples or .imgs (standard torchvision datasets)
@@ -30,14 +31,22 @@ def get_random_images_by_class(dataset, class_indices, n_per_class=1):
         items = dataset.samples
     elif hasattr(dataset, "imgs"):
         items = dataset.imgs
-    # Try custom attributes (e.g., .data and .labels)
-    elif hasattr(dataset, "data") and hasattr(dataset, "labels"):
-        items = list(zip(dataset.data, dataset.labels))
-    # Try .image_paths and .labels
     elif hasattr(dataset, "image_paths") and hasattr(dataset, "labels"):
+        # Custom dataset with image_paths and labels
         items = list(zip(dataset.image_paths, dataset.labels))
+    elif hasattr(dataset, "data") and hasattr(dataset, "labels"):
+        # Custom dataset with data (paths or arrays) and labels
+        items = list(zip(dataset.data, dataset.labels))
+    elif hasattr(dataset, "df") and hasattr(dataset, "labels"):
+        # Pandas DataFrame and labels
+        items = list(zip(dataset.df['image_path'], dataset.labels))
     else:
-        raise AttributeError("Dataset must have .samples, .imgs, (.data and .labels), or (.image_paths and .labels) attributes.")
+        # Fallback: try to infer from __getitem__
+        try:
+            labels = [dataset[i][1] for i in range(len(dataset))]
+            items = [(i, label) for i, label in enumerate(labels)]
+        except Exception:
+            raise AttributeError("Dataset must have .samples, .imgs, (.data and .labels), (.image_paths and .labels), or support __getitem__ returning (img, label).")
 
     for cls in class_indices:
         idxs = [i for i, (_, label) in enumerate(items) if label == cls]
