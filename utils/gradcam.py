@@ -379,13 +379,19 @@ def plot_gradcam_on_image(model, input_tensor, orig_img, target_layer, target_cl
     # Normalize orig_np to [0,1] if not already
     if orig_np.max() > 1.0:
         orig_np = orig_np / 255.0
-    # If heatmap is color, convert to grayscale for mask, else use as is
+
+    # Resize heatmap/mask to match orig_np size before blending
+    h, w = orig_np.shape[:2]
     if isinstance(heatmap, np.ndarray) and heatmap.ndim == 3 and heatmap.shape[2] == 3:
         # Convert to grayscale mask for show_cam_on_image
         mask = cv2.cvtColor(heatmap, cv2.COLOR_RGB2GRAY)
         mask = mask.astype(np.float32) / 255.0
+        if mask.shape != (h, w):
+            mask = cv2.resize(mask, (w, h))
     elif isinstance(heatmap, np.ndarray) and heatmap.ndim == 2:
         mask = heatmap.astype(np.float32) / np.max(heatmap)
+        if mask.shape != (h, w):
+            mask = cv2.resize(mask, (w, h))
     else:
         raise ValueError("Unexpected heatmap shape for GradCAM overlay.")
 
