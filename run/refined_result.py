@@ -59,51 +59,48 @@ def load_config(config_path):
 def refine_prediction(model_pred, yolo_text):
     """
     Refine the predicted class (model_pred) based on YOLO_prediction string.
-    Rule list nội bộ:
-    rules = [
-        {"model_pred": 0, "keyword": "osteophyte", "new_pred": 2},
-        {"model_pred": 1, "keyword": "osteophyte", "new_pred": 2},
-        {"model_pred": 1, "keyword": "osteophytebig", "new_pred": 2},
-        {"model_pred": 3, "keyword": "sclerosis", "new_pred": 4},
-        {"model_pred": 0, "keyword": "narrowing", "new_pred": 2},
-        {"model_pred": 2, "keyword": "narrowing", "new_pred": 3},
-        {"model_pred": 4, "keyword": "sclerosis", "new_pred": 4},
-        {"model_pred": 4, "keyword": "osteophyte", "new_pred": 3},
-        {"model_pred": 1, "keyword": "osteophytemore", "new_pred": 2},
-        {"model_pred": 0, "keyword": "osteophytebig", "new_pred": 2},
-        # thêm các rule khác ở đây nếu muốn
-    ]
+    Rule list nội bộ + bổ sung:
+    - sclerosis: new_pred = 4
+    - healthy: nếu model_pred > 1 thì trả về 1, nếu 0 hoặc 1 thì giữ nguyên
+    - osteophytebig: nếu model_pred < 2 thì trả về 2, nếu >=2 thì giữ nguyên
+    - narrowing: nếu model_pred < 3 thì trả về 3, nếu >=3 thì giữ nguyên
+    - osteophyte: nếu model_pred < 1 thì trả về 1, nếu >=1 thì giữ nguyên
+    - Các rule cũ vẫn giữ nguyên
     """
     text = yolo_text.lower() if isinstance(yolo_text, str) else ""
+
+    # sclerosis: bất kể model_pred là gì, nếu có từ này thì trả về 4
+    if "sclerosis" in text:
+        return 4
+
+    # healthy: nếu model_pred > 1 thì trả về 1, nếu 0 hoặc 1 thì giữ nguyên
+    if "healthy" in text:
+        return 1 if model_pred > 1 else model_pred
+
+    # osteophytebig: nếu model_pred < 2 thì trả về 2, nếu >=2 thì giữ nguyên
+    if "osteophytebig" in text:
+        return model_pred if model_pred >= 2 else 2
+
+    # narrowing: nếu model_pred < 3 thì trả về 3, nếu >=3 thì giữ nguyên
+    if "narrowing" in text:
+        return model_pred if model_pred >= 3 else 3
+
+    # osteophyte: nếu model_pred < 1 thì trả về 1, nếu >=1 thì giữ nguyên
+    if "osteophyte" in text:
+        return model_pred if model_pred >= 1 else 1
+
+    # Các rule cũ (nếu muốn giữ lại)
     rules = [
-            {"model_pred": 0, "keyword": "osteophyte", "new_pred": 2},
-            {"model_pred": 1, "keyword": "osteophyte", "new_pred": 2},
-            {"model_pred": 1, "keyword": "osteophytebig", "new_pred": 2},
-            {"model_pred": 3, "keyword": "sclerosis", "new_pred": 4},
-            {"model_pred": 0, "keyword": "narrowing", "new_pred": 2},
-            {"model_pred": 0, "keyword": "osteophyte", "new_pred": 3},
-            #{"model_pred": 0, "keyword": "osteophyte", "new_pred": 4},
-            {"model_pred": 0, "keyword": "osteophytebig", "new_pred": 1},
-            #{"model_pred": 0, "keyword": "osteophytebig", "new_pred": 2},
-            #{"model_pred": 0, "keyword": "osteophytebig", "new_pred": 3},
-        ]
-    rules = [
-        # Top 1
         {"model_pred": 0, "keyword": "osteophyte", "new_pred": 2},
         {"model_pred": 1, "keyword": "osteophyte", "new_pred": 2},
-        # Top 2
         {"model_pred": 1, "keyword": "osteophytebig", "new_pred": 2},
-        # Top 3
         {"model_pred": 3, "keyword": "sclerosis", "new_pred": 4},
-        # Top 4
         {"model_pred": 0, "keyword": "narrowing", "new_pred": 2},
-        # Top 8
-        {"model_pred": 0, "keyword": "osteophytebig", "new_pred": 1},
-        # Top 10
-        #{"model_pred": 0, "keyword": "osteophytebig", "new_pred": 3},
-        # Top 6,7
-        #{"model_pred": 0, "keyword": "osteophyte", "new_pred": 3},
+        {"model_pred": 0, "keyword": "osteophyte", "new_pred": 3},
         #{"model_pred": 0, "keyword": "osteophyte", "new_pred": 4},
+        {"model_pred": 0, "keyword": "osteophytebig", "new_pred": 1},
+        #{"model_pred": 0, "keyword": "osteophytebig", "new_pred": 2},
+        #{"model_pred": 0, "keyword": "osteophytebig", "new_pred": 3},
     ]
     for rule in rules:
         if model_pred == rule["model_pred"] and rule["keyword"] in text:
