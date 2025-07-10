@@ -68,9 +68,10 @@ def plot_model_gradcam_and_yolo(config_path, model_name, model_path, yolo_model_
     model.eval()
 
     _, test_transform = get_transforms(config['data']['image_size'], config_path=config_path)
-    test_loader = get_dataloader('test', config['data']['batch_size'], config['data']['num_workers'],
-                                 transform=test_transform, config_path=config_path)
-    dataset = test_loader.dataset
+    # Load train loader instead of test loader
+    train_loader = get_dataloader('train', config['data']['batch_size'], config['data']['num_workers'],
+                                  transform=test_transform, config_path=config_path)
+    dataset = train_loader.dataset
 
     # Get image names, paths, and labels using test_all.py logic
     image_names, image_paths = get_image_info(type('FakeLoader', (), {'dataset': dataset})())
