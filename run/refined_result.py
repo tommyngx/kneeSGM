@@ -136,6 +136,46 @@ def calculate_per_class_metrics(y_true, y_pred, num_classes):
         per_class_specificity.append(spec)
     return per_class_sensitivity, per_class_specificity
 
+def save_consolidated_metrics(all_metrics, output_dir, suffix=""):
+    """
+    Save metrics from all models in a single CSV file with models as columns.
+    If suffix is provided, append to filename and column names.
+    """
+    if not all_metrics:
+        print("No metrics to save")
+        return
+
+    # List of metrics to save (order matters)
+    metric_names = [
+        'Accuracy', 'F1_Score', 'Precision', 'Recall', 'Sensitivity', 'Specificity', 'Kappa', 'AUC', 'Brier_Score',
+        'Sensitivity_None', 'Sensitivity_Doubtful', 'Sensitivity_Mild', 'Sensitivity_Moderate', 'Sensitivity_Severe',
+        'Specificity_None', 'Specificity_Doubtful', 'Specificity_Mild', 'Specificity_Moderate', 'Specificity_Severe'
+    ]
+
+    # Create DataFrame with metric names as index
+    df = pd.DataFrame(index=metric_names)
+
+    # Add a column for each model
+    for model_name, metrics in all_metrics.items():
+        # Only keep the metrics in metric_names, and add suffix if needed
+        if suffix:
+            metrics = {k + suffix: v for k, v in metrics.items() if k in metric_names}
+            col_name = model_name + suffix
+        else:
+            metrics = {k: v for k, v in metrics.items() if k in metric_names}
+            col_name = model_name
+        # Round all metrics to 4 decimal places
+        rounded_metrics = {k: round(v, 4) for k, v in metrics.items()}
+        df[col_name] = pd.Series(rounded_metrics)
+
+    # Ensure all numeric values are rounded to 4 decimal places in the DataFrame
+    df = df.round(4)
+
+    # Save the DataFrame to CSV with float_format to ensure consistent decimal places
+    csv_path = os.path.join(output_dir, f"all_models_metrics{suffix}.csv")
+    df.to_csv(csv_path, float_format='%.4f')
+    print(f"Consolidated metrics saved to {csv_path}")
+
 def main(csv_path, model_name, config='default.yaml'):
     # Load config and CSV
     config_path = os.path.join('config', config)
@@ -219,8 +259,43 @@ def main(csv_path, model_name, config='default.yaml'):
     for i, class_name in enumerate(config_data['data']['class_names']):
         print(f"Specificity {class_name}: {per_class_specificity[i]:.4f}")
     
-    # Generate and save confusion matrix
+    # --- Calculate and collect metrics for refined predictions ---
+    metrics = {
+        'Accuracy': acc,
+        'F1_Score': f1,
+        'Precision': precision,
+        'Recall': recall,
+        'Sensitivity': sensitivity,
+        'Specificity': specificity,
+        'Kappa': kappa,
+        'AUC': auc if auc is not None else 0,
+        'Brier_Score': brier,
+    }
+    # Add class-specific metrics
+    class_names = [str(x) for x in config_data['data']['class_names']]
+    for i, class_name in enumerate(class_names):
+        metrics[f'Sensitivity_{class_name}'] = per_class_sensitivity[i]
+    for i, class_name in enumerate(class_names):
+        metrics[f'Specificity_{class_name}'] = per_class_specificity[i]
+
+    # Save metrics for this model (refined)
     output_dir = os.path.dirname(csv_path)
+    all_metrics = {model_name: metrics}
+    save_consolidated_metrics(all_metrics, output_dir, suffix="_refined")
+
+    # Optionally, also load and save original metrics (if available)
+    orig_metrics_path = os.path.join(output_dir, "all_models_metrics.csv")
+    if os.path.exists(orig_metrics_path):
+        orig_df = pd.read_csv(orig_metrics_path, index_col=0)
+        # Merge with refined metrics
+        refined_df = pd.read_csv(os.path.join(output_dir, "all_models_metrics_refined.csv"), index_col=0)
+        merged = orig_df.copy()
+        for col in refined_df.columns:
+            merged[col] = refined_df[col]
+        merged.to_csv(os.path.join(output_dir, "all_models_metrics_merged.csv"), float_format='%.4f')
+        print(f"Merged metrics saved to {os.path.join(output_dir, 'all_models_metrics_merged.csv')}")
+
+    # Generate and save confusion matrix
     save_confusion_matrix(ground_truth, refined_preds, 
                          config_data['data']['class_names'], 
                          output_dir, 
