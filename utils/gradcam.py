@@ -138,14 +138,35 @@ def generate_gradcam_fastvit(activations, gradients, image):
     return post_process_heatmap(heatmap, image)
 
 def post_process_heatmap(heatmap, image):
+    # Ensure heatmap is float32 and normalized
     heatmap = F.relu(heatmap)
-    heatmap /= torch.max(heatmap)
+    if torch.max(heatmap) > 0:
+        heatmap /= torch.max(heatmap)
     heatmap = heatmap.cpu().numpy()
-    heatmap = cv2.resize(heatmap, (image.shape[2], image.shape[3]))
-    heatmap = np.uint8(255 * heatmap)
-    heatmap = 255 - heatmap
-    heatmap_colored = np.stack([heatmap] * 3, axis=-1)
-    return heatmap_colored
+    # image shape: (B, C, H, W) or (C, H, W)
+    if isinstance(image, torch.Tensor):
+        if image.dim() == 4:
+            h, w = image.shape[2], image.shape[3]
+        elif image.dim() == 3:
+            h, w = image.shape[1], image.shape[2]
+        else:
+            raise ValueError("Unexpected image tensor shape for resizing GradCAM heatmap.")
+    elif isinstance(image, np.ndarray):
+        h, w = image.shape[-2], image.shape[-1]
+    else:
+        raise ValueError("Unknown image type for resizing GradCAM heatmap.")
+
+    # Resize heatmap to match image size
+    heatmap = cv2.resize(heatmap, (w, h))
+    # Normalize again after resize (sometimes resize can change range)
+    if np.max(heatmap) > 0:
+        heatmap = heatmap / np.max(heatmap)
+    # Convert to uint8 for color mapping
+    heatmap_uint8 = np.uint8(255 * heatmap)
+    # Apply color map for color GradCAM
+    heatmap_color = cv2.applyColorMap(heatmap_uint8, cv2.COLORMAP_JET)
+    heatmap_color = cv2.cvtColor(heatmap_color, cv2.COLOR_BGR2RGB)
+    return heatmap_color
 
 def generate_gradcam_plus_plus(model, image, target_layer, model_name):
     activations, gradients = register_hooks(model, image, target_layer)
@@ -338,28 +359,23 @@ def plot_gradcam_on_image(model, input_tensor, orig_img, target_layer, target_cl
     # Pass model_name to generate_gradcam
     heatmap = generate_gradcam(model, input_tensor, target_layer, model_name=model_name)
 
-    # Normalize and resize heatmap
+    # Ensure heatmap is color (H, W, 3) and uint8
     if isinstance(heatmap, np.ndarray):
         if heatmap.ndim == 2:
-            heatmap = np.uint8(255 * heatmap / np.max(heatmap))
-            heatmap = cv2.resize(heatmap, orig_img.size)
-            # Apply color map for color GradCAM
-            heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
+            # Already handled in post_process_heatmap, but double check
+            heatmap = cv2.applyColorMap(np.uint8(255 * heatmap / np.max(heatmap)), cv2.COLORMAP_JET)
             heatmap = cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB)
         elif heatmap.ndim == 3 and heatmap.shape[2] == 3:
-            heatmap = cv2.resize(heatmap, orig_img.size)
-            # Ensure heatmap is uint8 and in RGB
             if heatmap.dtype != np.uint8:
                 heatmap = np.uint8(255 * heatmap / np.max(heatmap))
-            if heatmap.shape[2] == 3 and np.max(heatmap) > 1:
-                pass  # already RGB
-            else:
-                heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
-                heatmap = cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB)
         else:
             raise ValueError("Unexpected heatmap shape for GradCAM overlay.")
     else:
         raise ValueError("Heatmap must be a numpy array.")
+
+    # Resize heatmap to match original image size if needed
+    if heatmap.shape[:2] != orig_np.shape[:2]:
+        heatmap = cv2.resize(heatmap, (orig_np.shape[1], orig_np.shape[0]))
 
     # Overlay: blend color GradCAM with original image
     overlay = np.uint8(0.5 * orig_np * 255 + 0.5 * heatmap)
