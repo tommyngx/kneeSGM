@@ -86,7 +86,11 @@ def plot_model_gradcam_and_yolo(config_path, model_name, model_path, yolo_model_
 
     print("[DEBUG] Selecting random images by class...")
     class_indices = [1, 2, 3, 4]
-    selected_items = get_random_images_by_class(image_paths, labels, class_indices, n_per_class=1)
+    # Select 15 images (5 for each class, or as many as available)
+    selected_items = []
+    for _ in range(5):
+        selected_items.extend(get_random_images_by_class(image_paths, labels, class_indices, n_per_class=1))
+    selected_items = selected_items[:15]
     if not selected_items:
         print("No images found for the specified classes.")
         return
@@ -94,124 +98,134 @@ def plot_model_gradcam_and_yolo(config_path, model_name, model_path, yolo_model_
     print("[DEBUG] Loading YOLO model...")
     yolo_model = YOLO(yolo_model_path)
 
-    print("[DEBUG] Creating plot...")
-    fig, axes = plt.subplots(len(selected_items), 3, figsize=(15, 5 * len(selected_items)))
-    fig.suptitle(f"GradCAM and YOLO results for {model_name}", fontsize=22)
+    # Save 5 images, each with 3x3 grid (15 images total)
+    num_imgs_per_fig = 3
+    num_figs = 5
+    for fig_idx in range(num_figs):
+        print(f"[DEBUG] Creating plot {fig_idx+1}/{num_figs}...")
+        fig, axes = plt.subplots(num_imgs_per_fig, 3, figsize=(15, 5 * num_imgs_per_fig))
+        fig.suptitle(f"GradCAM and YOLO results for {model_name} (Batch {fig_idx+1})", fontsize=22)
 
-    # Font for title
-    import matplotlib
-    font_size = 22
-    font_path = "Poppins.ttf"
-    try:
-        matplotlib.font_manager.fontManager.addfont(font_path)
-        prop = matplotlib.font_manager.FontProperties(fname=font_path, size=font_size)
-    except Exception:
-        prop = None
+        # Font for title
+        import matplotlib
+        font_size = 22
+        font_path = "Poppins.ttf"
+        try:
+            matplotlib.font_manager.fontManager.addfont(font_path)
+            prop = matplotlib.font_manager.FontProperties(fname=font_path, size=font_size)
+        except Exception:
+            prop = None
 
-    for row, (img_path, label) in enumerate(selected_items):
-        print(f"[DEBUG] Processing image {row+1}/{len(selected_items)}: {img_path}")
-        orig_img = Image.open(img_path).convert("RGB")
-        # Handle albumentations transform (expects dict input)
-        if hasattr(test_transform, "__call__") and (
-            hasattr(test_transform, "is_albumentations") and test_transform.is_albumentations
-            or "albumentations" in str(type(test_transform)).lower()
-        ):
-            transformed = test_transform(image=np.array(orig_img))
-            img = transformed["image"]
-            if isinstance(img, torch.Tensor):
-                if img.ndim == 3:
-                    img_tensor = img.unsqueeze(0).float().to(device)
+        for row in range(num_imgs_per_fig):
+            idx = fig_idx * num_imgs_per_fig + row
+            if idx >= len(selected_items):
+                for col in range(3):
+                    axes[row, col].axis('off')
+                continue
+            img_path, label = selected_items[idx]
+            print(f"[DEBUG] Processing image {idx+1}/{len(selected_items)}: {img_path}")
+            orig_img = Image.open(img_path).convert("RGB")
+            # Handle albumentations transform (expects dict input)
+            if hasattr(test_transform, "__call__") and (
+                hasattr(test_transform, "is_albumentations") and test_transform.is_albumentations
+                or "albumentations" in str(type(test_transform)).lower()
+            ):
+                transformed = test_transform(image=np.array(orig_img))
+                img = transformed["image"]
+                if isinstance(img, torch.Tensor):
+                    if img.ndim == 3:
+                        img_tensor = img.unsqueeze(0).float().to(device)
+                    else:
+                        img_tensor = img.float().to(device)
+                elif isinstance(img, np.ndarray):
+                    if img.ndim == 3 and img.shape[2] in [1, 3]:
+                        img_tensor = torch.from_numpy(img).permute(2, 0, 1).unsqueeze(0).float().to(device)
+                    else:
+                        img_tensor = torch.from_numpy(img).unsqueeze(0).float().to(device)
                 else:
-                    img_tensor = img.float().to(device)
-            elif isinstance(img, np.ndarray):
-                if img.ndim == 3 and img.shape[2] in [1, 3]:
-                    img_tensor = torch.from_numpy(img).permute(2, 0, 1).unsqueeze(0).float().to(device)
-                else:
-                    img_tensor = torch.from_numpy(img).unsqueeze(0).float().to(device)
+                    raise TypeError(f"Unknown image type after albumentations: {type(img)}")
             else:
-                raise TypeError(f"Unknown image type after albumentations: {type(img)}")
+                img_tensor = test_transform(orig_img).unsqueeze(0).to(device)
+
+            # Model prediction
+            print("[DEBUG] Running model prediction...")
+            with torch.no_grad():
+                output = model(img_tensor)
+                pred = torch.argmax(output, dim=1).item()
+                probs = torch.softmax(output, dim=1).cpu().numpy()[0]
+
+            # GradCAM (use util function)
+            print("[DEBUG] Generating GradCAM image...")
+            target_layer = get_target_layer(model, model_name)
+            gradcam_img = plot_gradcam_on_image(
+                model, img_tensor, orig_img, target_layer, pred, device, model_name=model_name
+            )
+
+            # YOLO prediction with bounding boxes and labels
+            print("[DEBUG] Running YOLO detection...")
+            yolo_img, yolo_boxes = run_yolo_on_image(img_path, yolo_model, return_boxes=True)
+            yolo_img_draw = np.array(orig_img).copy()
+            import cv2
+            symptom_names = []
+            color_palette = [
+                (128, 0, 128),  # Purple
+                (0, 128, 255),  # Light Blue
+                (128, 128, 0),  # Olive
+                (255, 0, 0),    # Red
+                (0, 255, 0),    # Green
+                (0, 0, 255),    # Blue
+                (255, 255, 0),  # Cyan
+                (255, 0, 255),  # Magenta
+                (0, 255, 255),  # Yellow
+                (255, 128, 0),  # Orange
+                (0, 128, 255),  # Light Blue
+            ]
+            for xyxy, name, conf, class_id in yolo_boxes:
+                x1, y1, x2, y2 = xyxy
+                color = color_palette[class_id % len(color_palette)]
+                cv2.rectangle(yolo_img_draw, (x1, y1), (x2, y2), color, 2)
+                font_scale = 1.2
+                font_thickness = 3
+                label_text = f"{name}"
+                symptom_names.append(f"{name}")
+                (tw, th), _ = cv2.getTextSize(label_text, cv2.FONT_HERSHEY_SIMPLEX, font_scale, font_thickness)
+                cv2.rectangle(yolo_img_draw, (x1, y1 - th - 8), (x1 + tw, y1), color, -1)
+                cv2.putText(yolo_img_draw, label_text, (x1, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, font_scale, (0,0,0), font_thickness)
+
+            # Plot original
+            axes[row, 0].imshow(orig_img)
+            axes[row, 0].set_title(f"Original\nLabel: {label}", fontproperties=prop, fontsize=font_size)
+            axes[row, 0].axis('off')
+
+            # Plot GradCAM
+            title_color = 'green' if label == pred else 'red'
+            axes[row, 1].imshow(gradcam_img)
+            axes[row, 1].set_title(
+                f"GradCAM\nPred: {pred} (prob: {probs[pred]:.2f})",
+                fontproperties=prop, fontsize=font_size, color=title_color
+            )
+            axes[row, 1].axis('off')
+
+            # Plot YOLO with bounding boxes and symptom summary
+            symptom_summary = ", ".join(sorted(set(symptom_names))) if symptom_names else "Không phát hiện"
+            axes[row, 2].imshow(yolo_img_draw)
+            axes[row, 2].set_title(
+                f"Features: {symptom_summary}",
+                fontproperties=prop, fontsize=font_size
+            )
+            axes[row, 2].axis('off')
+
+        print(f"[DEBUG] Saving plot {fig_idx+1}/{num_figs}...")
+        plt.tight_layout(rect=[0, 0, 1, 0.97])
+        if not output_path or output_path.strip() == "":
+            save_path = os.path.join(os.getcwd(), f"gradcam_yolo_plot_{fig_idx+1}.png")
+        elif os.path.isdir(output_path):
+            save_path = os.path.join(output_path, f"gradcam_yolo_plot_{fig_idx+1}.png")
         else:
-            img_tensor = test_transform(orig_img).unsqueeze(0).to(device)
-
-        # Model prediction
-        print("[DEBUG] Running model prediction...")
-        with torch.no_grad():
-            output = model(img_tensor)
-            pred = torch.argmax(output, dim=1).item()
-            probs = torch.softmax(output, dim=1).cpu().numpy()[0]
-
-        # GradCAM (use util function)
-        print("[DEBUG] Generating GradCAM image...")
-        target_layer = get_target_layer(model, model_name)
-        gradcam_img = plot_gradcam_on_image(
-            model, img_tensor, orig_img, target_layer, pred, device, model_name=model_name
-        )
-
-        # YOLO prediction with bounding boxes and labels
-        print("[DEBUG] Running YOLO detection...")
-        yolo_img, yolo_boxes = run_yolo_on_image(img_path, yolo_model, return_boxes=True)
-        yolo_img_draw = np.array(orig_img).copy()
-        import cv2
-        symptom_names = []
-        color_palette = [
-            (128, 0, 128),  # Purple
-            (0, 128, 255),  # Light Blue
-            (128, 128, 0),  # Olive
-            (255, 0, 0),    # Red
-            (0, 255, 0),    # Green
-            (0, 0, 255),    # Blue
-            (255, 255, 0),  # Cyan
-            (255, 0, 255),  # Magenta
-            (0, 255, 255),  # Yellow
-            (255, 128, 0),  # Orange
-            (0, 128, 255),  # Light Blue
-        ]
-        for xyxy, name, conf, class_id in yolo_boxes:
-            x1, y1, x2, y2 = xyxy
-            color = color_palette[class_id % len(color_palette)]
-            cv2.rectangle(yolo_img_draw, (x1, y1), (x2, y2), color, 2)
-            font_scale = 1.2
-            font_thickness = 3
-            label_text = f"{name}"
-            symptom_names.append(f"{name}")
-            (tw, th), _ = cv2.getTextSize(label_text, cv2.FONT_HERSHEY_SIMPLEX, font_scale, font_thickness)
-            cv2.rectangle(yolo_img_draw, (x1, y1 - th - 8), (x1 + tw, y1), color, -1)
-            cv2.putText(yolo_img_draw, label_text, (x1, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, font_scale, (0,0,0), font_thickness)
-
-        # Plot original
-        axes[row, 0].imshow(orig_img)
-        axes[row, 0].set_title(f"Original\nLabel: {label}", fontproperties=prop, fontsize=font_size)
-        axes[row, 0].axis('off')
-
-        # Plot GradCAM
-        title_color = 'green' if label == pred else 'red'
-        axes[row, 1].imshow(gradcam_img)
-        axes[row, 1].set_title(
-            f"GradCAM\nPred: {pred} (prob: {probs[pred]:.2f})",
-            fontproperties=prop, fontsize=font_size, color=title_color
-        )
-        axes[row, 1].axis('off')
-
-        # Plot YOLO with bounding boxes and symptom summary
-        symptom_summary = ", ".join(sorted(set(symptom_names))) if symptom_names else "Không phát hiện"
-        axes[row, 2].imshow(yolo_img_draw)
-        axes[row, 2].set_title(
-            f"Features: {symptom_summary}",
-            fontproperties=prop, fontsize=font_size
-        )
-        axes[row, 2].axis('off')
-
-    print("[DEBUG] Saving plot...")
-    plt.tight_layout(rect=[0, 0, 1, 0.97])
-    if not output_path or output_path.strip() == "":
-        output_path = os.path.join(os.getcwd(), "gradcam_yolo_plot.png")
-    elif os.path.isdir(output_path):
-        output_path = os.path.join(output_path, "gradcam_yolo_plot.png")
-    else:
-        output_path = output_path.replace(".png", f"_{model_name}.png")
-    plt.savefig(output_path)
-    plt.close()
-    print(f"Saved combined GradCAM and YOLO plot to {output_path}")
+            save_path = output_path.replace(".png", f"_{model_name}_{fig_idx+1}.png")
+        plt.savefig(save_path)
+        plt.close()
+        print(f"Saved combined GradCAM and YOLO plot to {save_path}")
 
 if __name__ == "__main__":
     import argparse
