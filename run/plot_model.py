@@ -14,6 +14,11 @@ from data.preprocess import get_transforms
 from utils.gradcam import get_target_layer, plot_gradcam_on_image
 from ultralytics import YOLO
 
+# Import get_image_info from test_all.py
+import sys
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+from test_all import get_image_info
+
 def load_config(config_path):
     import yaml
     with open(config_path, 'r') as f:
@@ -22,36 +27,26 @@ def load_config(config_path):
 def get_random_images_by_class(dataset, class_indices, n_per_class=1):
     """
     Randomly select n_per_class images for each class in class_indices.
-    Tries to support as many dataset formats as possible.
-    Returns a list of indices into the dataset.
+    Uses get_image_info from test_all.py for robust path/label extraction.
+    Returns a list of (img_path, label) tuples, guaranteed to exist on disk.
     """
-    selected = []
-    # Try .samples or .imgs (standard torchvision datasets)
-    if hasattr(dataset, "samples"):
-        items = dataset.samples
-    elif hasattr(dataset, "imgs"):
-        items = dataset.imgs
-    elif hasattr(dataset, "image_paths") and hasattr(dataset, "labels"):
-        # Custom dataset with image_paths and labels
-        items = list(zip(dataset.image_paths, dataset.labels))
-    elif hasattr(dataset, "data") and hasattr(dataset, "labels"):
-        # Custom dataset with data (paths or arrays) and labels
-        items = list(zip(dataset.data, dataset.labels))
-    elif hasattr(dataset, "df") and hasattr(dataset, "labels"):
-        # Pandas DataFrame and labels
-        items = list(zip(dataset.df['image_path'], dataset.labels))
+    # Use get_image_info to get image_names, image_paths
+    image_names, image_paths = get_image_info(type('FakeLoader', (), {'dataset': dataset})())
+    # Try to get labels from dataset
+    if hasattr(dataset, 'labels'):
+        labels = list(dataset.labels)
+    elif hasattr(dataset, 'data') and 'label' in dataset.data:
+        labels = list(dataset.data['label'])
     else:
-        # Fallback: try to infer from __getitem__
-        try:
-            labels = [dataset[i][1] for i in range(len(dataset))]
-            items = [(i, label) for i, label in enumerate(labels)]
-        except Exception:
-            raise AttributeError("Dataset must have .samples, .imgs, (.data and .labels), (.image_paths and .labels), or support __getitem__ returning (img, label).")
-
+        # fallback: try __getitem__
+        labels = [dataset[i][1] for i in range(len(dataset))]
+    # Build items: (img_path, label)
+    items = list(zip(image_paths, labels))
+    selected = []
     for cls in class_indices:
-        idxs = [i for i, (_, label) in enumerate(items) if label == cls]
-        if idxs:
-            chosen = random.sample(idxs, min(n_per_class, len(idxs)))
+        cls_items = [(img_path, label) for img_path, label in items if label == cls and img_path and os.path.exists(img_path)]
+        if cls_items:
+            chosen = random.sample(cls_items, min(n_per_class, len(cls_items)))
             selected.extend(chosen)
     return selected
 
@@ -89,8 +84,8 @@ def plot_model_gradcam_and_yolo(config_path, model_name, model_path, yolo_model_
 
     # Randomly select 1 image for each class 1,2,3,4 (not 0)
     class_indices = [1, 2, 3, 4]
-    selected_idxs = get_random_images_by_class(dataset, class_indices, n_per_class=1)
-    if not selected_idxs:
+    selected_items = get_random_images_by_class(dataset, class_indices, n_per_class=1)
+    if not selected_items:
         print("No images found for the specified classes.")
         return
 
@@ -100,30 +95,7 @@ def plot_model_gradcam_and_yolo(config_path, model_name, model_path, yolo_model_
     fig, axes = plt.subplots(4, 3, figsize=(15, 20))
     fig.suptitle(f"GradCAM and YOLO results for {model_name}", fontsize=18)
 
-    # Determine how to get image path and label for each idx
-    def get_img_path_and_label(dataset, idx):
-        if hasattr(dataset, "samples"):
-            return dataset.samples[idx]
-        elif hasattr(dataset, "imgs"):
-            return dataset.imgs[idx]
-        elif hasattr(dataset, "image_paths") and hasattr(dataset, "labels"):
-            return dataset.image_paths[idx], dataset.labels[idx]
-        elif hasattr(dataset, "data") and hasattr(dataset, "labels"):
-            return dataset.data[idx], dataset.labels[idx]
-        elif hasattr(dataset, "df") and hasattr(dataset, "labels"):
-            return dataset.df['image_path'].iloc[idx], dataset.labels[idx]
-        else:
-            # Fallback: try __getitem__
-            img, label = dataset[idx]
-            if hasattr(img, 'filename'):
-                return img.filename, label
-            return None, label
-
-    for row, idx in enumerate(selected_idxs):
-        img_path, label = get_img_path_and_label(dataset, idx)
-        if img_path is None or not os.path.exists(img_path):
-            print(f"Warning: Image path not found for idx {idx}, skipping.")
-            continue
+    for row, (img_path, label) in enumerate(selected_items):
         orig_img = Image.open(img_path).convert("RGB")
         img_tensor = test_transform(orig_img).unsqueeze(0).to(device)
 
@@ -156,7 +128,6 @@ def plot_model_gradcam_and_yolo(config_path, model_name, model_path, yolo_model_
         axes[row, 2].axis('off')
 
     plt.tight_layout(rect=[0, 0, 1, 0.97])
-    # Save with a unique name if output_path is not specified
     if not output_path or output_path.strip() == "":
         output_path = f"gradcam_yolo_plot.png"
     plt.savefig(output_path)
