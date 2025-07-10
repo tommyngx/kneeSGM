@@ -86,7 +86,7 @@ def plot_model_gradcam_and_yolo(config_path, model_name, model_path, yolo_model_
             pred = torch.argmax(output, dim=1).item()
             probs = torch.softmax(output, dim=1).cpu().numpy()[0]
 
-        # GradCAM
+        # GradCAM (use util function)
         target_layer = get_target_layer(model, model_name)
         gradcam_img = plot_gradcam_on_image(model, img_tensor, orig_img, target_layer, pred, device)
 
