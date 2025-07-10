@@ -137,7 +137,6 @@ def plot_model_gradcam_and_yolo(config_path, model_name, model_path, yolo_model_
 
         # GradCAM (use util function)
         target_layer = get_target_layer(model, model_name)
-        # Remove true_label/pred_label/class_names so plot_gradcam_on_image matches save_random_predictions
         gradcam_img = plot_gradcam_on_image(
             model, img_tensor, orig_img, target_layer, pred, device, model_name=model_name
         )
@@ -146,14 +145,33 @@ def plot_model_gradcam_and_yolo(config_path, model_name, model_path, yolo_model_
         yolo_img, yolo_boxes = run_yolo_on_image(img_path, yolo_model, return_boxes=True)
         yolo_img_draw = np.array(orig_img).copy()
         import cv2
+        symptom_names = []
+        # Assign a unique color for each class_id (up to 10 classes, repeat if more)
+        color_palette = [
+            (128, 0, 128),  # Purple
+            (0, 128, 255),  # Light Blue
+            (128, 128, 0),  # Olive
+            (255, 0, 0),    # Red
+            (0, 255, 0),    # Green
+            (0, 0, 255),    # Blue
+            (255, 255, 0),  # Cyan
+            (255, 0, 255),  # Magenta
+            (0, 255, 255),  # Yellow
+            (255, 128, 0),  # Orange
+            (0, 128, 255),  # Light Blue
+        ]
         for xyxy, name, conf, class_id in yolo_boxes:
             x1, y1, x2, y2 = xyxy
-            color = (0, 255, 0)
+            color = color_palette[class_id % len(color_palette)]
             cv2.rectangle(yolo_img_draw, (x1, y1), (x2, y2), color, 2)
-            label_text = f"{name} ({class_id}) {conf:.2f}"
-            (tw, th), _ = cv2.getTextSize(label_text, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2)
-            cv2.rectangle(yolo_img_draw, (x1, y1 - th - 4), (x1 + tw, y1), color, -1)
-            cv2.putText(yolo_img_draw, label_text, (x1, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0,0,0), 2)
+            # Make font size larger for bbox label
+            font_scale = 1.2
+            font_thickness = 3
+            label_text = f"{name}"
+            symptom_names.append(f"{name}")
+            (tw, th), _ = cv2.getTextSize(label_text, cv2.FONT_HERSHEY_SIMPLEX, font_scale, font_thickness)
+            cv2.rectangle(yolo_img_draw, (x1, y1 - th - 8), (x1 + tw, y1), color, -1)
+            cv2.putText(yolo_img_draw, label_text, (x1, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, font_scale, (0,0,0), font_thickness)
 
         # Plot original
         axes[row, 0].imshow(orig_img)
@@ -169,9 +187,13 @@ def plot_model_gradcam_and_yolo(config_path, model_name, model_path, yolo_model_
         )
         axes[row, 1].axis('off')
 
-        # Plot YOLO with bounding boxes and labels
+        # Plot YOLO with bounding boxes and symptom summary
+        symptom_summary = ", ".join(sorted(set(symptom_names))) if symptom_names else "Không phát hiện"
         axes[row, 2].imshow(yolo_img_draw)
-        axes[row, 2].set_title(f"YOLO", fontproperties=prop, fontsize=font_size)
+        axes[row, 2].set_title(
+            f"Features: {symptom_summary}",
+            fontproperties=prop, fontsize=font_size
+        )
         axes[row, 2].axis('off')
 
     plt.tight_layout(rect=[0, 0, 1, 0.97])
