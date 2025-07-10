@@ -92,16 +92,16 @@ def refine_prediction(model_pred, yolo_text):
         return 1 if model_pred > 1 else model_pred
 
     # osteophytebig: nếu model_pred < 2 thì trả về 2, nếu >=2 thì giữ nguyên
-    if "osteophytebig" in text:
-        return model_pred if model_pred >= 2 else 2
+    #if "osteophytebig" in text:
+    #    return model_pred if model_pred >= 2 else 2
 
     # narrowing: nếu model_pred < 3 thì trả về 3, nếu >=3 thì giữ nguyên
-    if "narrowing" in text:
-        return model_pred if model_pred >= 3 else 3
+    #if "narrowing" in text:
+    #    return model_pred if model_pred >= 3 else 3
 
     # osteophyte: nếu model_pred < 1 thì trả về 1, nếu >=1 thì giữ nguyên
-    if "osteophyte" in text:
-        return model_pred if model_pred >= 1 else 1
+    #if "osteophyte" in text:
+    #    return model_pred if model_pred >= 1 else 1
     return model_pred
 
 def calculate_sensitivity_specificity(y_true, y_pred):
