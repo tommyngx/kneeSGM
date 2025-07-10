@@ -160,8 +160,12 @@ def plot_model_gradcam_and_yolo(config_path, model_name, model_path, yolo_model_
         axes[row, 0].axis('off')
 
         # Plot GradCAM
+        title_color = 'green' if label == pred else 'red'
         axes[row, 1].imshow(gradcam_img)
-        axes[row, 1].set_title(f"GradCAM\nPred: {pred} (prob: {probs[pred]:.2f})", fontproperties=prop, fontsize=font_size)
+        axes[row, 1].set_title(
+            f"GradCAM\nPred: {pred} (prob: {probs[pred]:.2f})",
+            fontproperties=prop, fontsize=font_size, color=title_color
+        )
         axes[row, 1].axis('off')
 
         # Plot YOLO with bounding boxes and labels

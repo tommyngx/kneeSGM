@@ -353,7 +353,6 @@ def plot_gradcam_on_image(
     """
     Generate GradCAM++ heatmap and overlay it on the original image.
     Returns a PIL Image with the overlay.
-    If true_label and pred_label are provided, use green title if correct, red if wrong.
     """
     import cv2  # Ensure cv2 is always imported in this function
     model.eval()
@@ -397,27 +396,5 @@ def plot_gradcam_on_image(
 
     # Use show_cam_on_image for blending
     cam_img = show_cam_on_image(orig_np, mask, use_rgb=True)
-
-    # Draw label/pred info on the image (green if correct, red if wrong)
-    if true_label is not None and pred_label is not None:
-        import cv2
-        color = (0, 200, 0) if true_label == pred_label else (200, 0, 0)
-        font_size = 28
-        font_path = "Poppins.ttf"
-        try:
-            from matplotlib import font_manager
-            font_manager.fontManager.addfont(font_path)
-            prop = font_manager.FontProperties(fname=font_path, size=font_size)
-        except Exception:
-            prop = None
-        label_str = f"Label: {class_names[true_label] if class_names else true_label}"
-        pred_str = f"Pred: {class_names[pred_label] if class_names else pred_label}"
-        text = f"{label_str} | {pred_str}"
-        cam_img = np.array(cam_img)
-        # Draw rectangle for text background
-        (tw, th), _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 1.0, 2)
-        cv2.rectangle(cam_img, (5, 5), (5 + tw, 5 + th + 10), color, -1)
-        cv2.putText(cam_img, text, (8, 5 + th + 2), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255,255,255), 2)
-
     overlay_img = Image.fromarray(cam_img)
     return overlay_img
