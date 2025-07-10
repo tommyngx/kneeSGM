@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.preprocessing import LabelBinarizer
 from sklearn.utils import resample
+from tqdm import tqdm  # add tqdm for progress bar
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Import the existing save_confusion_matrix if possible
@@ -198,9 +199,9 @@ def main(csv_path, model_name, config='default.yaml'):
     yolo_texts = df['YOLO_prediction'].tolist()
     ground_truth = df['ground_truth'].tolist()
     
-    # Apply refinement rules row by row
+    # Apply refinement rules row by row (with tqdm progress bar)
     refined_preds = []
-    for mp, yt in zip(model_preds, yolo_texts):
+    for mp, yt in tqdm(zip(model_preds, yolo_texts), total=len(model_preds), desc="Refining predictions"):
         refined = refine_prediction(mp, yt)
         refined_preds.append(refined)
     
