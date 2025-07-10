@@ -3,8 +3,6 @@ import random
 import torch
 import matplotlib.pyplot as plt
 import numpy as np
-from torchvision.utils import make_grid
-from torchvision import transforms
 from PIL import Image
 from tqdm import tqdm
 
@@ -14,33 +12,16 @@ from data.preprocess import get_transforms
 from utils.gradcam import get_target_layer, plot_gradcam_on_image
 from ultralytics import YOLO
 
-# Import get_image_info from test_all.py
+# Import get_image_info and load_config from test_all.py for consistency
 import sys
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from test_all import get_image_info
+from test_all import get_image_info, load_config
 
-def load_config(config_path):
-    import yaml
-    with open(config_path, 'r') as f:
-        return yaml.safe_load(f)
-
-def get_random_images_by_class(dataset, class_indices, n_per_class=1):
+def get_random_images_by_class(image_paths, labels, class_indices, n_per_class=1):
     """
     Randomly select n_per_class images for each class in class_indices.
-    Uses get_image_info from test_all.py for robust path/label extraction.
     Returns a list of (img_path, label) tuples, guaranteed to exist on disk.
     """
-    # Use get_image_info to get image_names, image_paths
-    image_names, image_paths = get_image_info(type('FakeLoader', (), {'dataset': dataset})())
-    # Try to get labels from dataset
-    if hasattr(dataset, 'labels'):
-        labels = list(dataset.labels)
-    elif hasattr(dataset, 'data') and 'label' in dataset.data:
-        labels = list(dataset.data['label'])
-    else:
-        # fallback: try __getitem__
-        labels = [dataset[i][1] for i in range(len(dataset))]
-    # Build items: (img_path, label)
     items = list(zip(image_paths, labels))
     selected = []
     for cls in class_indices:
@@ -84,13 +65,22 @@ def plot_model_gradcam_and_yolo(config_path, model_name, model_path, yolo_model_
     model.eval()
 
     _, test_transform = get_transforms(config['data']['image_size'], config_path=config_path)
-    test_loader = get_dataloader('test', config['data']['batch_size'], config['data']['num_workers'], 
+    test_loader = get_dataloader('test', config['data']['batch_size'], config['data']['num_workers'],
                                  transform=test_transform, config_path=config_path)
     dataset = test_loader.dataset
 
+    # Get image names, paths, and labels using test_all.py logic
+    image_names, image_paths = get_image_info(type('FakeLoader', (), {'dataset': dataset})())
+    if hasattr(dataset, 'labels'):
+        labels = list(dataset.labels)
+    elif hasattr(dataset, 'data') and 'label' in dataset.data:
+        labels = list(dataset.data['label'])
+    else:
+        labels = [dataset[i][1] for i in range(len(dataset))]
+
     # Randomly select 1 image for each class 1,2,3,4 (not 0)
     class_indices = [1, 2, 3, 4]
-    selected_items = get_random_images_by_class(dataset, class_indices, n_per_class=1)
+    selected_items = get_random_images_by_class(image_paths, labels, class_indices, n_per_class=1)
     if not selected_items:
         print("No images found for the specified classes.")
         return
@@ -110,13 +100,11 @@ def plot_model_gradcam_and_yolo(config_path, model_name, model_path, yolo_model_
         ):
             transformed = test_transform(image=np.array(orig_img))
             img = transformed["image"]
-            # If img is a torch.Tensor, just use it
             if isinstance(img, torch.Tensor):
                 if img.ndim == 3:
                     img_tensor = img.unsqueeze(0).float().to(device)
                 else:
                     img_tensor = img.float().to(device)
-            # If image is HWC numpy, convert to CHW tensor
             elif isinstance(img, np.ndarray):
                 if img.ndim == 3 and img.shape[2] in [1, 3]:
                     img_tensor = torch.from_numpy(img).permute(2, 0, 1).unsqueeze(0).float().to(device)
@@ -125,7 +113,6 @@ def plot_model_gradcam_and_yolo(config_path, model_name, model_path, yolo_model_
             else:
                 raise TypeError(f"Unknown image type after albumentations: {type(img)}")
         else:
-            # torchvision transform or compatible
             img_tensor = test_transform(orig_img).unsqueeze(0).to(device)
 
         # Model prediction
@@ -172,7 +159,6 @@ def plot_model_gradcam_and_yolo(config_path, model_name, model_path, yolo_model_
     elif os.path.isdir(output_path):
         output_path = os.path.join(output_path, "gradcam_yolo_plot.png")
     else:
-        # Always append model name to output file for uniqueness
         output_path = output_path.replace(".png", f"_{model_name}.png")
     plt.savefig(output_path)
     plt.close()
