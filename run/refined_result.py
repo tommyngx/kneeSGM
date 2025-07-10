@@ -195,47 +195,43 @@ def main(csv_path, model_name, config='default.yaml'):
     exclude_cols = {'ground_truth', 'YOLO_prediction', 'image_path', 'image_name'}
     model_cols = [col for col in df.columns if col not in exclude_cols]
 
-    all_metrics = {}
     output_dir = os.path.dirname(csv_path)
-
-    # Prepare a DataFrame to save all refined predictions
     refined_df = df.copy()
 
+    # Add refined columns for all models
     for col in tqdm(model_cols, desc="Refining all models"):
         model_preds = df[col].tolist()
         yolo_texts = df['YOLO_prediction'].tolist()
-        ground_truth = df['ground_truth'].tolist()
-
-        # Apply refinement rules row by row
-        refined_preds = []
-        for mp, yt in zip(model_preds, yolo_texts):
-            refined = refine_prediction(mp, yt)
-            refined_preds.append(refined)
-
-        # Save refined predictions to the new DataFrame
+        refined_preds = [refine_prediction(mp, yt) for mp, yt in zip(model_preds, yolo_texts)]
         refined_df[f'{col}_refined'] = refined_preds
 
-        # Compute metrics
-        acc = accuracy_score(ground_truth, refined_preds)
-        f1 = f1_score(ground_truth, refined_preds, average='weighted')
-        precision = precision_score(ground_truth, refined_preds, average='weighted', zero_division=0)
-        recall = recall_score(ground_truth, refined_preds, average='weighted')
-        kappa = cohen_kappa_score(ground_truth, refined_preds)
-        sensitivity, specificity = calculate_sensitivity_specificity(ground_truth, refined_preds)
+    # Now, for each model, compare with ground_truth and collect metrics
+    all_metrics = {}
+    class_names = [str(x) for x in config_data['data']['class_names']]
+    num_classes = len(class_names)
+    ground_truth = df['ground_truth'].tolist()
+
+    for col in model_cols:
+        preds = refined_df[f'{col}_refined'].tolist()
+        acc = accuracy_score(ground_truth, preds)
+        f1 = f1_score(ground_truth, preds, average='weighted')
+        precision = precision_score(ground_truth, preds, average='weighted', zero_division=0)
+        recall = recall_score(ground_truth, preds, average='weighted')
+        kappa = cohen_kappa_score(ground_truth, preds)
+        sensitivity, specificity = calculate_sensitivity_specificity(ground_truth, preds)
         ground_truth_bin = np.array(ground_truth) >= 2
-        refined_bin = np.array(refined_preds) >= 2
+        refined_bin = np.array(preds) >= 2
         try:
             auc = roc_auc_score(ground_truth_bin, refined_bin)
-        except Exception as e:
+        except Exception:
             auc = None
-        num_classes = len(config_data['data']['class_labels'])
         gt_onehot = np.zeros((len(ground_truth), num_classes))
-        pred_onehot = np.zeros((len(refined_preds), num_classes))
-        for i, (gt, pred) in enumerate(zip(ground_truth, refined_preds)):
+        pred_onehot = np.zeros((len(preds), num_classes))
+        for i, (gt, pred) in enumerate(zip(ground_truth, preds)):
             gt_onehot[i, int(gt)] = 1
             pred_onehot[i, int(pred)] = 1
         brier = brier_score_loss(gt_onehot.ravel(), pred_onehot.ravel())
-        per_class_sensitivity, per_class_specificity = calculate_per_class_metrics(ground_truth, refined_preds, num_classes)
+        per_class_sensitivity, per_class_specificity = calculate_per_class_metrics(ground_truth, preds, num_classes)
         metrics = {
             'Accuracy': acc,
             'F1_Score': f1,
@@ -247,54 +243,36 @@ def main(csv_path, model_name, config='default.yaml'):
             'AUC': auc if auc is not None else 0,
             'Brier_Score': brier,
         }
-        class_names = [str(x) for x in config_data['data']['class_names']]
-        for i, class_name in enumerate(class_names):
-            metrics[f'Sensitivity_{class_name}'] = per_class_sensitivity[i]
-        for i, class_name in enumerate(class_names):
-            metrics[f'Specificity_{class_name}'] = per_class_specificity[i]
+        for i, cname in enumerate(class_names):
+            metrics[f'Sensitivity_{cname}'] = per_class_sensitivity[i]
+        for i, cname in enumerate(class_names):
+            metrics[f'Specificity_{cname}'] = per_class_specificity[i]
         all_metrics[col] = metrics
 
-        # Only print metrics for the requested model_name
-        if col == model_name:
-            print(f"\nModel: {col}")
-            print("Classification Report:")
-            print(classification_report(ground_truth, refined_preds, target_names=class_names, zero_division=0))
-            print(f"Accuracy: {acc:.4f}")
-            print(f"Weighted F1 Score: {f1:.4f}")
-            print(f"Weighted Precision: {precision:.4f}")
-            print(f"Weighted Recall: {recall:.4f}")
-            print(f"Sensitivity (binary): {sensitivity:.4f}")
-            print(f"Specificity (binary): {specificity:.4f}")
-            print(f"Cohen's Kappa: {kappa:.4f}")
-            if auc is not None:
-                print(f"ROC AUC (binary): {auc:.4f}")
-            else:
-                print("ROC AUC (binary): Not computed")
-            print(f"Brier Score: {brier:.4f}")
-            for i, cname in enumerate(class_names):
-                print(f"Sensitivity {cname}: {per_class_sensitivity[i]:.4f}")
-            for i, cname in enumerate(class_names):
-                print(f"Specificity {cname}: {per_class_specificity[i]:.4f}")
-            # Save confusion matrix for this model
-            save_confusion_matrix(ground_truth, refined_preds, 
-                                 config_data['data']['class_names'], 
-                                 output_dir, 
-                                 filename_prefix=f"{col}_refined_")
-            cm = confusion_matrix(ground_truth, refined_preds)
-            print("\nConfusion Matrix (counts):")
-            print(cm)
-            cm_normalized = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
-            np.set_printoptions(precision=2)
-            print("\nNormalized Confusion Matrix:")
-            print(cm_normalized)
-
-    # Save all metrics for all models
-    save_consolidated_metrics(all_metrics, output_dir, suffix="_refined")
-
-    # Save refined predictions to CSV (use refined_df, not df)
+    # Save all refined predictions to CSV
     output_csv = os.path.join(output_dir, f"refined_results.csv")
     refined_df.to_csv(output_csv, index=False)
     print(f"Refined results saved to: {output_csv}")
+
+    # Save all metrics for all models to a single DataFrame and CSV
+    metric_names = [
+        'Accuracy', 'F1_Score', 'Precision', 'Recall', 'Sensitivity', 'Specificity', 'Kappa', 'AUC', 'Brier_Score',
+        'Sensitivity_None', 'Sensitivity_Doubtful', 'Sensitivity_Mild', 'Sensitivity_Moderate', 'Sensitivity_Severe',
+        'Specificity_None', 'Specificity_Doubtful', 'Specificity_Mild', 'Specificity_Moderate', 'Specificity_Severe'
+    ]
+    metrics_df = pd.DataFrame(index=metric_names)
+    for model, metrics in all_metrics.items():
+        rounded_metrics = {k: round(v, 4) for k, v in metrics.items()}
+        metrics_df[model] = pd.Series(rounded_metrics)
+    metrics_csv = os.path.join(output_dir, "all_models_metrics_refined.csv")
+    metrics_df.to_csv(metrics_csv, float_format='%.4f')
+    print(f"All models' refined metrics saved to {metrics_csv}")
+
+    # Print only the requested model's metrics
+    if model_name in all_metrics:
+        print(f"\nMetrics for {model_name}:")
+        for k, v in all_metrics[model_name].items():
+            print(f"{k}: {v:.4f}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Refine model predictions using YOLO output and compute metrics.")
