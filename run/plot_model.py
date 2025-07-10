@@ -16,11 +16,6 @@ from ultralytics import YOLO
 
 def load_config(config_path):
     import yaml
-    # If config_path is not an absolute path, try both as-is and with 'config/' prefix
-    if not os.path.isabs(config_path) and not os.path.exists(config_path):
-        try_path = os.path.join('config', config_path)
-        if os.path.exists(try_path):
-            config_path = try_path
     with open(config_path, 'r') as f:
         return yaml.safe_load(f)
 
