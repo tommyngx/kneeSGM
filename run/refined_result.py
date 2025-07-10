@@ -85,8 +85,8 @@ def refine_prediction(model_pred, yolo_text):
         if model_pred == rule["model_pred"] and rule["keyword"] in text:
             return rule["new_pred"]
         # sclerosis: bất kể model_pred là gì, nếu có từ này thì trả về 4
-    #if "sclerosis" in text:
-    #    return 4
+    if "sclerosis" in text:
+        return 4
     # healthy: nếu model_pred > 1 thì trả về 1, nếu 0 hoặc 1 thì giữ nguyên
     #if "healthy" in text:
     #    return 1 if model_pred > 1 else model_pred
