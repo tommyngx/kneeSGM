@@ -6,21 +6,23 @@ from sklearn.metrics import accuracy_score, f1_score, classification_report
 def rule_template_factory(rules, combo_conditions=[]):
     """
     Trả về hàm rule(model_pred, yolo_text) áp dụng danh sách rules và combo_rules.
+    Hỗ trợ rule dạng: nếu model_pred==x và bất kỳ token nào trong yolo_text chứa yolo_kw (không cần chỉ mỗi token đó), thì đổi thành new_pred.
+    Combo rule: nếu model_pred in m_pred_set và trong tokens có ít nhất 1 token thuộc allowed_tokens (không cần phải là tập con), thì đổi thành new_pred.
     """
     def rule(model_pred, yolo_text):
         text = yolo_text.lower() if isinstance(yolo_text, str) else ""
         tokens = {token.strip() for token in text.replace(";", ",").split(",") if token.strip()}
 
-        # Apply single rules
+        # Apply single rules: match if any token contains the keyword as substring
         for m_pred, yolo_kw, new_pred in rules:
-            if model_pred == m_pred and yolo_kw in text:
+            if model_pred == m_pred and any(yolo_kw in t for t in tokens):
                 return new_pred
 
-        # Apply combo conditions (model in set, YOLO tokens subset allowed_tokens)
+        # Apply combo conditions (model in set, at least one allowed token present)
         for m_pred_set, allowed_tokens, new_pred in combo_conditions:
             if isinstance(m_pred_set, int):
                 m_pred_set = [m_pred_set]
-            if model_pred in m_pred_set and tokens and tokens.issubset(allowed_tokens):
+            if model_pred in m_pred_set and tokens and (tokens & allowed_tokens):
                 return new_pred
 
         return model_pred
