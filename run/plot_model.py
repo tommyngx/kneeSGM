@@ -100,9 +100,27 @@ def plot_model_gradcam_and_yolo(config_path, model_name, model_path, yolo_model_
     fig, axes = plt.subplots(4, 3, figsize=(15, 20))
     fig.suptitle(f"GradCAM and YOLO results for {model_name}", fontsize=18)
 
+    # Determine how to get image path and label for each idx
+    def get_img_path_and_label(dataset, idx):
+        if hasattr(dataset, "samples"):
+            return dataset.samples[idx]
+        elif hasattr(dataset, "imgs"):
+            return dataset.imgs[idx]
+        elif hasattr(dataset, "image_paths") and hasattr(dataset, "labels"):
+            return dataset.image_paths[idx], dataset.labels[idx]
+        elif hasattr(dataset, "data") and hasattr(dataset, "labels"):
+            return dataset.data[idx], dataset.labels[idx]
+        elif hasattr(dataset, "df") and hasattr(dataset, "labels"):
+            return dataset.df['image_path'].iloc[idx], dataset.labels[idx]
+        else:
+            # Fallback: try __getitem__
+            img, label = dataset[idx]
+            if hasattr(img, 'filename'):
+                return img.filename, label
+            return None, label
+
     for row, idx in enumerate(selected_idxs):
-        # Get image and label
-        img_path, label = dataset.samples[idx]
+        img_path, label = get_img_path_and_label(dataset, idx)
         orig_img = Image.open(img_path).convert("RGB")
         img_tensor = test_transform(orig_img).unsqueeze(0).to(device)
 
