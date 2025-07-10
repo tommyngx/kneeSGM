@@ -130,7 +130,7 @@ def plot_model_gradcam_and_yolo(config_path, model_name, model_path, yolo_model_
 
         # GradCAM (use util function)
         target_layer = get_target_layer(model, model_name)
-        gradcam_img = plot_gradcam_on_image(model, img_tensor, orig_img, target_layer, pred, device)
+        gradcam_img = plot_gradcam_on_image(model, img_tensor, orig_img, target_layer, pred, device, model_name=model_name)
 
         # YOLO prediction
         yolo_pred = run_yolo_on_image(img_path, yolo_model)

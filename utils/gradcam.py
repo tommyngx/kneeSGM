@@ -325,7 +325,7 @@ def get_target_layer(model, model_name):
     else:
         raise ValueError(f"Model {model_name} not supported for Grad-CAM.")
 
-def plot_gradcam_on_image(model, input_tensor, orig_img, target_layer, target_class, device):
+def plot_gradcam_on_image(model, input_tensor, orig_img, target_layer, target_class, device, model_name=""):
     """
     Generate GradCAM heatmap and overlay it on the original image.
     Returns a PIL Image with the overlay.
@@ -335,8 +335,8 @@ def plot_gradcam_on_image(model, input_tensor, orig_img, target_layer, target_cl
     orig_img = orig_img.convert("RGB")
     orig_np = np.array(orig_img).astype(np.float32) / 255.0
 
-    # Generate heatmap using the appropriate gradcam function
-    heatmap = generate_gradcam(model, input_tensor, target_layer, model_name="")  # model_name can be passed if needed
+    # Pass model_name to generate_gradcam
+    heatmap = generate_gradcam(model, input_tensor, target_layer, model_name=model_name)
 
     # Normalize and resize heatmap
     if isinstance(heatmap, np.ndarray):
