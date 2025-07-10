@@ -31,7 +31,8 @@ def get_random_images_by_class(image_paths, labels, class_indices, n_per_class=1
         if cls_items:
             chosen = random.sample(cls_items, min(n_per_class, len(cls_items)))
             selected.extend(chosen)
-    return selected
+    # Only keep up to 3 images total
+    return selected[:3]
 
 def run_yolo_on_image(image_path, yolo_model, return_boxes=False):
     img = Image.open(image_path).convert("RGB")
@@ -80,7 +81,7 @@ def plot_model_gradcam_and_yolo(config_path, model_name, model_path, yolo_model_
     else:
         labels = [dataset[i][1] for i in range(len(dataset))]
 
-    # Randomly select 1 image for each class 1,2,3,4 (not 0)
+    # Randomly select 1 image for each class 1,2,3,4 (not 0), but only keep 3 images total
     class_indices = [1, 2, 3, 4]
     selected_items = get_random_images_by_class(image_paths, labels, class_indices, n_per_class=1)
     if not selected_items:
@@ -90,8 +91,18 @@ def plot_model_gradcam_and_yolo(config_path, model_name, model_path, yolo_model_
     # Load YOLO model
     yolo_model = YOLO(yolo_model_path)
 
-    fig, axes = plt.subplots(4, 3, figsize=(15, 20))
-    fig.suptitle(f"GradCAM and YOLO results for {model_name}", fontsize=18)
+    fig, axes = plt.subplots(len(selected_items), 3, figsize=(15, 5 * len(selected_items)))
+    fig.suptitle(f"GradCAM and YOLO results for {model_name}", fontsize=22)
+
+    # Font for title
+    import matplotlib
+    font_size = 22
+    font_path = "Poppins.ttf"
+    try:
+        matplotlib.font_manager.fontManager.addfont(font_path)
+        prop = matplotlib.font_manager.FontProperties(fname=font_path, size=font_size)
+    except Exception:
+        prop = None
 
     for row, (img_path, label) in enumerate(selected_items):
         orig_img = Image.open(img_path).convert("RGB")
@@ -125,7 +136,10 @@ def plot_model_gradcam_and_yolo(config_path, model_name, model_path, yolo_model_
 
         # GradCAM (use util function)
         target_layer = get_target_layer(model, model_name)
-        gradcam_img = plot_gradcam_on_image(model, img_tensor, orig_img, target_layer, pred, device, model_name=model_name)
+        gradcam_img = plot_gradcam_on_image(
+            model, img_tensor, orig_img, target_layer, pred, device, model_name=model_name,
+            true_label=label, pred_label=pred, class_names=config['data'].get('class_names', None)
+        )
 
         # YOLO prediction with bounding boxes and labels
         yolo_img, yolo_boxes = run_yolo_on_image(img_path, yolo_model, return_boxes=True)
@@ -142,17 +156,17 @@ def plot_model_gradcam_and_yolo(config_path, model_name, model_path, yolo_model_
 
         # Plot original
         axes[row, 0].imshow(orig_img)
-        axes[row, 0].set_title(f"Original\nLabel: {label}")
+        axes[row, 0].set_title(f"Original\nLabel: {label}", fontproperties=prop, fontsize=font_size)
         axes[row, 0].axis('off')
 
         # Plot GradCAM
         axes[row, 1].imshow(gradcam_img)
-        axes[row, 1].set_title(f"GradCAM\nPred: {pred} (prob: {probs[pred]:.2f})")
+        axes[row, 1].set_title(f"GradCAM\nPred: {pred} (prob: {probs[pred]:.2f})", fontproperties=prop, fontsize=font_size)
         axes[row, 1].axis('off')
 
         # Plot YOLO with bounding boxes and labels
         axes[row, 2].imshow(yolo_img_draw)
-        axes[row, 2].set_title(f"YOLO")
+        axes[row, 2].set_title(f"YOLO", fontproperties=prop, fontsize=font_size)
         axes[row, 2].axis('off')
 
     plt.tight_layout(rect=[0, 0, 1, 0.97])
