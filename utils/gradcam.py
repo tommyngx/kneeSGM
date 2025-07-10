@@ -343,15 +343,25 @@ def plot_gradcam_on_image(model, input_tensor, orig_img, target_layer, target_cl
         if heatmap.ndim == 2:
             heatmap = np.uint8(255 * heatmap / np.max(heatmap))
             heatmap = cv2.resize(heatmap, orig_img.size)
+            # Apply color map for color GradCAM
             heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
             heatmap = cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB)
         elif heatmap.ndim == 3 and heatmap.shape[2] == 3:
             heatmap = cv2.resize(heatmap, orig_img.size)
+            # Ensure heatmap is uint8 and in RGB
+            if heatmap.dtype != np.uint8:
+                heatmap = np.uint8(255 * heatmap / np.max(heatmap))
+            if heatmap.shape[2] == 3 and np.max(heatmap) > 1:
+                pass  # already RGB
+            else:
+                heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
+                heatmap = cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB)
         else:
             raise ValueError("Unexpected heatmap shape for GradCAM overlay.")
     else:
         raise ValueError("Heatmap must be a numpy array.")
 
+    # Overlay: blend color GradCAM with original image
     overlay = np.uint8(0.5 * orig_np * 255 + 0.5 * heatmap)
     overlay_img = Image.fromarray(overlay)
     return overlay_img
