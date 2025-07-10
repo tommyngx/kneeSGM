@@ -237,9 +237,3 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     main(csv_path=args.csv_path, model_name=args.model_name, config=args.config)
-    print(cm_normalized)
-    
-    # Optionally, save refined CSV with a new name
-    output_csv = os.path.join(os.path.dirname(csv_path), f"refined_results_{model_name}.csv")
-    df.to_csv(output_csv, index=False)
-    print(f"Refined results saved to: {output_csv}")
