@@ -163,6 +163,40 @@ def save_consolidated_metrics(all_metrics, output_dir, suffix=""):
     df.to_csv(csv_path, float_format='%.4f')
     print(f"Consolidated metrics saved to {csv_path}")
 
+def compute_detection_metrics(y_true, y_pred):
+    """
+    Compute binary detection metrics (OA vs None OA).
+    OA: class > 1, None OA: class < 2
+    """
+    from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, cohen_kappa_score, roc_auc_score, brier_score_loss, confusion_matrix
+    y_true_bin = np.array(y_true) > 1
+    y_pred_bin = np.array(y_pred) > 1
+    acc = accuracy_score(y_true_bin, y_pred_bin)
+    f1 = f1_score(y_true_bin, y_pred_bin)
+    precision = precision_score(y_true_bin, y_pred_bin, zero_division=0)
+    recall = recall_score(y_true_bin, y_pred_bin)
+    kappa = cohen_kappa_score(y_true_bin, y_pred_bin)
+    try:
+        auc = roc_auc_score(y_true_bin, y_pred_bin)
+    except Exception:
+        auc = None
+    brier = brier_score_loss(y_true_bin, y_pred_bin)
+    # Sensitivity and specificity for detection
+    tn, fp, fn, tp = confusion_matrix(y_true_bin, y_pred_bin).ravel()
+    detection_sensitivity = tp / (tp + fn) if (tp + fn) > 0 else 0
+    detection_specificity = tn / (tn + fp) if (tn + fp) > 0 else 0
+    return {
+        'Detection_Accuracy': acc,
+        'Detection_F1_Score': f1,
+        'Detection_Precision': precision,
+        'Detection_Recall': recall,
+        'Detection_Kappa': kappa,
+        'Detection_AUC': auc if auc is not None else 0,
+        'Detection_Brier_Score': brier,
+        'Detection_Sensitivity': detection_sensitivity,
+        'Detection_Specificity': detection_specificity,
+    }
+
 def main(csv_path, model_name, config='default.yaml'):
     # Load config and CSV
     config_path = os.path.join('config', config)
@@ -234,6 +268,8 @@ def main(csv_path, model_name, config='default.yaml'):
             metrics[f'Sensitivity_{cname}'] = per_class_sensitivity[i]
         for i, cname in enumerate(class_names):
             metrics[f'Specificity_{cname}'] = per_class_specificity[i]
+        # Add detection (OA/None OA) metrics
+        metrics.update(compute_detection_metrics(ground_truth, preds))
         all_metrics[col] = metrics
 
     # Evaluate refined models
@@ -274,6 +310,8 @@ def main(csv_path, model_name, config='default.yaml'):
             metrics[f'Sensitivity_{cname}'] = per_class_sensitivity[i]
         for i, cname in enumerate(class_names):
             metrics[f'Specificity_{cname}'] = per_class_specificity[i]
+        # Add detection (OA/None OA) metrics
+        metrics.update(compute_detection_metrics(ground_truth, preds))
         all_metrics[refined_col] = metrics
 
     # Save all refined predictions to CSV
@@ -285,7 +323,10 @@ def main(csv_path, model_name, config='default.yaml'):
     metric_names = [
         'Accuracy', 'F1_Score', 'Precision', 'Recall', 'Sensitivity', 'Specificity', 'Kappa', 'AUC', 'Brier_Score',
         'Sensitivity_None', 'Sensitivity_Doubtful', 'Sensitivity_Mild', 'Sensitivity_Moderate', 'Sensitivity_Severe',
-        'Specificity_None', 'Specificity_Doubtful', 'Specificity_Mild', 'Specificity_Moderate', 'Specificity_Severe'
+        'Specificity_None', 'Specificity_Doubtful', 'Specificity_Mild', 'Specificity_Moderate', 'Specificity_Severe',
+        # Detection metrics
+        'Detection_Accuracy', 'Detection_F1_Score', 'Detection_Precision', 'Detection_Recall', 'Detection_Kappa', 'Detection_AUC', 'Detection_Brier_Score',
+        'Detection_Sensitivity', 'Detection_Specificity'
     ]
     metrics_df = pd.DataFrame(index=metric_names)
     for model, metrics in all_metrics.items():
@@ -302,6 +343,15 @@ def main(csv_path, model_name, config='default.yaml'):
             print(f"\nMetrics for {col}:")
             for k, v in all_metrics[col].items():
                 print(f"{k}: {v:.4f}")
+            # Save confusion matrix for this model
+            y_pred = refined_df[col].tolist() if suffix else df[col].tolist()
+            save_confusion_matrix(
+                ground_truth,
+                y_pred,
+                class_names,
+                output_dir=os.path.dirname(csv_path),
+                filename_prefix=f"{col}_"
+            )
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Refine model predictions using YOLO output and compute metrics.")
