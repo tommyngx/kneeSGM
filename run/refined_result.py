@@ -64,40 +64,47 @@ def refine_prediction(model_pred, yolo_text):
       3. If model_pred is 2 and YOLO_prediction contains "narrowing", change to 3.
       4. If model_pred is 3 and YOLO_prediction contains "sclerosis", change to 4.
       5. If model_pred is 4 but YOLO_prediction does NOT contain "sclerosis", change to 3.
-      6. If model_pred is 1 and YOLO_prediction contains "osteophytemore", then refined becomes 2.
-      7. If model_pred is 3 or 4 and the YOLO_prediction contains only "osteophyte" and/or "osteophytemore", then refined becomes 2.
+      6. If model_pred is 1 and YOLO_prediction contains "osteophytemore" or "osteophytebig", then refined becomes 2.
+      7. If model_pred is 3 or 4 and the YOLO_prediction contains ONLY "osteophyte" and/or "osteophytemore", then refined becomes 2.
       Otherwise, leave the prediction unchanged.
     """
+
     text = yolo_text.lower() if isinstance(yolo_text, str) else ""
-    
-    # New rule 6
-    #if model_pred == 1 and "osteophytemore" in text:
-    #    return 2
-    if model_pred == 1 and "osteophytebig" in text:
+    refined = model_pred
+
+    # Rule 6: If pred=1 and YOLO has "osteophytemore" or "osteophytebig" => 2
+    if model_pred == 1 and ("osteophytemore" in text or "osteophytebig" in text):
         return 2
 
-    # New rule 7
+    # Rule 7: If pred=3/4 and YOLO ONLY has "osteophyte" or "osteophytemore" => 2
     if model_pred in [3, 4]:
         tokens = [token.strip() for token in text.replace(";", ",").split(",") if token.strip()]
-        if tokens and set(tokens).issubset({"osteophyte", "osteophytemore"}):
+        allowed_tokens = {"osteophyte", "osteophytemore"}
+        if tokens and set(tokens).issubset(allowed_tokens):
             return 2
 
-    # Existing rules
-    refined = model_pred
+    # Rule 1 and 2: pred=0
     if model_pred == 0:
         if "healthy" in text:
-            refined = 0
+            refined = 0  # explicit, but already 0
         elif "osteophyte" in text:
             refined = 1
+
+    # Rule 3: pred=2 and "narrowing" -> 3
     elif model_pred == 2:
         if "narrowing" in text:
             refined = 3
+
+    # Rule 4: pred=3 and "sclerosis" -> 4
     elif model_pred == 3:
         if "sclerosis" in text:
             refined = 4
-    #elif model_pred == 4:
-    #    if "sclerosis" not in text:
-    #        refined = 3
+
+    # Rule 5: pred=4 but lacks "sclerosis" -> 3
+    elif model_pred == 4:
+        if "sclerosis" not in text:
+            refined = 3
+
     return refined
 
 def calculate_sensitivity_specificity(y_true, y_pred):
