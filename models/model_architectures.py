@@ -41,7 +41,9 @@ def get_model(model_name, config_path='config/default.yaml', pretrained=True):
     elif 'efficientnet_b0' in model_name or 'efficientnet_b7' in model_name or 'efficientnet' in model_name:
         model.classifier = nn.Linear(model.classifier.in_features, num_classes)
     elif 'dinov2' in model_name:
-        # For timm dinov2 models, the classifier is usually called 'head'
+        # Use the recommended timm dinov2 model name and set eval mode
+        model = timm.create_model('vit_large_patch14_dinov2.lvd142m', pretrained=True)
+        model = model.eval()
         model.head = nn.Linear(model.head.in_features, num_classes)
     else:
         raise ValueError(f"Model {model_name} not supported.")
