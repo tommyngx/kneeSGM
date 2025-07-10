@@ -23,11 +23,11 @@ def get_model(model_name, config_path='config/default.yaml', pretrained=True):
 
     # Special handling for dinov2
     if 'dinov2' in model_name:
-        model = timm.create_model('vit_large_patch14_dinov2.lvd142m', pretrained=True)
+        # Set image size to 518 for dinov2 large patch14
+        model = timm.create_model('vit_large_patch14_dinov2.lvd142m', pretrained=True, img_size=518)
         model = model.eval()
         # If model.head is Identity, replace with a new Linear layer using the last feature dim
         if isinstance(model.head, nn.Identity):
-            # Try to get the last feature dimension from model.norm or model.pre_logits
             if hasattr(model, 'norm') and hasattr(model.norm, 'normalized_shape'):
                 in_features = model.norm.normalized_shape[0]
             elif hasattr(model, 'pre_logits') and hasattr(model.pre_logits, 'out_features'):
