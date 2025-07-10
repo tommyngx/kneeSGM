@@ -66,7 +66,7 @@ def try_rule_combinations(df, model_col, yolo_col, model_preds, yolo_keywords, p
 
     # Try combo rules: e.g. ONLY certain tokens present
     # Example: pred=3/4 and YOLO ONLY has "osteophyte" or "osteophytemore" => 2
-    allowed_tokens = {"osteophyte", "osteophytemore"}
+    allowed_tokens = {"osteophyte", "osteophytemore","osteophytebig"}
     combo_conditions = [
         (3, allowed_tokens, 2),
         (4, allowed_tokens, 2)
