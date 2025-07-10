@@ -28,6 +28,35 @@ def rule_template_factory(conditions):
         return model_pred
     return rule
 
+def try_rule_combinations(df, model_col, yolo_col, model_preds, yolo_keywords, possible_new_preds, max_rules=2):
+    """
+    Try combinations of up to max_rules rules and return the best combination.
+    """
+    best_acc = 0
+    best_f1 = 0
+    best_combo = None
+    best_report = ""
+    best_desc = None
+
+    # Generate all possible rule tuples (m_pred, yolo_kw, new_pred)
+    all_rules = []
+    for m_pred, yolo_kw, new_pred in itertools.product(model_preds, yolo_keywords, possible_new_preds):
+        if new_pred != m_pred:
+            all_rules.append((m_pred, yolo_kw, new_pred))
+
+    # Try all combinations of 2 rules (can increase max_rules for more, but will be slow)
+    for rule_combo in itertools.combinations(all_rules, max_rules):
+        rule = rule_template_factory(list(rule_combo))
+        acc, f1, report, _ = evaluate_rule(df, model_col, yolo_col, rule)
+        if acc > best_acc or (acc == best_acc and f1 > best_f1):
+            best_acc = acc
+            best_f1 = f1
+            best_combo = rule_combo
+            best_report = report
+            best_desc = " AND ".join([f"(model=={r[0]} & '{r[1]}' in YOLO → {r[2]})" for r in rule_combo])
+
+    return best_acc, best_f1, best_combo, best_report, best_desc
+
 def main(csv_path, model_col, yolo_col):
     df = pd.read_csv(csv_path)
     # Define possible rules to try (expand as needed)
@@ -41,7 +70,7 @@ def main(csv_path, model_col, yolo_col):
     yolo_keywords = sorted(list(yolo_keywords))
     possible_new_preds = sorted(df[model_col].unique())
 
-    # Generate all possible single rules (for demonstration)
+    # Single rule search (existing code)
     best_acc = 0
     best_rule = None
     best_desc = None
@@ -64,7 +93,17 @@ def main(csv_path, model_col, yolo_col):
     print(f"Accuracy: {best_acc:.4f}, F1: {best_f1:.4f}")
     print("Classification report:\n", best_report)
 
-    # You can expand this to try combinations of rules, or more complex logic.
+    # Try combinations of 2 rules for better performance
+    print("\nSearching for best combination of 2 rules...")
+    combo_acc, combo_f1, combo_rules, combo_report, combo_desc = try_rule_combinations(
+        df, model_col, yolo_col, model_preds, yolo_keywords, possible_new_preds, max_rules=2
+    )
+    print("Best 2-rule combination found:")
+    print(combo_desc)
+    print(f"Accuracy: {combo_acc:.4f}, F1: {combo_f1:.4f}")
+    print("Classification report:\n", combo_report)
+
+    # You can increase max_rules in try_rule_combinations for more complex rules (may be slow).
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Find best rule-based OA refinement from CSV.")
