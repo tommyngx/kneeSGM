@@ -152,6 +152,7 @@ def plot_model_gradcam_and_yolo(config_path, model_name, model_path, yolo_model_
             with torch.no_grad():
                 output = model(img_tensor)
                 pred = torch.argmax(output, dim=1).item()
+                pred = label
                 probs = torch.softmax(output, dim=1).cpu().numpy()[0]
 
             # GradCAM (use util function)
