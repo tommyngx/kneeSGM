@@ -159,7 +159,7 @@ def compute_detection_metrics(y_true, y_pred):
         'Detection_Specificity': detection_specificity,
     }
 
-def save_detection_confusion_matrix(y_true, y_pred, output_dir, filename_prefix=""):
+def save_detection_confusion_matrix(y_true, y_pred, output_dir, filename_prefix="", acc=None):
     """
     Save detection (OA vs None OA) confusion matrix as an image.
     OA: class > 1, None OA: class < 2
@@ -167,13 +167,17 @@ def save_detection_confusion_matrix(y_true, y_pred, output_dir, filename_prefix=
     import numpy as np
     gt_bin = (np.array(y_true) > 1).astype(int)
     pred_bin = (np.array(y_pred) > 1).astype(int)
-    # Use plotting's save_confusion_matrix for detection
+    # Calculate accuracy for title
+    acc_val = (gt_bin == pred_bin).mean() * 100
+    title = f"OA Screening (ACC: {acc_val:.2f}%)"
     save_confusion_matrix(
         gt_bin,
         pred_bin,
         class_names=["None OA", "OA"],
         output_dir=output_dir,
-        filename_prefix=filename_prefix + "detection_"
+        filename_prefix=filename_prefix + "detection_",
+        acc=acc_val,
+        custom_title=title
     )
 
 def main(csv_path, model_name, config='default.yaml'):
@@ -322,21 +326,25 @@ def main(csv_path, model_name, config='default.yaml'):
             print(f"\nMetrics for {col}:")
             for k, v in all_metrics[col].items():
                 print(f"{k}: {v:.4f}")
-            # Save confusion matrix for this model
             y_pred = refined_df[col].tolist() if suffix else df[col].tolist()
+            # Multi classification OA confusion matrix
+            acc_val = (np.array(ground_truth) == np.array(y_pred)).mean() * 100
+            title = f"OA Multiclass (ACC: {acc_val:.2f}%)"
             save_confusion_matrix(
                 ground_truth,
                 y_pred,
                 class_names,
                 output_dir=os.path.dirname(csv_path),
-                filename_prefix=f"{col}_"
+                filename_prefix=f"{col}_multiclass_",
+                acc=acc_val,
+                custom_title=title
             )
-            # Save detection confusion matrix
+            # OA screening confusion matrix
             save_detection_confusion_matrix(
                 ground_truth,
                 y_pred,
                 output_dir=os.path.dirname(csv_path),
-                filename_prefix=f"{col}_"
+                filename_prefix=f"{col}_oascreening_"
             )
 
 if __name__ == "__main__":

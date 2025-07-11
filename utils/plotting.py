@@ -9,7 +9,7 @@ from matplotlib import font_manager
 from numpy import interp
 from sklearn.utils import resample
 
-def save_confusion_matrix(labels, preds, class_names, output_dir, epoch=None, acc=None, filename_prefix=""):
+def save_confusion_matrix(labels, preds, class_names, output_dir, epoch=None, acc=None, filename_prefix="", custom_title=None):
     plt.style.use('default')
     
     # Download the font file if it does not exist
@@ -49,7 +49,8 @@ def save_confusion_matrix(labels, preds, class_names, output_dir, epoch=None, ac
         xticklabels=class_names, 
         yticklabels=class_names, 
         cbar=True,
-        vmin=0, vmax=1  # Set the color bar range from 0 to 100%
+        vmin=0, vmax=1,
+        annot_kws={"fontsize": 15}  # Increase annotation font size here
     )
     # Customize the color bar
     ticks = np.linspace(0, 1, 5)  # Define ticks from 0 to 1
@@ -57,12 +58,16 @@ def save_confusion_matrix(labels, preds, class_names, output_dir, epoch=None, ac
     cbar.set_ticks(ticks)  # Set specific ticks
     cbar.ax.set_yticklabels([f'{int(t * 100)}%' for t in ticks])    
     
-    plt.xlabel("Predicted", fontproperties=prop, fontsize=16)
-    plt.ylabel("Actual", fontproperties=prop, fontsize=16)
-    title = "Confusion Matrix"
-    if epoch is not None:
-        title += f" - Epoch {epoch}"
-    plt.title(title, fontproperties=prop, fontsize=18, pad=20)  # Adjust title position
+    plt.xlabel("Predicted", fontproperties=prop, fontsize=18)  # Increase label font size
+    plt.ylabel("Actual", fontproperties=prop, fontsize=18)
+    # Use custom title if provided
+    if custom_title is not None:
+        title = custom_title
+    else:
+        title = "Confusion Matrix"
+        if epoch is not None:
+            title += f" - Epoch {epoch}"
+    plt.title(title, fontproperties=prop, fontsize=20, pad=20)  # Increase title font size
     
     # Adjust layout to leave some space around the plot
     #plt.subplots_adjust(left=0.10, right=0.90, top=0.90, bottom=0.10)
