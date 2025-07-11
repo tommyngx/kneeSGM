@@ -1,6 +1,6 @@
 # "Opportunities don't happen, you create them" — Chris Grosser
 
-The process of using the image classification model is carried out as follows.
+KneeSGM: The process of using the image classification model is carried out as follows.
 
 ## 1. Data Preparation
 
