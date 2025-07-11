@@ -12,45 +12,7 @@ from sklearn.utils import resample
 from tqdm import tqdm  # add tqdm for progress bar
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Import the existing save_confusion_matrix if possible
-try:
-    from utils.plotting import save_confusion_matrix
-except ImportError:
-    # Define our own if import fails
-    def save_confusion_matrix(y_true, y_pred, class_names, output_dir, epoch=None, acc=None, filename_prefix=""):
-        # Compute confusion matrix
-        cm = confusion_matrix(y_true, y_pred)
-        
-        # Create normalized confusion matrix
-        cm_normalized = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
-        
-        # Create figure and axes
-        plt.figure(figsize=(10, 8))
-        sns.heatmap(cm_normalized, annot=True, fmt=".2f", cmap='Blues',
-                    xticklabels=class_names, yticklabels=class_names)
-        plt.xlabel('Predicted')
-        plt.ylabel('True')
-        plt.title('Normalized Confusion Matrix')
-        
-        # Save figure
-        plt.tight_layout()
-        filename = f"{filename_prefix}confusion_matrix.png"
-        plt.savefig(os.path.join(output_dir, filename))
-        plt.close()
-        
-        # Also save with raw counts
-        plt.figure(figsize=(10, 8))
-        sns.heatmap(cm, annot=True, fmt="d", cmap='Blues',
-                    xticklabels=class_names, yticklabels=class_names)
-        plt.xlabel('Predicted')
-        plt.ylabel('True')
-        plt.title('Confusion Matrix (counts)')
-        
-        # Save figure
-        plt.tight_layout()
-        filename = f"{filename_prefix}confusion_matrix_counts.png"
-        plt.savefig(os.path.join(output_dir, filename))
-        plt.close()
+from utils.plotting import save_confusion_matrix
 
 def load_config(config_path):
     with open(config_path, 'r') as f:
@@ -202,23 +164,17 @@ def save_detection_confusion_matrix(y_true, y_pred, output_dir, filename_prefix=
     Save detection (OA vs None OA) confusion matrix as an image.
     OA: class > 1, None OA: class < 2
     """
-    import matplotlib.pyplot as plt
-    import seaborn as sns
-    from sklearn.metrics import confusion_matrix
+    import numpy as np
     gt_bin = (np.array(y_true) > 1).astype(int)
     pred_bin = (np.array(y_pred) > 1).astype(int)
-    det_cm = confusion_matrix(gt_bin, pred_bin)
-    plt.figure(figsize=(5, 4))
-    sns.heatmap(det_cm, annot=True, fmt="d", cmap='Blues',
-                xticklabels=["None OA", "OA"], yticklabels=["None OA", "OA"])
-    plt.xlabel('Predicted')
-    plt.ylabel('True')
-    plt.title('Detection Confusion Matrix (OA vs None OA)')
-    plt.tight_layout()
-    det_cm_path = os.path.join(output_dir, f"{filename_prefix}detection_confusion_matrix.png")
-    plt.savefig(det_cm_path)
-    plt.close()
-    print(f"Detection confusion matrix saved to {det_cm_path}")
+    # Use plotting's save_confusion_matrix for detection
+    save_confusion_matrix(
+        gt_bin,
+        pred_bin,
+        class_names=["None OA", "OA"],
+        output_dir=output_dir,
+        filename_prefix=filename_prefix + "detection_"
+    )
 
 def main(csv_path, model_name, config='default.yaml'):
     # Load config and CSV
@@ -375,7 +331,7 @@ def main(csv_path, model_name, config='default.yaml'):
                 output_dir=os.path.dirname(csv_path),
                 filename_prefix=f"{col}_"
             )
-            # Save detection confusion matrix for this model
+            # Save detection confusion matrix
             save_detection_confusion_matrix(
                 ground_truth,
                 y_pred,
