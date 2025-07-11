@@ -85,7 +85,7 @@ def plot_model_gradcam_and_yolo(config_path, model_name, model_path, yolo_model_
         labels = [dataset[i][1] for i in range(len(dataset))]
 
     # --- Lọc chỉ lấy lớp 2, 3, 4 ---
-    filtered = [(p, l) for p, l in zip(image_paths, labels) if l in [2, 3, 4]]
+    filtered = [(p, l) for p, l in zip(image_paths, labels) if l in [1, 2, 4]]
     if not filtered:
         print("Không có ảnh thuộc lớp 2, 3, 4.")
         return
