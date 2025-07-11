@@ -84,6 +84,16 @@ def plot_model_gradcam_and_yolo(config_path, model_name, model_path, yolo_model_
     else:
         labels = [dataset[i][1] for i in range(len(dataset))]
 
+    # --- Lọc chỉ lấy lớp 2, 3, 4 ---
+    filtered = [(p, l) for p, l in zip(image_paths, labels) if l in [2, 3, 4]]
+    if not filtered:
+        print("Không có ảnh thuộc lớp 2, 3, 4.")
+        return
+    image_paths, labels = zip(*filtered)
+    image_paths = list(image_paths)
+    labels = list(labels)
+    # --- hết đoạn lọc ---
+
     print("[DEBUG] Selecting random images by class...")
     class_indices = [1, 2, 3, 4]
     # Select 15 images (5 for each class, or as many as available)
