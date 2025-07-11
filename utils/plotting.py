@@ -50,7 +50,7 @@ def save_confusion_matrix(labels, preds, class_names, output_dir, epoch=None, ac
         yticklabels=class_names, 
         cbar=True,
         vmin=0, vmax=1,
-        annot_kws={"fontsize": 15}  # Increase annotation font size here
+        annot_kws={"fontsize": 14}  # Increase annotation font size here
     )
     # Customize the color bar
     ticks = np.linspace(0, 1, 5)  # Define ticks from 0 to 1
