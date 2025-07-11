@@ -197,6 +197,29 @@ def compute_detection_metrics(y_true, y_pred):
         'Detection_Specificity': detection_specificity,
     }
 
+def save_detection_confusion_matrix(y_true, y_pred, output_dir, filename_prefix=""):
+    """
+    Save detection (OA vs None OA) confusion matrix as an image.
+    OA: class > 1, None OA: class < 2
+    """
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+    from sklearn.metrics import confusion_matrix
+    gt_bin = (np.array(y_true) > 1).astype(int)
+    pred_bin = (np.array(y_pred) > 1).astype(int)
+    det_cm = confusion_matrix(gt_bin, pred_bin)
+    plt.figure(figsize=(5, 4))
+    sns.heatmap(det_cm, annot=True, fmt="d", cmap='Blues',
+                xticklabels=["None OA", "OA"], yticklabels=["None OA", "OA"])
+    plt.xlabel('Predicted')
+    plt.ylabel('True')
+    plt.title('Detection Confusion Matrix (OA vs None OA)')
+    plt.tight_layout()
+    det_cm_path = os.path.join(output_dir, f"{filename_prefix}detection_confusion_matrix.png")
+    plt.savefig(det_cm_path)
+    plt.close()
+    print(f"Detection confusion matrix saved to {det_cm_path}")
+
 def main(csv_path, model_name, config='default.yaml'):
     # Load config and CSV
     config_path = os.path.join('config', config)
@@ -349,6 +372,13 @@ def main(csv_path, model_name, config='default.yaml'):
                 ground_truth,
                 y_pred,
                 class_names,
+                output_dir=os.path.dirname(csv_path),
+                filename_prefix=f"{col}_"
+            )
+            # Save detection confusion matrix for this model
+            save_detection_confusion_matrix(
+                ground_truth,
+                y_pred,
                 output_dir=os.path.dirname(csv_path),
                 filename_prefix=f"{col}_"
             )
