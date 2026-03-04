@@ -53,7 +53,8 @@ def get_model(model_name, config_path="config/default.yaml", pretrained=True):
         model.classifier[6] = nn.Linear(4096, num_classes)
         # Freeze the first 50% of layers to prevent overfitting
         all_params = list(model.named_parameters())
-        freeze_until = len(all_params) // 2
+        # freeze_until = len(all_params) // 2
+        freeze_until = int(len(all_params) * 0.8)
         for name, param in all_params[:freeze_until]:
             param.requires_grad = False
     else:
