@@ -1,6 +1,7 @@
 import timm
 import torch
 import torch.nn as nn
+import torchvision.models as models
 import yaml
 
 
@@ -45,6 +46,16 @@ def get_model(model_name, config_path="config/default.yaml", pretrained=True):
             model.head = nn.Linear(in_features, num_classes)
         else:
             model.head = nn.Linear(model.head.in_features, num_classes)
+    elif "vgg11" in model_name:
+        # VGG from torchvision - use VGG11 (lighter)
+        model = models.vgg11(pretrained=use_pretrained)
+        # Replace the final classifier layer
+        model.classifier[6] = nn.Linear(4096, num_classes)
+        # Freeze the first 50% of layers to prevent overfitting
+        all_params = list(model.named_parameters())
+        freeze_until = len(all_params) // 2
+        for name, param in all_params[:freeze_until]:
+            param.requires_grad = False
     else:
         model = timm.create_model(model_name, pretrained=use_pretrained)
         if "convnext_base" in model_name:
@@ -74,12 +85,6 @@ def get_model(model_name, config_path="config/default.yaml", pretrained=True):
             or "efficientnet" in model_name
         ):
             model.classifier = nn.Linear(model.classifier.in_features, num_classes)
-        elif "vgg16" in model_name:
-            # timm VGG models use head.fc as the final classifier
-            if hasattr(model.head, "fc"):
-                model.head.fc = nn.Linear(model.head.fc.in_features, num_classes)
-            else:
-                model.head = nn.Linear(model.head.in_features, num_classes)
         elif "convnextv2_tiny" in model_name:
             model.head.fc = nn.Linear(model.head.fc.in_features, num_classes)
             # Freeze the first 50% of layers
