@@ -74,7 +74,7 @@ def get_model(model_name, config_path="config/default.yaml", pretrained=True):
             or "efficientnet" in model_name
         ):
             model.classifier = nn.Linear(model.classifier.in_features, num_classes)
-        elif "vgg" in model_name:
+        elif "vgg16" in model_name:
             # timm VGG models use head.fc as the final classifier
             if hasattr(model.head, "fc"):
                 model.head.fc = nn.Linear(model.head.fc.in_features, num_classes)
