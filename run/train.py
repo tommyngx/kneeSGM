@@ -1,5 +1,9 @@
 import warnings
-warnings.filterwarnings("ignore", message="TypedStorage is deprecated. It will be removed in the future and UntypedStorage will be the only storage class.")
+
+warnings.filterwarnings(
+    "ignore",
+    message="TypedStorage is deprecated. It will be removed in the future and UntypedStorage will be the only storage class.",
+)
 
 import torch
 import torch.optim as optim
@@ -18,13 +22,40 @@ from models.model_architectures import get_model
 from data.data_loader import get_dataloader
 from data.preprocess import get_transforms
 from utils.metrics import accuracy, f1, precision, recall
-from utils.gradcam import generate_gradcam, show_cam_on_image, save_random_predictions, get_target_layer
+from utils.gradcam import (
+    generate_gradcam,
+    show_cam_on_image,
+    save_random_predictions,
+    get_target_layer,
+)
 from utils.plotting import save_confusion_matrix, save_roc_curve, tr_plot
 
+
+class FocalLoss(nn.Module):
+    def __init__(self, gamma=2.0, weight=None, reduction="mean"):
+        super(FocalLoss, self).__init__()
+        self.gamma = gamma
+        self.weight = weight
+        self.reduction = reduction
+
+    def forward(self, inputs, targets):
+        ce_loss = nn.functional.cross_entropy(
+            inputs, targets, weight=self.weight, reduction="none"
+        )
+        pt = torch.exp(-ce_loss)
+        focal_loss = (1 - pt) ** self.gamma * ce_loss
+        if self.reduction == "mean":
+            return focal_loss.mean()
+        elif self.reduction == "sum":
+            return focal_loss.sum()
+        return focal_loss
+
+
 def load_config(config_path):
-    with open(config_path, 'r') as file:
+    with open(config_path, "r") as file:
         config = yaml.safe_load(file)
     return config
+
 
 def create_output_dirs(base_dir, timezone, model_name):
     tz = pytz.timezone(timezone)
@@ -35,11 +66,13 @@ def create_output_dirs(base_dir, timezone, model_name):
     os.makedirs(os.path.join(output_dir, "final_logs"), exist_ok=True)
     return output_dir
 
+
 def compute_class_weights(dataset):
     class_counts = np.bincount(dataset.data[dataset.label_column])
     total_samples = len(dataset)
     class_weights = total_samples / (len(class_counts) * class_counts)
     return torch.tensor(class_weights, dtype=torch.float)
+
 
 def train_one_epoch(model, dataloader, criterion, optimizer, device):
     model.train()
@@ -55,6 +88,7 @@ def train_one_epoch(model, dataloader, criterion, optimizer, device):
         running_loss += loss.item()
         running_acc += accuracy(outputs, labels)
     return running_loss / len(dataloader), running_acc / len(dataloader)
+
 
 def validate(model, dataloader, criterion, device):
     model.eval()
@@ -74,30 +108,62 @@ def validate(model, dataloader, criterion, device):
             all_preds.extend(torch.argmax(outputs, dim=1).cpu().numpy())
             all_labels.extend(labels.cpu().numpy())
             all_outputs.extend(outputs.cpu().numpy())
-    return running_loss / len(dataloader), running_acc / len(dataloader), all_preds, all_labels, all_outputs
+    return (
+        running_loss / len(dataloader),
+        running_acc / len(dataloader),
+        all_preds,
+        all_labels,
+        all_outputs,
+    )
 
-def main(config='default.yaml', model_name=None, epochs=None, resume_from=None, use_gradcam_plus_plus=False):
-    config_path = os.path.join('config', config)
+
+def main(
+    config="default.yaml",
+    model_name=None,
+    epochs=None,
+    resume_from=None,
+    use_gradcam_plus_plus=False,
+    loss_type="cross_entropy",
+):
+    config_path = os.path.join("config", config)
     config = load_config(config_path)
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
     if model_name is None:
-        model_name = config['model']['name']
+        model_name = config["model"]["name"]
     if epochs is None:
-        epochs = config['training']['epochs']
-    
-    output_dir = create_output_dirs(config['output_dir'], config['timezone'], model_name)
-    
-    model = get_model(model_name, config_path=config_path, pretrained=config['model']['pretrained'])
+        epochs = config["training"]["epochs"]
+
+    output_dir = create_output_dirs(
+        config["output_dir"], config["timezone"], model_name
+    )
+
+    model = get_model(
+        model_name, config_path=config_path, pretrained=config["model"]["pretrained"]
+    )
     model = model.to(device)
-    
-    train_transform, val_transform = get_transforms(config['data']['image_size'], config_path=config_path)
-    train_loader = get_dataloader('train', config['data']['batch_size'], config['data']['num_workers'], transform=train_transform, config_path=config_path)
-    val_loader = get_dataloader('val', config['data']['batch_size'], config['data']['num_workers'], transform=val_transform, config_path=config_path)
-    
+
+    train_transform, val_transform = get_transforms(
+        config["data"]["image_size"], config_path=config_path
+    )
+    train_loader = get_dataloader(
+        "train",
+        config["data"]["batch_size"],
+        config["data"]["num_workers"],
+        transform=train_transform,
+        config_path=config_path,
+    )
+    val_loader = get_dataloader(
+        "val",
+        config["data"]["batch_size"],
+        config["data"]["num_workers"],
+        transform=val_transform,
+        config_path=config_path,
+    )
+
     # Compute class weights
     class_weights = compute_class_weights(train_loader.dataset).to(device)
-    
+
     # Print details before training
     print(f"Model: {model_name}")
     print(f"Number of epochs: {epochs}")
@@ -105,57 +171,88 @@ def main(config='default.yaml', model_name=None, epochs=None, resume_from=None, 
     print(f"Class names: {config['data']['class_names']}")
     print(f"Number of training images: {len(train_loader.dataset)}")
     print(f"Number of validation images: {len(val_loader.dataset)}")
-    
-    #criterion = nn.CrossEntropyLoss(weight=class_weights)
-    criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=config['training']['learning_rate'], weight_decay=config['training']['weight_decay'])
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=config['training'].get('lr_scheduler_patience', 50))
-    
+
+    # criterion = nn.CrossEntropyLoss(weight=class_weights)
+    if loss_type == "focal":
+        criterion = FocalLoss(gamma=2.0)
+        print("Using Focal Loss")
+    else:
+        criterion = nn.CrossEntropyLoss()
+        print("Using Cross Entropy Loss")
+    optimizer = optim.Adam(
+        model.parameters(),
+        lr=config["training"]["learning_rate"],
+        weight_decay=config["training"]["weight_decay"],
+    )
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer,
+        mode="min",
+        factor=0.1,
+        patience=config["training"].get("lr_scheduler_patience", 50),
+    )
+
     start_epoch = 1
     best_val_acc = 0.0
-    training_history = {'accuracy': [], 'loss': [], 'val_accuracy': [], 'val_loss': []}
+    training_history = {"accuracy": [], "loss": [], "val_accuracy": [], "val_loss": []}
     best_models = []
-    early_stopping_patience = config['training'].get('early_stopping_patience', 10)
+    early_stopping_patience = config["training"].get("early_stopping_patience", 10)
     early_stopping_counter = 0
-    
+
     if resume_from:
         checkpoint = torch.load(resume_from, weights_only=True)
-        model.load_state_dict(checkpoint['model_state_dict'])
-        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-        start_epoch = checkpoint['epoch'] + 1
-        best_val_acc = checkpoint['best_val_acc']
-        training_history = checkpoint['training_history']
+        model.load_state_dict(checkpoint["model_state_dict"])
+        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+        start_epoch = checkpoint["epoch"] + 1
+        best_val_acc = checkpoint["best_val_acc"]
+        training_history = checkpoint["training_history"]
         print(f"Resuming training from epoch {start_epoch}")
-    
+
     for epoch in range(start_epoch, epochs):
-        train_loss, train_acc = train_one_epoch(model, train_loader, criterion, optimizer, device)
-        val_loss, val_acc, val_preds, val_labels, val_outputs = validate(model, val_loader, criterion, device)
-        
-        training_history['accuracy'].append(train_acc)
-        training_history['loss'].append(train_loss)
-        training_history['val_accuracy'].append(val_acc)
-        training_history['val_loss'].append(val_loss)
-        
-        print(f"Epoch {epoch}/{epochs}, Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f}, Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}")
-        
+        train_loss, train_acc = train_one_epoch(
+            model, train_loader, criterion, optimizer, device
+        )
+        val_loss, val_acc, val_preds, val_labels, val_outputs = validate(
+            model, val_loader, criterion, device
+        )
+
+        training_history["accuracy"].append(train_acc)
+        training_history["loss"].append(train_loss)
+        training_history["val_accuracy"].append(val_acc)
+        training_history["val_loss"].append(val_loss)
+
+        print(
+            f"Epoch {epoch}/{epochs}, Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f}, Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}"
+        )
+
         if (epoch) % 2 == 0:
             print("Classification Report:")
-            print(classification_report(val_labels, val_preds, target_names=config['data']['class_names'], zero_division=0))
-        
+            print(
+                classification_report(
+                    val_labels,
+                    val_preds,
+                    target_names=config["data"]["class_names"],
+                    zero_division=0,
+                )
+            )
+
         tr_plot(training_history, start_epoch, output_dir)
-        
+
         with open(os.path.join(output_dir, "logs", "training_log.txt"), "a") as f:
-            f.write(f"Epoch {epoch+1}/{epochs}, Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f}, Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}\n")
-        
+            f.write(
+                f"Epoch {epoch + 1}/{epochs}, Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f}, Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}\n"
+            )
+
         scheduler.step(val_loss)
-        
+
         if val_acc > best_val_acc:
             best_val_acc = val_acc  # Update best_val_acc before saving the checkpoint
 
         # Get all saved models' accuracies
         model_dir = os.path.join(output_dir, "models")
-        model_files = [f for f in os.listdir(model_dir) if f.endswith('.pth')]
-        model_accuracies = [float(f.split('_acc_')[1].split('.pth')[0]) for f in model_files]
+        model_files = [f for f in os.listdir(model_dir) if f.endswith(".pth")]
+        model_accuracies = [
+            float(f.split("_acc_")[1].split(".pth")[0]) for f in model_files
+        ]
         model_accuracies = sorted(model_accuracies, reverse=True)
 
         # Determine the top 3 accuracies
@@ -164,11 +261,11 @@ def main(config='default.yaml', model_name=None, epochs=None, resume_from=None, 
         # Check if current val_acc is in the top 3
         if len(top_3_accuracies) < 3 or val_acc > top_3_accuracies[-1]:
             checkpoint = {
-                'epoch': epoch,
-                'model_state_dict': model.state_dict(),
-                'optimizer_state_dict': optimizer.state_dict(),
-                'best_val_acc': best_val_acc,
-                'training_history': training_history
+                "epoch": epoch,
+                "model_state_dict": model.state_dict(),
+                "optimizer_state_dict": optimizer.state_dict(),
+                "best_val_acc": best_val_acc,
+                "training_history": training_history,
             }
             model_filename = f"{model_name}_epoch_{epoch}_acc_{val_acc:.4f}.pth"
             model_path = os.path.join(output_dir, "models", model_filename)
@@ -184,31 +281,90 @@ def main(config='default.yaml', model_name=None, epochs=None, resume_from=None, 
             negative_risk = val_outputs[:, :2].sum(axis=1)  # Sum of class 0, 1
 
             # Save confusion matrix, ROC curve, and random predictions
-            save_confusion_matrix(val_labels, val_preds, config['data']['class_names'], os.path.join(output_dir, "logs"), epoch, acc=val_acc)
-            save_roc_curve(val_labels, positive_risk, config['data']['class_names'], os.path.join(output_dir, "logs"), epoch, acc=val_acc)
+            save_confusion_matrix(
+                val_labels,
+                val_preds,
+                config["data"]["class_names"],
+                os.path.join(output_dir, "logs"),
+                epoch,
+                acc=val_acc,
+            )
+            save_roc_curve(
+                val_labels,
+                positive_risk,
+                config["data"]["class_names"],
+                os.path.join(output_dir, "logs"),
+                epoch,
+                acc=val_acc,
+            )
             target_layer = get_target_layer(model, model_name)
-            save_random_predictions(model, val_loader, device, os.path.join(output_dir, "logs"), epoch, config['data']['class_names'], use_gradcam_plus_plus, target_layer, acc=val_acc, model_name=model_name)
+            save_random_predictions(
+                model,
+                val_loader,
+                device,
+                os.path.join(output_dir, "logs"),
+                epoch,
+                config["data"]["class_names"],
+                use_gradcam_plus_plus,
+                target_layer,
+                acc=val_acc,
+                model_name=model_name,
+            )
         else:
             early_stopping_counter += 1
 
         # Ensure only top 3 models are saved
-        model_files = [f for f in os.listdir(model_dir) if f.endswith('.pth')]
-        model_files = sorted(model_files, key=lambda x: float(x.split('_acc_')[1].split('.pth')[0]), reverse=True)
+        model_files = [f for f in os.listdir(model_dir) if f.endswith(".pth")]
+        model_files = sorted(
+            model_files,
+            key=lambda x: float(x.split("_acc_")[1].split(".pth")[0]),
+            reverse=True,
+        )
         for model_file in model_files[3:]:
             os.remove(os.path.join(model_dir, model_file))
-        
+
         # Early stopping
         if early_stopping_counter >= early_stopping_patience:
             print("Early stopping triggered.")
             break
 
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Train a model for knee osteoarthritis classification.')
-    parser.add_argument('--config', type=str, default='default.yaml', help='Name of the configuration file.')
-    parser.add_argument('--model', type=str, help='Model name to use for training.')
-    parser.add_argument('--epochs', type=int, help='Number of epochs to train.')
-    parser.add_argument('--resume_from', type=str, help='Path to the checkpoint to resume training from.')
-    parser.add_argument('--use_gradcam_plus_plus', action='store_true', help='Use Grad-CAM++ instead of Grad-CAM.')
+    parser = argparse.ArgumentParser(
+        description="Train a model for knee osteoarthritis classification."
+    )
+    parser.add_argument(
+        "--config",
+        type=str,
+        default="default.yaml",
+        help="Name of the configuration file.",
+    )
+    parser.add_argument("--model", type=str, help="Model name to use for training.")
+    parser.add_argument("--epochs", type=int, help="Number of epochs to train.")
+    parser.add_argument(
+        "--resume_from",
+        type=str,
+        help="Path to the checkpoint to resume training from.",
+    )
+    parser.add_argument(
+        "--use_gradcam_plus_plus",
+        action="store_true",
+        help="Use Grad-CAM++ instead of Grad-CAM.",
+    )
+    parser.add_argument(
+        "--loss",
+        type=str,
+        default="cross_entropy",
+        choices=["cross_entropy", "focal"],
+        help="Loss function: cross_entropy (default) or focal.",
+    )
     args = parser.parse_args()
-    
-    main(config=args.config, model_name=args.model, epochs=args.epochs, resume_from=args.resume_from, use_gradcam_plus_plus=args.use_gradcam_plus_plus)
+
+    main(
+        config=args.config,
+        model_name=args.model,
+        epochs=args.epochs,
+        resume_from=args.resume_from,
+        use_gradcam_plus_plus=args.use_gradcam_plus_plus,
+        loss_type=args.loss,
+    )
