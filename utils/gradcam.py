@@ -434,8 +434,11 @@ def get_target_layer(model, model_name):
     elif "fastvit" in model_name:
         return model.stages[-1].blocks[-1].norm
     elif "convnextv2_tiny" in model_name:
-        # ConvNeXtV2 Tiny: lấy layer cuối cùng của stages
-        return model.stages[-1][-1]
+        # ConvNeXtV2 Tiny: ConvNeXtStage is not subscriptable, access via .blocks
+        if hasattr(model.stages[-1], "blocks"):
+            return model.stages[-1].blocks[-1]
+        else:
+            return model.stages[-1]
     elif (
         "efficientnet_b0" in model_name
         or "efficientnet_b7" in model_name
