@@ -46,6 +46,8 @@ def generate_gradcam(model, image, target_layer, model_name):
             "convnext",
             "resnext50_32x4d",
             "xception",
+            "vgg",
+            "convnextv2_tiny",
         ]
     ):
         return generate_gradcam_cnn(activations, gradients, image)
