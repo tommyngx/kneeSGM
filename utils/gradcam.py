@@ -41,6 +41,7 @@ def generate_gradcam(model, image, target_layer, model_name):
         for cnn_model in [
             "resnet",
             "resnext",
+            "efficientnetv2",
             "efficientnet",
             "densenet",
             "convnext",
@@ -439,6 +440,9 @@ def get_target_layer(model, model_name):
             return model.stages[-1].blocks[-1]
         else:
             return model.stages[-1]
+    elif "efficientnetv2" in model_name or "efficientnet_v2" in model_name:
+        # EfficientNetV2 in timm uses conv_head as final conv layer
+        return model.conv_head if hasattr(model, "conv_head") else model.blocks[-1]
     elif (
         "efficientnet_b0" in model_name
         or "efficientnet_b7" in model_name

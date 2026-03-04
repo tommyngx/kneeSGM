@@ -80,6 +80,13 @@ def get_model(model_name, config_path="config/default.yaml", pretrained=True):
             model.head.fc.fc2 = nn.Linear(model.head.fc.fc2.in_features, num_classes)
         elif "fastvit" in model_name:
             model.head.fc = nn.Linear(model.head.fc.in_features, num_classes)
+        elif "efficientnetv2" in model_name or "efficientnet_v2" in model_name:
+            model.classifier = nn.Linear(model.classifier.in_features, num_classes)
+            # Freeze the first 50% of layers
+            all_params = list(model.named_parameters())
+            freeze_until = len(all_params) // 2
+            for name, param in all_params[:freeze_until]:
+                param.requires_grad = False
         elif (
             "efficientnet_b0" in model_name
             or "efficientnet_b7" in model_name
